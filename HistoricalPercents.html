@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kingdom Intelligence Hub</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root { 
+            --primary: #2563eb; --secondary: #10b981; --bg: #f1f5f9; 
+            --card: #ffffff; --text: #1e293b; --muted: #64748b;
+            --accent-blue: #eff6ff; --accent-green: #f0fdf4; --accent-red: #fef2f2; --accent-amber: #fffbeb;
+        }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        
+        .header-container { display: flex; justify-content: center; align-items: center; margin-bottom: 20px; max-width: 1400px; margin-left: auto; margin-right: auto; position: relative; }
+        .page-title { font-weight: 900; font-size: 1.5rem; text-transform: uppercase; letter-spacing: -0.02em; margin: 0; }
+        .home-link { text-decoration: none; color: var(--muted); font-weight: 700; font-size: 0.8rem; background: #fff; padding: 8px 15px; border-radius: 8px; border: 1px solid #e2e8f0; position: absolute; left: 0; }
+
+        .controls { display: flex; gap: 12px; margin-bottom: 15px; justify-content: center; align-items: center; flex-wrap: wrap; }
+        button { padding: 12px 20px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: 800; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-size: 0.8rem; }
+        .btn-scan { background: var(--primary); }
+        .btn-compute { background: var(--secondary); }
+        .btn-load { background: #475569; margin: 40px auto; display: none; }
+        button:disabled { background: #cbd5e1; transform: none; box-shadow: none; cursor: not-allowed; }
+
+        /* Hidden initially, revealed after Generation */
+        .search-container { display: none; justify-content: center; margin-bottom: 15px; }
+        .search-box { padding: 14px; border-radius: 12px; border: 2px solid #e2e8f0; width: 400px; outline: none; font-weight: 600; text-align: center; font-size: 0.9rem; transition: border-color 0.2s; }
+        .search-box:focus { border-color: var(--primary); }
+
+        .sort-bar { display: none; justify-content: center; gap: 8px; margin-bottom: 25px; flex-wrap: wrap; }
+        .sort-btn { background: #fff; color: var(--muted); border: 1px solid #e2e8f0; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+        .sort-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        #cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 25px; max-width: 1400px; margin: 0 auto; justify-content: center; }
+        .kd-card { background: var(--card); border-radius: 24px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 16px; max-width: 500px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
+        .kd-id { font-size: 1.5rem; font-weight: 900; color: var(--primary); }
+        .kd-ally { font-weight: 800; color: #0f172a; font-size: 1.1rem; }
+        .snap-count { font-size: 0.7rem; background: #f1f5f9; padding: 4px 12px; border-radius: 20px; color: var(--muted); font-weight: 800; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .last-row-center { display: flex; justify-content: center; width: 100%; }
+        .stat-box { padding: 14px; border-radius: 16px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; min-height: 110px; justify-content: space-between; width: 100%; box-sizing: border-box; }
+        .half-width-box { width: calc(50% - 6px); }
+
+        .stat-label { font-size: 0.65rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; display: block; }
+        .stat-value { font-size: 1.2rem; font-weight: 900; color: #0f172a; }
+        .range-row { display: flex; justify-content: space-between; margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.08); }
+        .range-item { width: 48%; }
+        .range-label { font-size: 0.55rem; color: var(--muted); display: block; font-weight: 800; }
+        .range-val { font-size: 0.75rem; font-weight: 800; color: #334155; display: block; }
+        .range-date { font-size: 0.58rem; color: #64748b; display: block; font-weight: 700; margin-top: 2px; }
+
+        .box-mp { background: var(--accent-blue); border-left: 5px solid var(--primary); }
+        .box-merits { background: #f8fafc; border-left: 5px solid #64748b; }
+        .box-kills { background: var(--accent-amber); border-left: 5px solid #d97706; }
+        .box-deads { background: var(--accent-red); border-left: 5px solid #dc2626; }
+        .box-heals { background: var(--accent-green); border-left: 5px solid #16a34a; }
+
+        #status-text { text-align: center; margin-bottom: 15px; font-weight: 700; color: var(--muted); }
+    </style>
+</head>
+<body>
+
+<div class="header-container">
+    <a href="home.html" class="home-link">← HOME HUB</a>
+    <h1 class="page-title">Intelligence Hub</h1>
+</div>
+
+<div class="controls">
+    <button class="btn-scan" onclick="syncIDs()">Scan Snapshots</button>
+    <button class="btn-compute" id="valBtn" onclick="renderInitial()" disabled>Generate Profiles</button>
+</div>
+
+<div class="search-container" id="searchArea">
+    <input type="text" id="searchInput" class="search-box" placeholder="Search Kingdom# or Alliance Name..." oninput="handleSearch()">
+</div>
+
+<div class="sort-bar" id="sortBar">
+    <button class="sort-btn" onclick="handleSort('id')">Kingdom # <span id="icon-id"></span></button>
+    <button class="sort-btn" onclick="handleSort('merits')">Merits <span id="icon-merits"></span></button>
+    <button class="sort-btn" onclick="handleSort('mp')">M/P Ratio <span id="icon-mp"></span></button>
+    <button class="sort-btn" onclick="handleSort('kills')">Kills <span id="icon-kills"></span></button>
+    <button class="sort-btn" onclick="handleSort('deads')">Deads <span id="icon-deads"></span></button>
+    <button class="sort-btn" onclick="handleSort('heals')">Heals <span id="icon-heals"></span></button>
+</div>
+
+<div id="status-text">Ready</div>
+
+<div id="cardGrid"></div>
+
+<div style="text-align: center;">
+    <button id="loadMoreBtn" class="btn-load" onclick="loadMore()">Load More Profiles</button>
+</div>
+
+<script>
+    let fileList = [];
+    let masterData = {}; 
+    let kingdomStats = [];
+    let filteredList = [];
+    let currentSort = { key: 'id', asc: true };
+    let itemsShown = 30;
+    const pageSize = 30;
+
+    function formatValue(v, isPct) {
+        if (v === null || isNaN(v)) return "-";
+        if (isPct) return (v * 100).toFixed(2) + '%';
+        if (v >= 1e9) return (v / 1e9).toFixed(1) + 'B';
+        if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+        return Math.round(v).toLocaleString();
+    }
+
+    async function syncIDs() {
+        const status = document.getElementById('status-text');
+        status.textContent = "Fetching Snapshots...";
+        const resp = await fetch('Pull/files.json');
+        fileList = await resp.json();
+        const idSet = new Set();
+        masterData = {}; 
+
+        for (let i = 0; i < fileList.length; i++) {
+            const file = fileList[i];
+            const r = await fetch(`Pull/${file}`);
+            const text = await r.text();
+            const csv = Papa.parse(text, { skipEmptyLines: true }).data;
+            masterData[file] = csv;
+            csv.forEach(row => {
+                const id = String(row[0]).trim();
+                if (id !== "" && !isNaN(id) && id.length < 5) idSet.add(id);
+            });
+            status.textContent = `Syncing Snapshots... (${i+1}/${fileList.length})`;
+        }
+
+        const uniqueIDs = Array.from(idSet).sort((a, b) => Number(a) - Number(b));
+        kingdomStats = uniqueIDs.map(id => {
+            let s = {
+                id: Number(id), ally: "Unknown", count: 0,
+                d: [], e: [], f: [], g: [], h: [],
+                src: {
+                    e_min: {v: Infinity, s: ""}, e_max: {v: -Infinity, s: ""},
+                    f_min: {v: Infinity, s: ""}, f_max: {v: -Infinity, s: ""},
+                    g_min: {v: Infinity, s: ""}, g_max: {v: -Infinity, s: ""},
+                    h_min: {v: Infinity, s: ""}, h_max: {v: -Infinity, s: ""}
+                }
+            };
+            fileList.forEach(file => {
+                const row = masterData[file].find(r => String(r[0]).trim() === String(id));
+                if (row) {
+                    s.count++; s.ally = row[1] || s.ally;
+                    const date = file.replace('.csv','');
+                    const parse = (idx, isPct) => {
+                        let val = row[idx];
+                        if (typeof val === 'string') val = val.replace(/,/g, '').replace('%', '');
+                        let n = parseFloat(val); if (isPct) n = n / 100;
+                        return isNaN(n) ? null : n;
+                    };
+                    const dVal = parse(3, false); if (dVal !== null) s.d.push(dVal);
+                    const log = (key, idx, isPct) => {
+                        const n = parse(idx, isPct);
+                        if (n !== null) {
+                            s[key].push(n);
+                            if (n < s.src[key + '_min'].v) s.src[key + '_min'] = { v: n, s: date };
+                            if (n > s.src[key + '_max'].v) s.src[key + '_max'] = { v: n, s: date };
+                        }
+                    };
+                    log('e', 4, true); log('f', 5, false); log('g', 6, false); log('h', 7, false);
+                }
+            });
+            const getAvg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+            s.avgMerits = getAvg(s.d); s.totalMerits = s.d.reduce((a, b) => a + b, 0);
+            s.avgMp = getAvg(s.e); s.avgKills = getAvg(s.f);
+            s.avgDeads = getAvg(s.g); s.avgHeals = getAvg(s.h);
+            s.searchText = `${s.id} ${s.ally.toLowerCase()}`;
+            return s;
+        });
+        status.textContent = `${kingdomStats.length} Kingdom Profiles Prepared.`;
+        document.getElementById('valBtn').disabled = false;
+    }
+
+    function renderInitial() {
+        // Show Hidden Bars
+        document.getElementById('searchArea').style.display = 'flex';
+        document.getElementById('sortBar').style.display = 'flex';
+        
+        applyFilterAndSort();
+        document.getElementById('status-text').textContent = "Intelligence Profiles Active.";
+    }
+
+    function handleSort(key) {
+        if (currentSort.key === key) currentSort.asc = !currentSort.asc;
+        else { currentSort.key = key; currentSort.asc = false; }
+        updateSortIcons();
+        applyFilterAndSort();
+    }
+
+    function handleSearch() {
+        applyFilterAndSort();
+    }
+
+    function applyFilterAndSort() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        filteredList = kingdomStats.filter(s => s.searchText.includes(query));
+
+        filteredList.sort((a, b) => {
+            let valA, valB;
+            switch(currentSort.key) {
+                case 'id': valA = a.id; valB = b.id; break;
+                case 'merits': valA = a.avgMerits; valB = b.avgMerits; break;
+                case 'mp': valA = a.avgMp; valB = b.avgMp; break;
+                case 'kills': valA = a.avgKills; valB = b.avgKills; break;
+                case 'deads': valA = a.avgDeads; valB = b.avgDeads; break;
+                case 'heals': valA = a.avgHeals; valB = b.avgHeals; break;
+            }
+            return currentSort.asc ? valA - valB : valB - valA;
+        });
+
+        itemsShown = pageSize;
+        renderGrid();
+    }
+
+    function loadMore() {
+        itemsShown += pageSize;
+        renderGrid();
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('cardGrid');
+        grid.innerHTML = '';
+        const slice = filteredList.slice(0, itemsShown);
+        
+        slice.forEach(s => {
+            const card = document.createElement('div');
+            card.className = 'kd-card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <div><div class="kd-id">#${s.id}</div><div class="kd-ally">${s.ally}</div></div>
+                    <div class="snap-count">${s.count} Snaps</div>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-box box-merits">
+                        <div><span class="stat-label">Merits (AVG)</span><div class="stat-value">${formatValue(s.avgMerits, false)}</div></div>
+                        <div style="font-size:0.65rem; font-weight:800; color:var(--muted); border-top:1px solid #e2e8f0; padding-top:8px;">TOTAL: ${formatValue(s.totalMerits, false)}</div>
+                    </div>
+                    <div class="stat-box box-mp">
+                        <div><span class="stat-label">M/P Ratio (AVG)</span><div class="stat-value" style="color:var(--primary)">${formatValue(s.avgMp, true)}</div></div>
+                        ${getRangeHTML(s.src.e_min, s.src.e_max, true)}
+                    </div>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-box box-kills">
+                        <div><span class="stat-label">Kills (AVG)</span><div class="stat-value">${formatValue(s.avgKills, false)}</div></div>
+                        ${getRangeHTML(s.src.f_min, s.src.f_max, false)}
+                    </div>
+                    <div class="stat-box box-deads">
+                        <div><span class="stat-label">Deads (AVG)</span><div class="stat-value">${formatValue(s.avgDeads, false)}</div></div>
+                        ${getRangeHTML(s.src.g_min, s.src.g_max, false)}
+                    </div>
+                </div>
+                <div class="last-row-center">
+                    <div class="stat-box box-heals half-width-box">
+                        <div><span class="stat-label">Heals (AVG)</span><div class="stat-value">${formatValue(s.avgHeals, false)}</div></div>
+                        ${getRangeHTML(s.src.h_min, s.src.h_max, false)}
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        const loadBtn = document.getElementById('loadMoreBtn');
+        loadBtn.style.display = (itemsShown < filteredList.length) ? 'block' : 'none';
+    }
+
+    function getRangeHTML(minObj, maxObj, isPct) {
+        return `
+            <div class="range-row">
+                <div class="range-item">
+                    <span class="range-label">MIN</span>
+                    <span class="range-val">${formatValue(minObj.v, isPct)}</span>
+                    <span class="range-date">${minObj.s}</span>
+                </div>
+                <div class="range-item">
+                    <span class="range-label">MAX</span>
+                    <span class="range-val">${formatValue(maxObj.v, isPct)}</span>
+                    <span class="range-date">${maxObj.s}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    function updateSortIcons() {
+        document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.sort-btn span').forEach(span => span.textContent = '');
+        const activeBtn = document.querySelector(`button[onclick="handleSort('${currentSort.key}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            document.getElementById(`icon-${currentSort.key}`).textContent = currentSort.asc ? ' ↑' : ' ↓';
+        }
+    }
+</script>
+</body>
+</html>

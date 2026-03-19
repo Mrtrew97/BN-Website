@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare Kingdoms: Group A vs B</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --secondary: #dc2626; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        
+        /* Header Layout */
+        .header-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 10px 0;
+            min-height: 50px;
+        }
+
+        .home-link {
+            position: absolute;
+            left: 0;
+            background: #64748b;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .home-link:hover { background: #475569; }
+
+        .page-title {
+            font-weight: 900;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            margin: 0;
+            color: var(--text);
+            text-align: center;
+        }
+
+        /* Split Layout */
+        .comparison-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; align-items: start; }
+        .group-column { display: flex; flex-direction: column; gap: 15px; min-width: 0; }
+
+        /* Search Panels */
+        .control-panel { 
+            background: var(--card); padding: 25px; border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        
+        /* Centered Sticky Legend */
+        .sticky-box {
+            position: sticky; top: 10px; z-index: 100;
+            background: var(--card); padding: 15px; border-radius: 10px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-top: 5px solid var(--primary);
+            margin-bottom: 10px; display: none; text-align: center;
+        }
+        .group-b .sticky-box { border-top-color: var(--secondary); }
+
+        .legend-title { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 800; letter-spacing: 0.1em; margin-bottom: 12px; }
+
+        .search-input-row { display: flex; gap: 12px; margin-top: 10px; }
+        input { flex: 1; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; outline: none; }
+        
+        button { padding: 12px 24px; border-radius: 8px; border: none; color: white; cursor: pointer; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; }
+        .btn-a { background: var(--primary); }
+        .btn-b { background: var(--secondary); }
+
+        .legend-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 700; color: var(--text); }
+        .color-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+
+        /* Charts */
+        .chart-card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: 380px; margin-bottom: 25px; }
+        .group-label { font-size: 1.4rem; font-weight: 900; text-align: center; margin-bottom: 5px; text-transform: uppercase; }
+
+        @media (max-width: 1200px) { 
+            .comparison-wrapper { grid-template-columns: 1fr; } 
+            .home-link { position: static; margin-bottom: 15px; display: inline-block; }
+            .header-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-container">
+    <a href="home.html" class="home-link">← HOME HUB</a>
+    <h1 class="page-title">Kingdom Comparison Tracker</h1>
+</div>
+
+<div class="comparison-wrapper">
+    <div class="group-column group-a">
+        <div class="control-panel">
+            <div class="group-label" style="color: var(--primary)">Group A</div>
+            <div class="search-input-row">
+                <input type="text" id="inputA" placeholder="IDs: 509, 60, 122" onkeypress="if(event.key==='Enter') runComparison('A')">
+                <button class="btn-a" onclick="runComparison('A')">LOAD A</button>
+            </div>
+        </div>
+        <div id="stickyA" class="sticky-box">
+            <div class="legend-title">Current Alliance On Server</div>
+            <div class="legend-grid" id="legendA"></div>
+        </div>
+        <div id="chartsA"></div>
+    </div>
+
+    <div class="group-column group-b">
+        <div class="control-panel">
+            <div class="group-label" style="color: var(--secondary)">Group B</div>
+            <div class="search-input-row">
+                <input type="text" id="inputB" placeholder="IDs: 300, 450, 11" onkeypress="if(event.key==='Enter') runComparison('B')">
+                <button class="btn-b" onclick="runComparison('B')">LOAD B</button>
+            </div>
+        </div>
+        <div id="stickyB" class="sticky-box">
+            <div class="legend-title">Current Alliance On Server</div>
+            <div class="legend-grid" id="legendB"></div>
+        </div>
+        <div id="chartsB"></div>
+    </div>
+</div>
+
+<script>
+    let fileList = [];
+    let charts = { A: {}, B: {} };
+    const palette = ['#2563eb', '#16a34a', '#9333ea', '#ea580c', '#0891b2', '#eab308', '#be123c', '#475569', '#10b981', '#f43f5e'];
+
+    const metrics = [
+        { id: 'Power', label: 'Power', index: 2 },
+        { id: 'Merits', label: 'Merits', index: 3 },
+        { id: 'MP', label: 'M/P', index: 4, isPercent: true },
+        { id: 'Kills', label: 'Kills', index: 5 },
+        { id: 'Deads', label: 'Deads', index: 6 },
+        { id: 'Heals', label: 'Heals', index: 7 },
+        { id: 'CH25', label: 'CH25', index: 8 },
+        { id: 'CH25AP', label: 'CH25 AP', index: 9 }
+    ];
+
+    function formatValue(val, isPct) {
+        if (val === null) return "N/A";
+        if (isPct) return (val * 100).toFixed(2) + '%';
+        if (val >= 1e9) return (val / 1e9).toFixed(2) + 'B';
+        if (val >= 1e6) return (val / 1e6).toFixed(2) + 'M';
+        return val.toLocaleString();
+    }
+
+    async function init() {
+        try {
+            const resp = await fetch('Pull/files.json');
+            fileList = (await resp.json()).sort();
+            ['A', 'B'].forEach(group => {
+                const container = document.getElementById(`charts${group}`);
+                metrics.forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = 'chart-card';
+                    card.innerHTML = `<canvas id="chart-${group}-${m.id}"></canvas>`;
+                    container.appendChild(card);
+                    setupChart(group, m);
+                });
+            });
+        } catch(e) { console.error("Error loading files.json"); }
+    }
+
+    function setupChart(group, m) {
+        const ctx = document.getElementById(`chart-${group}-${m.id}`).getContext('2d');
+        charts[group][m.id] = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { 
+                    title: { display: true, text: m.label, font: { size: 16, weight: '900' }, color: '#1e293b' }, 
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        padding: 12,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        callbacks: {
+                            label: (context) => ` ${context.dataset.label}: ${formatValue(context.parsed.y, m.isPercent)}`
+                        }
+                    }
+                },
+                scales: { 
+                    y: { grid: { color: '#f1f5f9' }, ticks: { callback: v => formatValue(v, m.isPercent), font: { size: 10, weight: '600' } } },
+                    x: { grid: { display: false }, ticks: { font: { size: 10, weight: '600' } } }
+                }
+            }
+        });
+    }
+
+    async function runComparison(group) {
+        const input = document.getElementById(`input${group}`).value;
+        const targetIds = input.split(',').map(s => s.trim()).filter(s => s !== "");
+        if (!targetIds.length) return;
+
+        const nameMap = {};
+        const lastFile = fileList[fileList.length-1];
+        const lastResp = await fetch(`Pull/${lastFile}`);
+        const lastCsv = await lastResp.text();
+        const lastData = Papa.parse(lastCsv, {skipEmptyLines: true}).data;
+        targetIds.forEach(id => {
+            const row = lastData.find(r => String(r[0]).trim() === id);
+            nameMap[id] = row ? row[1] : `ID ${id}`;
+        });
+
+        const history = {};
+        targetIds.forEach(id => history[id] = []);
+        
+        const fetchAll = fileList.map(async (f) => {
+            try {
+                const r = await fetch(`Pull/${f}`);
+                const txt = await r.text();
+                const csv = Papa.parse(txt, {skipEmptyLines: true}).data;
+                targetIds.forEach(id => {
+                    const row = csv.find(r => String(r[0]).trim() === id);
+                    if(row) {
+                        let mData = {};
+                        metrics.forEach(m => {
+                            let v = row[m.index];
+                            if(typeof v === 'string') v = v.replace(/,/g,'').replace('%','');
+                            v = parseFloat(v);
+                            if(m.isPercent) v = v/100;
+                            mData[m.id] = isNaN(v) ? null : v;
+                        });
+                        history[id].push({ date: f.replace('.csv',''), data: mData });
+                    }
+                });
+            } catch(e) {}
+        });
+
+        await Promise.all(fetchAll);
+
+        const labels = fileList.map(f => f.replace('.csv',''));
+        const legendDiv = document.getElementById(`legend${group}`);
+        const sticky = document.getElementById(`sticky${group}`);
+        
+        legendDiv.innerHTML = '';
+        sticky.style.display = 'block';
+
+        metrics.forEach(m => {
+            const chart = charts[group][m.id];
+            chart.data.labels = labels;
+            chart.data.datasets = targetIds.map((id, i) => {
+                const color = palette[i % palette.length];
+                const allianceName = nameMap[id];
+
+                if(m.id === metrics[0].id) {
+                    const item = document.createElement('div');
+                    item.className = 'legend-item';
+                    item.innerHTML = `<div class="color-dot" style="background:${color}"></div> <span>${allianceName}</span>`;
+                    legendDiv.appendChild(item);
+                }
+
+                return {
+                    label: allianceName,
+                    data: labels.map(l => {
+                        const h = history[id].find(pt => pt.date === l);
+                        return h ? h.data[m.id] : null;
+                    }),
+                    borderColor: color, backgroundColor: color, fill: false, tension: 0.15, pointRadius: 4, pointHoverRadius: 6, borderWidth: 3
+                };
+            });
+            chart.update();
+        });
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>

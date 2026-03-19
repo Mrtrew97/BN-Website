@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Teams Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; 
+            --text: #1e293b; --muted: #64748b; --accent: #8b5cf6;
+            --highlight: #9961ff;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; overflow-x: hidden; }
+
+        #loadingOverlay {
+            position: fixed; inset: 0; background: var(--bg);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 5px solid #e2e8f0;
+            border-top: 5px solid var(--primary); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .sticky-header { position: sticky; top: 0; background: var(--bg); z-index: 1000; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px 0; }
+        .search-container { width: 100%; margin-bottom: 10px; }
+        .search-input { width: 100%; padding: 12px 20px; border-radius: 12px; border: 2px solid #e2e8f0; font-size: 0.9rem; outline: none; box-sizing: border-box; }
+
+        .sort-row { width: 100%; display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 5px 0; white-space: nowrap; scrollbar-width: none; }
+        .sort-row::-webkit-scrollbar { display: none; }
+        .sort-label { font-size: 0.7rem; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-right: 5px; }
+        .sort-btn { padding: 6px 12px; background: white; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); }
+        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .admin-controls { display: none; gap: 8px; align-items: center; }
+        .btn { padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 0.75rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-blue { background: var(--primary); color: white; }
+        .btn-green { background: #10b981; color: white; }
+        .btn-purple { background: var(--accent); color: white; }
+        .btn-ghost { background: white; border: 1px solid #e2e8f0; color: var(--muted); }
+        .btn-red { background: #fee2e2; color: #dc2626; }
+        .btn-orange { background: #fff7ed; border: 1px solid #fed7aa; color: #ea580c; }
+
+        #teamsContainer { display: flex; flex-direction: column; gap: 30px; width: 100%; }
+        .team-card { background: white; border-radius: 15px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px;}
+        .team-header { background: #f8fafc; padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .name-input { font-size: 1.1rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 300px; }
+        
+        .table-wrapper { width: 100%; overflow-x: auto; } 
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 1400px; }
+        th { text-align: center; padding: 15px 2px; color: var(--text); font-size: 0.82rem; font-weight: 900; text-transform: uppercase; border-bottom: 2px solid #f1f5f9; background: #ffffff; }
+        td { padding: 12px 2px; border-bottom: 1px solid #f8fafc; font-size: 0.8rem; text-align: center; }
+        
+        .highlighted-alliance { color: var(--highlight) !important; font-weight: 900; }
+        .id-input { width: 85%; padding: 4px; border: 1px solid #e2e8f0; border-radius: 4px; text-align: center; font-weight: 700; color: var(--primary); }
+        .summary-row { background: #f5f3ff; font-weight: 900; color: var(--accent); }
+        .drag-handle { cursor: grab; color: #cbd5e1; width: 25px; }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div style="font-weight: 800; color: var(--muted); font-size: 0.9rem;">SYNCING TEAMS FROM CLOUD...</div>
+</div>
+
+<div class="sticky-header">
+    <div class="top-nav">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <a href="home.html" class="btn btn-ghost">← HUB</a>
+            <span id="activeFile" style="font-size:0.7rem; font-weight:800; color:var(--muted);">LOADING...</span>
+            <button class="btn btn-orange" id="refreshBtn" onclick="refreshFromServer()">REFRESH ↻</button>
+        </div>
+        <div id="adminArea" class="admin-controls">
+            <button class="btn btn-purple" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
+            <button class="btn btn-green" onclick="addNewTeam()">+ NEW TEAM</button>
+            <button class="btn btn-ghost" onclick="logout()">LOGOUT</button>
+        </div>
+        <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="teamSearch" class="search-input" placeholder="Search Team, Alliance, or Kingdom..." oninput="renderAll()">
+    </div>
+
+    <div class="sort-row" id="sortRow">
+        <span class="sort-label">Sort By:</span>
+        <button class="sort-btn active" onclick="setSort('none', this)">Original</button>
+        <button class="sort-btn" onclick="setSort('power', this)">Power</button>
+        <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
+        <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
+        <button class="sort-btn" onclick="setSort('avgAp', this)">CH25 AVG</button>
+    </div>
+</div>
+
+<div id="teamsContainer"></div>
+
+<div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:2000;">
+    <div style="background:white; padding:25px; border-radius:15px; width:300px;">
+        <h3 style="margin-top:0">Admin Login</h3>
+        <input type="text" id="user" placeholder="User" style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
+        <input type="password" id="pass" placeholder="Pass" style="width:100%; padding:10px; margin-bottom:15px; box-sizing:border-box;">
+        <button class="btn btn-blue" style="width:100%" onclick="login()">Login</button>
+        <button class="btn btn-ghost" style="width:100%; margin-top:8px;" onclick="toggleModal(false)">Cancel</button>
+    </div>
+</div>
+
+<script>
+    const RENDER_URL = "https://kd-backend-icbu.onrender.com";
+    const GITHUB_USER = "Mrtrew97"; 
+    const GITHUB_REPO = "kd-backend";
+    const RAW_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/main/TeamsConfig.json`;
+
+    let isAdmin = false;
+    let masterData = new Map();
+    let currentTeams = [];
+    let currentSort = 'none';
+    const csvKeys = ["10M","20M","30M","40M","50M","80M+","100M+","125M+","150M+","200M+","250M+","300M+"];
+    const displayKeys = ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"];
+
+    window.onload = async () => {
+        try {
+            // 1. Load CSV list LOCALLY (from your VS Code folder)
+            const fResp = await fetch(`Pull/files.json?cb=${Date.now()}`); 
+            const files = await fResp.json();
+            
+            if (files && files.length > 0) {
+                const latest = files[files.length - 1];
+                document.getElementById('activeFile').textContent = latest.replace('.csv','').toUpperCase();
+                
+                // Load the actual CSV file LOCALLY
+                const csvResp = await fetch(`Pull/${latest}?cb=${Date.now()}`);
+                const text = await csvResp.text();
+                
+                const result = Papa.parse(text, { header: true, skipEmptyLines: 'greedy' });
+                
+                masterData.clear();
+                result.data.forEach(row => {
+                    const kd = String(row.KD || row['KD#'] || "").trim();
+                    const p = cleanNum(row['Top 300 Power'] || row.T300P);
+                    const m = cleanNum(row['Top 300 Merits'] || row.Merits);
+                    if (kd && p > 0) {
+                        masterData.set(kd, {
+                            kd, power: p, merits: m,
+                            alliance: (row['#1 Ally'] || row.Ally || row.Alliance || "").trim() || "-",
+                            raw: row
+                        });
+                    }
+                });
+            }
+
+            // 2. Load Teams from RENDER (The Cloud)
+            await fetchTeamsFromCloud();
+            
+            // 3. Render the UI
+            renderAll();
+
+        } catch (e) {
+            console.error("Initialization Error:", e);
+        }
+    };
+
+    async function fetchTeamsFromCloud() {
+        try {
+            // This MUST use RENDER_URL because TeamsConfig.json is in the cloud
+            const resp = await fetch(`${RENDER_URL}/load-teams?cb=${Date.now()}`);
+            if (resp.ok) {
+                currentTeams = await resp.json();
+            }
+        } catch (e) { console.error("Cloud load error", e); }
+    }
+
+    async function fetchTeamsFromCloud() {
+        try {
+            const resp = await fetch(`${RENDER_URL}/load-teams`);
+            if (resp.ok) {
+                currentTeams = await resp.json();
+                console.log("Teams loaded from Cloud");
+            }
+        } catch (e) {
+            console.error("Cloud load failed:", e);
+        }
+    }
+
+    // ... rest of your functions (saveToCloud, renderAll, etc) remain the same
+
+    async function saveToCloud() {
+        if (!isAdmin) return;
+        const btn = document.getElementById('saveStatusBtn');
+        const oldText = btn.textContent;
+        btn.textContent = "UPLOADING...";
+        try {
+            const resp = await fetch(`${RENDER_URL}/save-teams`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentTeams)
+            });
+            if (resp.ok) { 
+                btn.textContent = "GITHUB SYNCED!"; 
+                setTimeout(() => btn.textContent="SAVE CLOUD", 2000); 
+            } else {
+                throw new Error();
+            }
+        } catch (e) { 
+            alert("Save failed. Make sure your Render backend is running."); 
+            btn.textContent="RETRY"; 
+        }
+    }
+
+    function renderAll() {
+        const container = document.getElementById('teamsContainer');
+        const sT = document.getElementById('teamSearch')?.value.toLowerCase().trim() || "";
+        container.innerHTML = '';
+
+        let displayTeams = currentTeams.map((t, idx) => ({ 
+            ...t, 
+            originalIdx: idx, 
+            stats: calculateTeamTotals(t) 
+        }));
+
+        if (sT) {
+            displayTeams = displayTeams.filter(t => 
+                t.name.toLowerCase().includes(sT) || 
+                t.ids.some(id => String(id).includes(sT))
+            );
+        }
+
+        if (currentSort !== 'none') {
+            displayTeams.sort((a, b) => (b.stats[currentSort] || 0) - (a.stats[currentSort] || 0));
+        }
+
+        displayTeams.forEach(team => {
+            const tIdx = team.originalIdx;
+            const sums = team.stats;
+            const card = document.createElement('div');
+            card.className = 'team-card';
+            
+            let rowsHtml = team.ids.map((id, rowIdx) => {
+                const d = masterData.get(String(id).trim());
+                const isH = team.highlights?.[rowIdx];
+                if (!d) return `<tr>${isAdmin ? '<td class="drag-handle">≡</td>' : ''}<td>-</td>${isAdmin ? `<td><input type="checkbox" onchange="toggleHigh(${tIdx}, ${rowIdx})"></td>` : ''}<td>${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)">` : id}</td><td colspan="20" style="color:red">KD# Not Found in CSV</td></tr>`;
+
+                return `
+                    <tr>
+                        ${isAdmin ? '<td class="drag-handle">≡</td>' : ''}
+                        <td style="font-weight:700">${d.powerRank}</td>
+                        ${isAdmin ? `<td><input type="checkbox" ${isH ? 'checked' : ''} onchange="toggleHigh(${tIdx}, ${rowIdx})"></td>` : ''}
+                        <td>${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)">` : id}</td>
+                        <td class="${isH ? 'highlighted-alliance' : ''}">${d.alliance}</td>
+                        <td>${formatVal(d.power)}</td>
+                        <td>${formatVal(d.merits)}</td>
+                        <td>${(d.mp * 100).toFixed(1)}%</td>
+                        <td style="font-weight:700">${d.mpRank}</td>
+                        <td>${formatVal(cleanNum(d.raw['Top 300 Kills']))}</td>
+                        <td>${formatVal(cleanNum(d.raw['CH25 AP']))}</td>
+                        ${csvKeys.map(k => `<td>${formatVal(cleanNum(d.raw[k]))}</td>`).join('')}
+                    </tr>
+                `;
+            }).join('');
+
+            card.innerHTML = `
+                <div class="team-header">
+                    <div style="display:flex; gap:15px; align-items:center;">
+                        ${isAdmin ? `<input class="name-input" value="${team.name}" onchange="updateName(${tIdx}, this.value)">` : `<div class="name-input">${team.name}</div>`}
+                        <div style="font-size:0.75rem; color:var(--muted)">${team.ids.length} Kingdoms Linked</div>
+                    </div>
+                    ${isAdmin ? `<button class="btn btn-red" onclick="deleteTeam(${tIdx})">DEL TEAM</button>` : ''}
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                ${isAdmin ? '<th></th>' : ''}<th>RANK</th>${isAdmin ? '<th>H</th>' : ''}<th>KD#</th><th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>CH25 AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-${tIdx}">${rowsHtml}</tbody>
+                        <tr class="summary-row">
+                            ${isAdmin ? '<td></td>' : ''}<td colspan="${isAdmin ? 4 : 3}">TOTALS</td>
+                            <td>${formatVal(sums.power)}</td><td>${formatVal(sums.merits)}</td><td>${sums.power > 0 ? ((sums.merits/sums.power)*100).toFixed(1)+"%" : "0%"}</td><td>-</td><td>-</td><td>${formatVal(sums.avgAp)}</td>
+                            ${csvKeys.map(k => `<td>${formatVal(sums.b[k])}</td>`).join('')}
+                        </tr>
+                    </table>
+                </div>
+            `;
+            container.appendChild(card);
+            if(isAdmin) setupSortable(tIdx);
+        });
+    }
+
+    function calculateTeamTotals(team) {
+        let s = { power:0, merits:0, ap:0, count:0, b: {} };
+        csvKeys.forEach(k => s.b[k] = 0);
+        team.ids.forEach(id => {
+            const d = masterData.get(String(id).trim());
+            if (d) {
+                s.power += d.power; s.merits += d.merits; s.ap += cleanNum(d.raw['CH25 AP']); s.count++;
+                csvKeys.forEach(k => s.b[k] += cleanNum(d.raw[k]));
+            }
+        });
+        return { ...s, mp: s.power > 0 ? (s.merits / s.power) : 0, avgAp: s.count > 0 ? (s.ap / s.count) : 0 };
+    }
+
+    function cleanNum(v) { return v ? parseFloat(String(v).replace(/,/g, '')) || 0 : 0; }
+    function formatVal(n) {
+        if (!n || n === 0) return "-";
+        if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+        if (n >= 1e6) return (n/1e6).toFixed(0) + 'M';
+        return Math.floor(n).toLocaleString();
+    }
+
+    function setupSortable(tIdx) {
+        new Sortable(document.getElementById(`tbody-${tIdx}`), {
+            handle: '.drag-handle', animation: 150,
+            onEnd: (evt) => {
+                const teamData = currentTeams[tIdx];
+                const movedId = teamData.ids.splice(evt.oldIndex, 1)[0];
+                teamData.ids.splice(evt.newIndex, 0, movedId);
+                // Handle highlights shifting too
+                if(teamData.highlights) {
+                    const movedH = teamData.highlights.splice(evt.oldIndex, 1)[0];
+                    teamData.highlights.splice(evt.newIndex, 0, movedH);
+                }
+                renderAll();
+            }
+        });
+    }
+
+    function setSort(key, btn) {
+        currentSort = key;
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderAll();
+    }
+
+    function updateId(tIdx, rIdx, val) { currentTeams[tIdx].ids[rIdx] = val; renderAll(); }
+    function updateName(tIdx, val) { currentTeams[tIdx].name = val; }
+    function toggleHigh(tIdx, rIdx) { 
+        if(!currentTeams[tIdx].highlights) currentTeams[tIdx].highlights = new Array(currentTeams[tIdx].ids.length).fill(false);
+        currentTeams[tIdx].highlights[rIdx] = !currentTeams[tIdx].highlights[rIdx]; 
+        renderAll(); 
+    }
+    function deleteTeam(tIdx) { if(confirm("Delete?")) { currentTeams.splice(tIdx, 1); renderAll(); } }
+    function addNewTeam() { currentTeams.unshift({ name: "New Team", ids: ["1001","1002"], highlights: [false,false] }); renderAll(); }
+    
+    function login() { 
+        if(document.getElementById('user').value === "Admin" && document.getElementById('pass').value === "Password123") {
+            isAdmin = true;
+            document.getElementById('adminArea').style.display = 'flex';
+            document.getElementById('loginBtn').style.display = 'none';
+            toggleModal(false); renderAll();
+        }
+    }
+    function logout() { location.reload(); }
+    function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
+    async function refreshFromServer() { await fetchTeamsFromCloud(); renderAll(); }
+</script>
+</body>
+</html>

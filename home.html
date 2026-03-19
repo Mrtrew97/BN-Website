@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kingdom Management Hub</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-light: #64748b;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        p {
+            color: var(--text-light);
+            margin-bottom: 30px;
+        }
+
+        .button-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            display: block;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            padding: 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Styling for the placeholder buttons */
+        .btn-placeholder {
+            background: white;
+            color: var(--text-light);
+            border: 2px dashed #cbd5e1;
+            cursor: default;
+        }
+
+        .btn-placeholder:hover {
+            background: #f8fafc;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>Kingdom Hub</h1>
+        <p>Select a tool to get started</p>
+        
+        <div class="button-grid">
+            <a href="SingleGraph.html" class="btn">Single Kingdom History Tracker</a>
+            <a href="CompareKingdoms.html" class="btn">Compare Kingdoms History Tracker</a>
+            <a href="HistoricalPercents.html" class="btn">Historical Percentages</a>
+            <a href="KDPVP.html" class="btn">KD | PVP</a>
+            <a href="Teams.html" class="btn">Teams (Official)</a>
+            <a href="Matchups.html" class="btn">Matchups (Official)</a>
+        
+            <a href="#" class="btn btn-placeholder">Future Tool 4</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

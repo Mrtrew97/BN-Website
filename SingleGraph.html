@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kingdom History Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header { 
+            background: var(--card); padding: 30px; border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 25px;
+            position: relative; 
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+        }
+
+        .home-link {
+            position: absolute; top: 25px; left: 25px;
+            background: #64748b; color: white; text-decoration: none;
+            padding: 10px 18px; border-radius: 8px; font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .search-row { display: flex; align-items: flex-end; gap: 15px; justify-content: center; }
+        .input-box { display: flex; flex-direction: column; gap: 5px; }
+        input { padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; width: 250px; outline: none; }
+        input:focus { border-color: var(--primary); }
+        
+        .alliance-info { text-align: center; }
+        .alliance-label { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px; }
+        #allianceName { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); gap: 25px; }
+        .chart-card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: 400px; }
+        #status { text-align: center; margin-bottom: 15px; font-weight: 500; color: #64748b; font-size: 0.9rem; }
+        
+        button { background: var(--primary); color: white; border: none; padding: 13px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button:hover, .home-link:hover { opacity: 0.9; }
+
+        @media (max-width: 850px) { 
+            .home-link { position: static; margin-bottom: 10px; }
+            .search-row { flex-direction: column; align-items: center; width: 100%; }
+            input { width: 100%; box-sizing: border-box; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <a href="home.html" class="home-link">← Home</a>
+        
+        <div class="search-row">
+            <div class="input-box">
+                <label class="alliance-label">Kingdom ID or Alliance Name</label>
+                <input type="text" id="kdInput" placeholder="EX: 509 or -I-" onkeypress="if(event.key==='Enter') fetchAllData()">
+            </div>
+            <button onclick="fetchAllData()">Generate Graphs</button>
+        </div>
+
+        <div class="alliance-info">
+            <div class="alliance-label">Current Alliance On Server</div>
+            <div id="allianceName">---</div>
+        </div>
+    </div>
+
+    <div id="status">Ready</div>
+
+    <div class="charts-grid">
+        <div class="chart-card"><canvas id="chart-Power"></canvas></div>
+        <div class="chart-card"><canvas id="chart-Merits"></canvas></div>
+        <div class="chart-card"><canvas id="chart-MP"></canvas></div>
+        <div class="chart-card"><canvas id="chart-Kills"></canvas></div>
+        <div class="chart-card"><canvas id="chart-Deads"></canvas></div>
+        <div class="chart-card"><canvas id="chart-Heals"></canvas></div>
+        <div class="chart-card"><canvas id="chart-CH25"></canvas></div>
+        <div class="chart-card"><canvas id="chart-CH25AP"></canvas></div>
+    </div>
+</div>
+
+<script>
+    let fileList = [];
+    let charts = {};
+    const metrics = [
+        { id: 'Power', label: 'Power', index: 2 },
+        { id: 'Merits', label: 'Merits', index: 3 },
+        { id: 'MP', label: 'M/P', index: 4, isPercent: true },
+        { id: 'Kills', label: 'Kills', index: 5 },
+        { id: 'Deads', label: 'Deads', index: 6 },
+        { id: 'Heals', label: 'Heals', index: 7 },
+        { id: 'CH25', label: 'CH25', index: 8 },
+        { id: 'CH25AP', label: 'CH25 AP', index: 9 }
+    ];
+
+    function formatValue(value, isPercent) {
+        if (value === null) return "N/A";
+        if (isPercent) return (value * 100).toFixed(2) + '%';
+        if (value >= 1e9) return (value / 1e9).toFixed(2) + 'B';
+        if (value >= 1e6) return (value / 1e6).toFixed(2) + 'M';
+        return value.toLocaleString();
+    }
+
+    async function init() {
+        try {
+            const response = await fetch('Pull/files.json');
+            fileList = await response.json();
+            fileList.sort(); 
+            setupCharts();
+            document.getElementById('status').textContent = `System Live: ${fileList.length} history files loaded.`;
+        } catch (err) {
+            document.getElementById('status').textContent = "Error: Could not load Pull/files.json";
+        }
+    }
+
+    function setupCharts() {
+        metrics.forEach(m => {
+            const ctx = document.getElementById(`chart-${m.id}`).getContext('2d');
+            charts[m.id] = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: m.label, data: [], alliances: [], borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.05)', fill: true, tension: 0.2, pointRadius: 5, pointBackgroundColor: '#2563eb' }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        title: { display: true, text: m.label, font: { size: 16 } }, 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    const index = tooltipItems[0].dataIndex;
+                                    const date = tooltipItems[0].label;
+                                    const alliance = tooltipItems[0].dataset.alliances[index];
+                                    return `${date} | Alliance: ${alliance || '---'}`;
+                                },
+                                label: function(context) {
+                                    return `Value: ${formatValue(context.parsed.y, m.isPercent)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { ticks: { callback: function(value) { return formatValue(value, m.isPercent); }}}
+                    }
+                }
+            });
+        });
+    }
+
+    async function fetchAllData() {
+        const userInput = document.getElementById('kdInput').value.trim().toLowerCase();
+        if (!userInput) return;
+
+        document.getElementById('allianceName').textContent = "---";
+        document.getElementById('status').textContent = "Finding target Kingdom...";
+
+        let targetId = null;
+
+        try {
+            const lastFileName = fileList[fileList.length - 1];
+            const response = await fetch(`Pull/${lastFileName}`);
+            const csvText = await response.text();
+            const results = Papa.parse(csvText, { skipEmptyLines: true });
+            
+            const match = results.data.find(r => 
+                String(r[0]).trim().toLowerCase() === userInput || 
+                String(r[1]).trim().toLowerCase() === userInput
+            );
+
+            if (match) {
+                targetId = String(match[0]).trim();
+                document.getElementById('allianceName').textContent = match[1] || "---";
+            } else {
+                if (!isNaN(userInput)) {
+                    targetId = userInput;
+                } else {
+                    document.getElementById('status').textContent = "Kingdom/Alliance not found in latest snapshot.";
+                    return;
+                }
+            }
+        } catch (e) { console.error(e); }
+
+        document.getElementById('status').textContent = `Fetching history for ID ${targetId}...`;
+        
+        const fetchPromises = fileList.map(async (fileName) => {
+            try {
+                const response = await fetch(`Pull/${fileName}`);
+                const csvText = await response.text();
+                const results = Papa.parse(csvText, { skipEmptyLines: true });
+                const row = results.data.find(r => String(r[0]).trim() === targetId);
+                
+                if (row) {
+                    const point = { fileName: fileName, alliance: row[1] || "---", vals: {} };
+                    metrics.forEach(m => {
+                        let val = row[m.index];
+                        if (typeof val === 'string') {
+                            val = val.replace(/,/g, '');
+                            if (val.includes('%')) val = parseFloat(val) / 100;
+                            else val = parseFloat(val);
+                        }
+                        point.vals[m.id] = isNaN(val) ? null : val;
+                    });
+                    return point;
+                }
+            } catch (e) { console.error(e); }
+            return null;
+        });
+
+        const results = await Promise.all(fetchPromises);
+        const history = results.filter(r => r !== null);
+
+        if (history.length > 0) {
+            const labels = history.map(h => h.fileName.replace('.csv', ''));
+            const alliances = history.map(h => h.alliance);
+
+            metrics.forEach(m => {
+                charts[m.id].data.labels = labels;
+                charts[m.id].data.datasets[0].data = history.map(h => h.vals[m.id]);
+                charts[m.id].data.datasets[0].alliances = alliances;
+                charts[m.id].update();
+            });
+            document.getElementById('status').textContent = `Displaying ${history.length} snapshots for ID: ${targetId}`;
+        } else {
+            document.getElementById('status').textContent = "No data found for this Kingdom.";
+        }
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>
