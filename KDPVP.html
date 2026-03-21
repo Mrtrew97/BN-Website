@@ -50,7 +50,6 @@
         }
         input:focus { border-color: var(--primary); }
 
-        /* Sort Bar Unified */
         .sort-bar { display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--glass-border); padding-top: 20px; justify-content: center; }
         .sort-btn { background: transparent; border: 1px solid var(--glass-border); color: var(--muted); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; transition: 0.2s; }
         .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -90,7 +89,6 @@
         .roster-item { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid var(--glass-border); }
         .r-val { font-size: 0.85rem; font-weight: 900; color: var(--accent-purple); }
 
-        /* Auth Modal Overlay */
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -234,8 +232,6 @@
                 if (!rawKd) continue;
 
                 const cleanKd = String(parseInt(parseFloat(rawKd)));
-                
-                // STRICT CHECK: Is this ID in the JSON kingdoms array?
                 const isRegistered = currentSnapshotReg.kingdoms && currentSnapshotReg.kingdoms.includes(cleanKd);
                 const regInfo = currentSnapshotReg.data?.[cleanKd] || { class: "TBD", isParagon: false };
 
@@ -245,7 +241,6 @@
                     roster[lbl] = hIdx !== -1 ? cleanNum(r[hIdx]) : 0;
                 }
 
-                // Values & Math Fix
                 const pwr = cleanNum(r[idx.power]);
                 const merits = cleanNum(r[idx.merits]);
                 const mpRatio = pwr > 0 ? (merits / pwr) * 100 : 0;
@@ -253,17 +248,11 @@
                 allData.push({
                     kd: cleanKd, 
                     name: String(r[idx.name] || "Unknown").trim(),
-                    power: pwr, 
-                    merits: merits,
-                    mp: mpRatio, 
-                    kills: cleanNum(r[idx.kills]),
-                    deads: cleanNum(r[idx.deads]), 
-                    heals: cleanNum(r[idx.heals]),
-                    ch25: cleanNum(r[idx.ch25]), 
+                    power: pwr, merits: merits, mp: mpRatio, 
+                    kills: cleanNum(r[idx.kills]), deads: cleanNum(r[idx.deads]), 
+                    heals: cleanNum(r[idx.heals]), ch25: cleanNum(r[idx.ch25]), 
                     status: isRegistered ? "Registered" : "Not Registered", 
-                    class: regInfo.class,
-                    isParagon: regInfo.isParagon, 
-                    roster: roster
+                    class: regInfo.class, isParagon: regInfo.isParagon, roster: roster
                 });
             }
             handleSearch();
@@ -273,7 +262,7 @@
 
     function handleSearch() {
         const query = document.getElementById('searchInput').value.toLowerCase();
-        const sFilter = document.getElementById('regFilter').value; // 'Registered' or 'Not Registered'
+        const sFilter = document.getElementById('regFilter').value;
         const cFilter = document.getElementById('classFilter').value;
         
         filteredData = allData.filter(a => {
@@ -283,32 +272,36 @@
             return matchesQuery && matchesStatus && matchesClass;
         });
 
-        applySort();
-        
-        // Ranking Logic - Rank ONLY those currently in the filtered list
-        const sortedByPower = [...filteredData].sort((a,b) => b.power - a.power);
-        const sortedByMP = [...filteredData].sort((a,b) => b.mp - a.mp);
-        filteredData.forEach(a => {
-            a.powerRank = sortedByPower.findIndex(x => x.kd === a.kd) + 1;
-            a.mpRank = sortedByMP.findIndex(x => x.kd === a.kd) + 1;
+        // MATH LOGIC: Ranks are calculated strictly against Registered Kingdoms only
+        const registeredPool = allData.filter(x => x.status === "Registered");
+        const sortedByPower = [...registeredPool].sort((a,b) => b.power - a.power);
+        const sortedByMP = [...registeredPool].sort((a,b) => b.mp - a.mp);
+
+        // Apply ranks to allData (if registered)
+        allData.forEach(a => {
+            if (a.status === "Registered") {
+                a.powerRank = sortedByPower.findIndex(x => x.kd === a.kd) + 1;
+                a.mpRank = sortedByMP.findIndex(x => x.kd === a.kd) + 1;
+            } else {
+                a.powerRank = "-";
+                a.mpRank = "-";
+            }
         });
+
+        applySort();
         resetAndRender();
     }
 
     function handleSort(field, btn) {
         if (currentSort.field === field) currentSort.direction = (currentSort.direction === 'desc') ? 'asc' : 'desc';
         else { currentSort.field = field; currentSort.direction = 'desc'; }
-
-        // Unified Active Button Glow
         document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-
         handleSearch();
     }
 
     function applySort() {
         filteredData.sort((a, b) => {
-            // Push Registered to top by default if sorting KD
             if (a.status !== b.status && currentSort.field === 'kd') return a.status === "Registered" ? -1 : 1;
             let valA = a[currentSort.field], valB = b[currentSort.field];
             return currentSort.direction === 'desc' ? (valB - valA) : (valA - valB);
@@ -373,10 +366,7 @@
 
     function updateLocalReg(kd, field, value) {
         const entry = allData.find(x => x.kd === kd);
-        if (entry) { 
-            entry[field] = value; 
-            handleSearch(); 
-        }
+        if (entry) { entry[field] = value; handleSearch(); }
     }
 
     async function saveDedicatedJson() {
@@ -397,7 +387,6 @@
     async function login() {
         const userTyped = document.getElementById('user').value;
         const passTyped = document.getElementById('pass').value;
-        const errorMsg = document.getElementById('loginError');
         try {
             const resp = await fetch('Admin.json');
             const data = await resp.json();
@@ -409,9 +398,7 @@
                 document.getElementById('loginBtn').style.display = 'none';
                 toggleModal(false);
                 handleSearch();
-            } else {
-                errorMsg.style.display = 'block';
-            }
+            } else { document.getElementById('loginError').style.display = 'block'; }
         } catch (e) { alert("Could not load Admin settings."); }
     }
 
@@ -421,13 +408,7 @@
         if(!v) document.getElementById('loginError').style.display = 'none';
     }
     function handleOutsideClick(e) { if (e.target.id === 'authModal') toggleModal(false); }
-
-    function cleanNum(v) { 
-        if (!v) return 0; 
-        let n = parseFloat(String(v).replace(/,/g, '').replace('%', '')); 
-        return isNaN(n) ? 0 : n; 
-    }
-
+    function cleanNum(v) { if (!v) return 0; let n = parseFloat(String(v).replace(/,/g, '').replace('%', '')); return isNaN(n) ? 0 : n; }
     function formatVal(n) { if (n >= 1e9) return (n/1e9).toFixed(2)+'B'; if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; return n.toLocaleString(); }
 </script>
 </body>
