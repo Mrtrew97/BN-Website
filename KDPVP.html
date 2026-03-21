@@ -4,334 +4,421 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kingdom PVP Analytics</title>
+    <link rel="stylesheet" href="global.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --primary: #2563eb; --secondary: #10b981; --bg: #f1f5f9; 
-            --card: #ffffff; --text: #1e293b; --muted: #64748b;
-            --accent-purple: #f5f3ff; --border-purple: #8b5cf6;
+            --primary: #3b82f6; 
+            --accent-purple: #a855f7;
+            --bg: #0f172a; 
+            --glass: rgba(255, 255, 255, 0.03); 
+            --glass-border: rgba(255, 255, 255, 0.08); 
+            --text: #f8fafc; 
+            --muted: #94a3b8;
+            /* Stat Colors */
+            --brd-merits: #bb4dc5; --brd-kills: #f59e0b; --brd-deads: #ef4444; --brd-heals: #10b981;
         }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        
-        .header-container { display: flex; justify-content: center; align-items: center; margin-bottom: 20px; max-width: 1400px; margin-left: auto; margin-right: auto; position: relative; }
-        .page-title { font-weight: 900; font-size: 1.5rem; text-transform: uppercase; letter-spacing: -0.02em; margin: 0; }
-        .home-link { text-decoration: none; color: var(--muted); font-weight: 700; font-size: 0.8rem; background: #fff; padding: 8px 15px; border-radius: 8px; border: 1px solid #e2e8f0; position: absolute; left: 0; }
 
-        .controls-wrapper { max-width: 1400px; margin: 0 auto 25px auto; display: flex; flex-direction: column; gap: 15px; background: white; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; }
-        .main-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-        
-        input[type="text"], select { padding: 12px; border-radius: 12px; border: 2px solid #f1f5f9; font-weight: 600; outline: none; transition: border-color 0.2s; }
-        input[type="text"]:focus { border-color: var(--primary); }
-        input[type="text"] { flex-grow: 1; min-width: 250px; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
+            background-attachment: fixed;
+            color: var(--text); 
+            margin: 0; 
+            padding: 20px; 
+        }
 
-        .sort-bar { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid #f1f5f9; margin-top: 10px; padding-top: 15px; }
-        .sort-btn { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 14px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: all 0.2s; }
-        .sort-btn:hover { background: #f1f5f9; color: var(--text); }
+        /* Home & Nav */
+        .nav-container { display: flex; align-items: center; justify-content: space-between; max-width: 1400px; margin: 0 auto 30px; }
+        .btn { 
+            background: var(--glass); border: 1px solid var(--glass-border); color: white; padding: 10px 20px; 
+            border-radius: 12px; text-decoration: none; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: 0.2s;
+        }
+        .btn:hover { background: var(--primary); transform: translateY(-2px); }
+        .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); }
+
+        /* Controls Area */
+        .controls-wrapper { 
+            max-width: 1400px; margin: 0 auto 25px auto; padding: 25px; 
+            background: var(--glass); backdrop-filter: blur(15px); border-radius: 24px; border: 1px solid var(--glass-border); 
+        }
+        .main-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+        input, select { 
+            background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 14px; 
+            border-radius: 12px; color: white; font-weight: 700; outline: none; transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary); }
+
+        .sort-bar { display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--glass-border); padding-top: 20px; justify-content: center; }
+        .sort-btn { background: transparent; border: 1px solid var(--glass-border); color: var(--muted); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; transition: 0.2s; }
         .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .sort-btn.active::after { content: ' ↓'; }
-        .sort-btn.active.asc::after { content: ' ↑'; }
 
-        #cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(450px, 1fr)); gap: 25px; max-width: 1400px; margin: 0 auto; }
+        /* Cards */
+        #cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 25px; max-width: 1400px; margin: 0 auto; }
+        .pvp-card { 
+            background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); 
+            border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 20px; 
+            transition: 0.3s;
+        }
+        .pvp-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.2); }
 
-        .pvp-card { background: var(--card); border-radius: 24px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 20px; position: relative; }
-        .kd-tag { position: absolute; top: 24px; right: 24px; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; color: var(--muted); }
-        
-        .rank-container { display: flex; gap: 8px; margin-top: 8px; }
-        .rank-badge { font-size: 0.65rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; }
-        .rank-power { background: #fee2e2; color: #991b1b; }
-        .rank-mp { background: #dcfce7; color: #166534; }
+        .card-header { text-align: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
+        .ally-name-row { font-size: 1.3rem; font-weight: 900; color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
+        .sep-bar { margin: 0 10px; opacity: 0.3; }
 
-        .card-header { border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; padding-right: 60px; }
-        .ally-name { font-size: 1.4rem; font-weight: 900; color: var(--primary); }
-        .ally-name.unknown { color: var(--muted); font-style: italic; font-weight: 700; }
-        .main-power { font-size: 0.9rem; font-weight: 700; color: var(--muted); margin-top: 4px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .stat-box { 
+            padding: 14px 10px; border-radius: 16px; text-align: center; background: rgba(255,255,255,0.02); 
+            border: 1px solid var(--glass-border); border-left-width: 5px; 
+        }
+        .stat-label { font-size: 0.6rem; font-weight: 800; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .stat-value { font-size: 1.1rem; font-weight: 950; }
 
-        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .stat-box { padding: 12px; border-radius: 12px; background: #f8fafc; border: 1px solid #f1f5f9; }
-        .stat-label { font-size: 0.6rem; font-weight: 800; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 2px; }
-        .stat-value { font-size: 1rem; font-weight: 900; color: #0f172a; }
-        .highlight { color: var(--primary); }
+        .box-mp { border-left-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+        .box-merits { border-left-color: var(--brd-merits); background: rgba(187, 77, 197, 0.05); }
+        .box-kills { border-left-color: var(--brd-kills); background: rgba(245, 158, 11, 0.05); }
+        .box-deads { border-left-color: var(--brd-deads); background: rgba(239, 68, 68, 0.05); }
+        .box-heals { border-left-color: var(--brd-heals); background: rgba(16, 185, 129, 0.05); }
 
-        .roster-section { background: var(--accent-purple); border-radius: 16px; padding: 15px; border: 1px solid #ddd6fe; }
-        .roster-title { font-size: 0.7rem; font-weight: 900; color: var(--border-purple); text-transform: uppercase; margin-bottom: 10px; display: block; }
-        .roster-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .roster-item { display: flex; flex-direction: column; align-items: center; background: white; padding: 8px; border-radius: 8px; border: 1px solid #ede9fe; }
-        .r-label { font-size: 0.55rem; font-weight: 700; color: var(--muted); }
-        .r-val { font-size: 0.85rem; font-weight: 800; color: #4338ca; }
+        .roster-section { 
+            background: rgba(168, 85, 247, 0.05); border-radius: 20px; padding: 18px; 
+            border: 1px solid rgba(168, 85, 247, 0.2); border-left: 5px solid var(--accent-purple); 
+        }
+        .roster-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+        .roster-item { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid var(--glass-border); }
+        .r-val { font-size: 0.85rem; font-weight: 900; color: var(--accent-purple); }
 
-        .btn-load { background: #475569; color: white; padding: 12px 24px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; margin: 40px auto; display: none; }
-        #status { text-align: center; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
+        /* Auth Modal */
+        #authModal { 
+            display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); 
+            backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000; 
+        }
+        .modal-content { background: #1e293b; padding: 40px; border-radius: 30px; width: 320px; text-align: center; border: 1px solid var(--glass-border); }
+
+        #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
+<body onclick="handleOutsideClick(event)">
 
-<div class="header-container">
-    <a href="home.html" class="home-link">← HOME HUB</a>
-    <h1 class="page-title">Kingdom PVP Analytics</h1>
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div style="font-weight: 900; letter-spacing: 2px;">SYNCING DATABASE</div>
+</div>
+
+<!-- UNIFIED ADMIN MODAL -->
+<div id="authModal">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 style="margin-top:0; font-weight:900; letter-spacing:-1px;">ADMIN ACCESS</h2>
+        <input type="text" id="user" class="modal-input" placeholder="Username">
+        <input type="password" id="pass" class="modal-input" placeholder="Password" onkeydown="if(event.key==='Enter') login()">
+        <div id="loginError" style="color: #ef4444; font-size: 0.7rem; font-weight: 800; margin-bottom: 15px; display: none;">INVALID CREDENTIALS</div>
+        <button class="btn btn-blue" style="width: 100%; padding: 15px;" onclick="login()">AUTHORIZE SESSION</button>
+        <button onclick="toggleModal(false)" style="background:none; border:none; color:var(--muted); margin-top:15px; cursor:pointer; font-weight:700; font-size:0.7rem; text-transform:uppercase;">Cancel</button>
+    </div>
+</div>
+
+<div class="nav-container">
+    <a href="index.html" class="home-link">← Kingdom Hub</a>
+    <h1 style="margin:0; font-weight:900; letter-spacing:-2px; font-size:2rem;">PVP ANALYTICS</h1>
+    <div class="admin-nav">
+        <button id="adminSaveBtn" class="btn" style="display:none; background:var(--accent-purple);" onclick="saveDedicatedJson()">SAVE CLOUD</button>
+        <button id="logoutBtn" class="btn btn-red" style="display:none;" onclick="logout()">LOGOUT</button>
+        <button id="loginBtn" class="btn" onclick="toggleModal(true)">ADMIN</button>
+    </div>
 </div>
 
 <div class="controls-wrapper">
     <div class="main-controls">
-        <select id="fileSelector" onchange="processFile(this.value)">
-            <option value="">Select Snapshot Date...</option>
+        <select id="fileSelector" onchange="processFile(this.value)" style="flex:1;"></select>
+        <select id="regFilter" onchange="handleSearch()">
+            <option value="all">All Status</option>
+            <option value="Registered">Registered</option>
+            <option value="Not Registered">Not Registered</option>
         </select>
-        <input type="text" id="searchInput" placeholder="Search by Alliance Name or Kingdom ID..." oninput="handleSearch()">
+        <select id="classFilter" onchange="handleSearch()">
+            <option value="all">All Classes</option>
+            <option value="A">Class A</option>
+            <option value="B">Class B</option>
+            <option value="C">Class C</option>
+            <option value="D">Class D</option>
+        </select>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search Alliance or Kingdom..." style="flex:2;" oninput="handleSearch()">
     </div>
-    
     <div class="sort-bar" id="sortBar">
-        <div style="font-size: 0.7rem; font-weight: 800; color: var(--muted); width: 100%; margin-bottom: 5px; text-transform: uppercase;">Sort By:</div>
-        <button id="defaultSortBtn" class="sort-btn active asc" onclick="handleSort('kd', this)">Kingdom</button>
-        <button class="sort-btn" onclick="handleSort('power', this)">Power</button>
+        <button class="sort-btn" onclick="handleSort('kd', this)">Kingdom</button>
+        <button class="sort-btn active" onclick="handleSort('power', this)">Power</button>
         <button class="sort-btn" onclick="handleSort('merits', this)">Merits</button>
         <button class="sort-btn" onclick="handleSort('mp', this)">M/P Ratio</button>
         <button class="sort-btn" onclick="handleSort('kills', this)">Kills</button>
         <button class="sort-btn" onclick="handleSort('deads', this)">Deads</button>
         <button class="sort-btn" onclick="handleSort('heals', this)">Heals</button>
-        <button class="sort-btn" onclick="handleSort('ch25', this)">CH25 Count</button>
-        <button class="sort-btn" onclick="handleSort('ch25Avg', this)">CH25 Avg</button>
+        <button class="sort-btn" onclick="handleSort('ch25', this)">CH25</button>
     </div>
 </div>
 
-<div id="status">Waiting for Selection...</div>
+<div id="status" style="text-align:center; font-weight:800; color:var(--muted); margin-bottom:20px; text-transform:uppercase; font-size:0.75rem;">Initializing...</div>
+
 <div id="cardGrid"></div>
-<div style="text-align: center;"><button id="loadMoreBtn" class="btn-load" onclick="showNextPage()">Load More Alliances</button></div>
+
+<div style="text-align: center; padding: 40px;">
+    <button id="loadMoreBtn" class="btn" style="display:none;" onclick="showNextPage()">LOAD MORE</button>
+</div>
 
 <script>
+    const RENDER_URL = "https://kd-backend-icbu.onrender.com";
     let allData = [];
     let filteredData = [];
     let itemsShown = 0;
     const pageSize = 30;
-    // Default sort: Kingdom, Ascending
-    let currentSort = { field: 'kd', direction: 'asc' };
+    let currentSort = { field: 'power', direction: 'desc' };
+    let isAdmin = false;
+    let currentSnapshotReg = { kingdoms: [], data: {} }; 
 
     const ROSTER_MAP = {
-        '10-20M': ['10-20M', '10M', '20M'],
-        '20-40M': ['20-40M', '30M', '40M'],
-        '40-60M': ['40-60M', '50M'],
-        '60-80M': ['60-80M', '60M+', '60M'],
-        '80-100M': ['80-100M', '80M+', '80M'],
-        '100-125M': ['100-125M', '100M+', '100M'],
-        '125-150M': ['125-150M', '125M+', '125M'],
-        '150-200M': ['150-200M', '150M+', '150M'],
-        '200M+': ['200M+', '250M+', '300M+']
+        '10M': '10M', '20M': '20M', '30M': '30M', '40M': '40M', '50M': '50M',
+        '80M': '80M+', '100M': '100M+', '125M': '125M+', '150M': '150M+',
+        '200M': '200M+', '250M': '250M+', '300M': '300M+'
     };
 
     window.onload = async () => {
         try {
-            const resp = await fetch('Pull/files.json');
+            const resp = await fetch(`Pull/files.json?cb=${Date.now()}`);
             const files = await resp.json();
             const selector = document.getElementById('fileSelector');
             files.forEach(f => {
                 const opt = document.createElement('option');
-                opt.value = f;
-                opt.textContent = f.replace('.csv', '');
+                opt.value = f; opt.textContent = f.replace('.csv', '').toUpperCase();
                 selector.appendChild(opt);
             });
-        } catch (e) { document.getElementById('status').textContent = "Error loading file list."; }
+            if(files.length > 0) {
+                selector.value = files[files.length-1];
+                await processFile(selector.value);
+            }
+        } catch (e) { console.error("Init Error:", e); }
+        finally { hideLoading(); }
     };
+
+    function hideLoading() {
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.style.display = 'none', 500);
+    }
 
     async function processFile(fileName) {
         if (!fileName) return;
-        const status = document.getElementById('status');
-        status.textContent = "Processing Snapshot...";
-        document.getElementById('cardGrid').innerHTML = "";
-        allData = [];
-        
+        document.getElementById('status').textContent = "SYNCING SNAPSHOT...";
         try {
+            const jsonName = fileName.replace('.csv', '.json');
+            const regResp = await fetch(`${RENDER_URL}/load-registration/${jsonName}?cb=${Date.now()}`);
+            if (regResp.ok) {
+                currentSnapshotReg = await regResp.json();
+                if (currentSnapshotReg.message === "Not Found") currentSnapshotReg = { kingdoms: [], data: {} };
+            } else { currentSnapshotReg = { kingdoms: [], data: {} }; }
+
             const resp = await fetch(`Pull/${fileName}`);
             const text = await resp.text();
             const result = Papa.parse(text, { skipEmptyLines: true });
             let rawRows = result.data;
             const headers = rawRows[0].map(h => String(h).trim());
-            
+
             const idx = {
-                kd: headers.indexOf('KD'),
-                name: headers.indexOf('#1 Ally'),
-                power: headers.indexOf('Top 300 Power'),
-                merits: headers.indexOf('Top 300 Merits'),
-                mp: headers.indexOf('M/P'),
-                kills: headers.indexOf('Top 300 Kills'),
-                deads: headers.indexOf('Top 300 Deads'),
-                heals: headers.indexOf('Top 300 Heals'),
-                ch25: headers.indexOf('CH25'),
-                ch25Avg: headers.indexOf('CH25 AP')
+                kd: headers.indexOf('KD'), name: headers.indexOf('#1 Ally'),
+                power: headers.indexOf('Top 300 Power'), merits: headers.indexOf('Top 300 Merits'),
+                mp: headers.indexOf('M/P'), kills: headers.indexOf('Top 300 Kills'),
+                deads: headers.indexOf('Top 300 Deads'), heals: headers.indexOf('Top 300 Heals'),
+                ch25: headers.indexOf('CH25')
             };
 
-            const rosterIndicesMap = {};
-            for (const [target, sources] of Object.entries(ROSTER_MAP)) {
-                rosterIndicesMap[target] = [];
-                sources.forEach(srcName => {
-                    const fIdx = headers.indexOf(srcName);
-                    if (fIdx !== -1) rosterIndicesMap[target].push(fIdx);
-                });
-            }
-
-            let rawAlliances = [];
+            allData = [];
             for (let i = 1; i < rawRows.length; i++) {
                 const r = rawRows[i];
-                const kdId = r[idx.kd] ? String(r[idx.kd]).trim() : "";
-                const rawName = r[idx.name] ? String(r[idx.name]).trim() : "";
-                
-                if (!kdId && !rawName) continue;
+                const rawKd = String(r[idx.kd] || "").trim();
+                if (!rawKd) continue;
+                const cleanKd = String(parseInt(parseFloat(rawKd)));
+                const isRegistered = currentSnapshotReg.kingdoms?.includes(cleanKd);
+                const regInfo = currentSnapshotReg.data?.[cleanKd] || { class: "TBD", isParagon: false };
 
-                const processedRoster = {};
-                for (const [target, colIndices] of Object.entries(rosterIndicesMap)) {
-                    let sum = 0;
-                    colIndices.forEach(cIdx => sum += cleanNum(r[cIdx]));
-                    processedRoster[target] = sum;
+                const roster = {};
+                for (const [lbl, csv] of Object.entries(ROSTER_MAP)) {
+                    const hIdx = headers.indexOf(csv);
+                    roster[lbl] = hIdx !== -1 ? cleanNum(r[hIdx]) : 0;
                 }
 
-                rawAlliances.push({
-                    kd: kdId || "??",
-                    name: rawName || "Unknown",
-                    power: cleanNum(r[idx.power]),
-                    merits: cleanNum(r[idx.merits]),
-                    mp: cleanNum(r[idx.mp], true),
-                    kills: cleanNum(r[idx.kills]),
-                    deads: cleanNum(r[idx.deads]),
-                    heals: cleanNum(r[idx.heals]),
-                    ch25: cleanNum(r[idx.ch25]),
-                    ch25Avg: cleanNum(r[idx.ch25Avg]),
-                    roster: processedRoster
+                allData.push({
+                    kd: cleanKd, name: String(r[idx.name] || "Unknown").trim(),
+                    power: cleanNum(r[idx.power]), merits: cleanNum(r[idx.merits]),
+                    mp: cleanNum(r[idx.mp], true), kills: cleanNum(r[idx.kills]),
+                    deads: cleanNum(r[idx.deads]), heals: cleanNum(r[idx.heals]),
+                    ch25: cleanNum(r[idx.ch25]), status: isRegistered ? "Registered" : "Not Registered", 
+                    class: regInfo.class, isParagon: regInfo.isParagon, roster: roster
                 });
             }
-
-            // Calculate Static Rankings for display
-            const sortedByPower = [...rawAlliances].sort((a, b) => b.power - a.power);
-            const sortedByMP = [...rawAlliances].sort((a, b) => b.mp - a.mp);
-
-            allData = rawAlliances.map(a => {
-                a.powerRank = sortedByPower.findIndex(x => x.kd === a.kd && x.name === a.name) + 1;
-                a.mpRank = sortedByMP.findIndex(x => x.kd === a.kd && x.name === a.name) + 1;
-                return a;
-            });
-
-            // Reset sort UI to default (Kingdom Ascending) when a new file is loaded
-            currentSort = { field: 'kd', direction: 'asc' };
-            document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active', 'asc'));
-            const defaultBtn = document.getElementById('defaultSortBtn');
-            defaultBtn.classList.add('active', 'asc');
-
-            filteredData = [...allData];
-            applySort();
-            resetAndRender();
-            status.textContent = `Analyzed ${allData.length} Kingdoms`;
-        } catch (e) {
-            status.textContent = "Error loading data.";
-            console.error(e);
-        }
+            handleSearch();
+            document.getElementById('status').textContent = `TOTAL ANALYZED: ${allData.length}`;
+        } catch (e) { console.error("Process Error:", e); }
     }
 
     function handleSearch() {
         const query = document.getElementById('searchInput').value.toLowerCase();
-        filteredData = allData.filter(a => 
-            a.name.toLowerCase().includes(query) || 
-            a.kd.toString().includes(query)
-        );
-        applySort(); // Re-apply current sort to filtered results
+        const sFilter = document.getElementById('regFilter').value;
+        const cFilter = document.getElementById('classFilter').value;
+        filteredData = allData.filter(a => {
+            const matchesQuery = a.name.toLowerCase().includes(query) || a.kd.includes(query);
+            const matchesStatus = sFilter === 'all' || a.status === sFilter;
+            const matchesClass = cFilter === 'all' || a.class === cFilter;
+            return matchesQuery && matchesStatus && matchesClass;
+        });
+        applySort();
+        const sortedByPower = [...filteredData].sort((a,b) => b.power - a.power);
+        const sortedByMP = [...filteredData].sort((a,b) => b.mp - a.mp);
+        filteredData.forEach(a => {
+            a.powerRank = sortedByPower.findIndex(x => x.kd === a.kd) + 1;
+            a.mpRank = sortedByMP.findIndex(x => x.kd === a.kd) + 1;
+        });
         resetAndRender();
     }
 
     function handleSort(field, btn) {
-        if (currentSort.field === field) {
-            currentSort.direction = (currentSort.direction === 'desc') ? 'asc' : 'desc';
-        } else {
-            currentSort.field = field;
-            // Kingdom defaults to Asc (1, 2, 3...), everything else defaults to Desc (High to Low)
-            currentSort.direction = (field === 'kd') ? 'asc' : 'desc';
-        }
+    if (currentSort.field === field) currentSort.direction = (currentSort.direction === 'desc') ? 'asc' : 'desc';
+    else { currentSort.field = field; currentSort.direction = 'desc'; }
 
-        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active', 'asc'));
-        btn.classList.add('active');
-        if (currentSort.direction === 'asc') btn.classList.add('asc');
-        
-        applySort();
-        resetAndRender();
+    // UNIFIED GLOW LOGIC:
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    handleSearch();
     }
 
     function applySort() {
         filteredData.sort((a, b) => {
-            let valA = a[currentSort.field];
-            let valB = b[currentSort.field];
-            
-            // Ensure Kingdom ID is treated numerically
-            if (currentSort.field === 'kd') {
-                valA = parseInt(valA) || 999999;
-                valB = parseInt(valB) || 999999;
-            }
-
-            if (currentSort.direction === 'desc') return (valB > valA) ? 1 : -1;
-            else return (valA > valB) ? 1 : -1;
+            if (a.status !== b.status) return a.status === "Registered" ? -1 : 1;
+            let valA = a[currentSort.field], valB = b[currentSort.field];
+            return currentSort.direction === 'desc' ? (valB - valA) : (valA - valB);
         });
     }
 
-    function resetAndRender() {
-        itemsShown = 0;
-        document.getElementById('cardGrid').innerHTML = "";
-        showNextPage();
-    }
+    function resetAndRender() { itemsShown = 0; document.getElementById('cardGrid').innerHTML = ""; showNextPage(); }
 
     function showNextPage() {
         const grid = document.getElementById('cardGrid');
         const nextBatch = filteredData.slice(itemsShown, itemsShown + pageSize);
-        
         nextBatch.forEach(a => {
             const card = document.createElement('div');
             card.className = 'pvp-card';
-            const nameClass = a.name === "Unknown" ? "ally-name unknown" : "ally-name";
             card.innerHTML = `
-                <div class="kd-tag">KD ${a.kd}</div>
                 <div class="card-header">
-                    <div class="${nameClass}">${a.name}</div>
-                    <div class="main-power">Total Power: ${formatVal(a.power)}</div>
-                    <div class="rank-container">
-                        <span class="rank-badge rank-power">Power Rank: #${a.powerRank}</span>
-                        <span class="rank-badge rank-mp">M/P Rank: #${a.mpRank}</span>
+                    <div class="ally-name-row"><div>${a.name}</div><span class="sep-bar">|</span><div>KD ${a.kd}</div></div>
+                    <div style="font-size:0.8rem; font-weight:800; opacity:0.6; margin-bottom:15px;">CH25 COUNT: ${a.ch25}</div>
+                    <div style="display:flex; gap:8px; justify-content:center;">
+                        <span class="badge" style="color:var(--brd-deads)">#${a.powerRank} PWR</span>
+                        <span class="badge" style="color:var(--brd-heals)">#${a.mpRank} M/P</span>
+                        <span class="badge" style="color:var(--primary)">CLASS ${a.class}</span>
+                        ${a.isParagon ? '<span class="badge" style="color:var(--brd-kills)">★ PARAGON</span>' : ''}
                     </div>
                 </div>
-
                 <div class="stat-grid">
-                    <div class="stat-box"><span class="stat-label">Merits</span><div class="stat-value">${formatVal(a.merits)}</div></div>
-                    <div class="stat-box"><span class="stat-label">M/P Ratio</span><div class="stat-value highlight">${a.mp.toFixed(2)}%</div></div>
-                    <div class="stat-box"><span class="stat-label">Kills</span><div class="stat-value">${formatVal(a.kills)}</div></div>
-                    <div class="stat-box"><span class="stat-label">Deads</span><div class="stat-value" style="color:#dc2626">${formatVal(a.deads)}</div></div>
-                    <div class="stat-box"><span class="stat-label">Heals</span><div class="stat-value" style="color:#16a34a">${formatVal(a.heals)}</div></div>
-                    <div class="stat-box"><span class="stat-label">CH25 Count</span><div class="stat-value">${a.ch25}</div></div>
+                    <div class="stat-box"><span class="stat-label">Power</span><div class="stat-value">${formatVal(a.power)}</div></div>
+                    <div class="stat-box box-merits"><span class="stat-label">Merits</span><div class="stat-value">${formatVal(a.merits)}</div></div>
+                    <div class="stat-box box-mp"><span class="stat-label">M/P Ratio</span><div class="stat-value">${a.mp.toFixed(2)}%</div></div>
                 </div>
-
-                <div class="stat-box" style="min-height: auto;">
-                    <span class="stat-label">CH25 Avg Power</span>
-                    <div class="stat-value">${formatVal(a.ch25Avg)}</div>
+                <div class="stat-grid">
+                    <div class="stat-box box-kills"><span class="stat-label">Kills</span><div class="stat-value">${formatVal(a.kills)}</div></div>
+                    <div class="stat-box box-deads"><span class="stat-label">Deads</span><div class="stat-value">${formatVal(a.deads)}</div></div>
+                    <div class="stat-box box-heals"><span class="stat-label">Heals</span><div class="stat-value">${formatVal(a.heals)}</div></div>
                 </div>
-
                 <div class="roster-section">
-                    <span class="roster-title">Combined Power Distribution</span>
+                    <span class="stat-label" style="display:block; text-align:center; color:var(--accent-purple)">Troop Distribution</span>
                     <div class="roster-grid">
-                        ${Object.entries(a.roster).map(([label, val]) => {
-                            const op = (val === 0) ? 'style="opacity:0.3"' : '';
-                            return `<div class="roster-item" ${op}><span class="r-label">${label}</span><span class="r-val">${val}</span></div>`;
-                        }).join('')}
+                        ${Object.entries(a.roster).map(([label, val]) => `<div class="roster-item" style="${val === 0 ? 'opacity:0.2' : ''}"><div class="stat-label" style="font-size:0.5rem;">${label}</div><div class="r-val">${val}</div></div>`).join('')}
                     </div>
+                </div>
+                <div class="admin-card-controls" style="display: ${isAdmin ? 'flex' : 'none'}; gap:10px; border-top:1px solid var(--glass-border); padding-top:15px; justify-content:center;">
+                    <select onchange="updateLocalReg('${a.kd}', 'status', this.value)">
+                        <option value="Not Registered" ${a.status === 'Not Registered' ? 'selected' : ''}>Not Registered</option>
+                        <option value="Registered" ${a.status === 'Registered' ? 'selected' : ''}>Registered</option>
+                    </select>
+                    <select onchange="updateLocalReg('${a.kd}', 'class', this.value)">
+                        <option value="TBD" ${a.class === 'TBD' ? 'selected' : ''}>TBD</option>
+                        <option value="A" ${a.class === 'A' ? 'selected' : ''}>A</option>
+                        <option value="B" ${a.class === 'B' ? 'selected' : ''}>B</option>
+                        <option value="C" ${a.class === 'C' ? 'selected' : ''}>C</option>
+                        <option value="D" ${a.class === 'D' ? 'selected' : ''}>D</option>
+                    </select>
+                    <label style="font-size: 0.7rem; font-weight: 800; cursor: pointer;"><input type="checkbox" ${a.isParagon ? 'checked' : ''} onchange="updateLocalReg('${a.kd}', 'isParagon', this.checked)"> PARAGON</label>
                 </div>
             `;
             grid.appendChild(card);
         });
-
         itemsShown += pageSize;
         document.getElementById('loadMoreBtn').style.display = (itemsShown < filteredData.length) ? 'inline-block' : 'none';
     }
 
-    function cleanNum(v, isPct = false) {
-        if (!v) return 0;
-        let n = parseFloat(String(v).replace(/,/g, '').replace('%', ''));
-        return isNaN(n) ? 0 : n;
+    function updateLocalReg(kd, field, value) {
+        const entry = allData.find(x => x.kd === kd);
+        if (entry) { entry[field] = value; handleSearch(); }
     }
 
-    function formatVal(n) {
-        if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
-        if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
-        return n.toLocaleString();
+    async function saveDedicatedJson() {
+        const btn = document.getElementById('adminSaveBtn');
+        const fileName = document.getElementById('fileSelector').value;
+        const jsonName = fileName.replace('.csv', '.json');
+        const registeredList = allData.filter(item => item.status === "Registered").map(item => item.kd);
+        const dataMap = {};
+        allData.filter(item => item.status === "Registered").forEach(item => { dataMap[item.kd] = { class: item.class, isParagon: item.isParagon }; });
+        const payload = { kingdoms: registeredList, data: dataMap };
+        btn.textContent = "SAVING...";
+        try {
+            const resp = await fetch(`${RENDER_URL}/save-registration/${jsonName}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (resp.ok) { btn.textContent = "SAVED!"; setTimeout(() => btn.textContent = "SAVE CLOUD", 2000); }
+        } catch (e) { alert("Save failed."); btn.textContent = "RETRY"; }
     }
+
+    async function login() {
+        const userTyped = document.getElementById('user').value;
+        const passTyped = document.getElementById('pass').value;
+        const errorMsg = document.getElementById('loginError');
+
+        try {
+            // Fetch the actual credentials from your Admin.json file
+            const resp = await fetch('Admin.json');
+            const data = await resp.json();
+            
+            // Find if the typed username and password match any user in Admin.json
+            const authorized = data.users.find(u => u.username === userTyped && u.password === passTyped);
+
+            if (authorized) {
+                isAdmin = true;
+                if(document.getElementById('adminArea')) document.getElementById('adminArea').style.display = 'flex';
+                if(document.getElementById('adminSaveBtn')) document.getElementById('adminSaveBtn').style.display = 'inline-block';
+                if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').style.display = 'inline-block';
+                document.getElementById('loginBtn').style.display = 'none';
+                toggleModal(false);
+                
+                // Refresh the view now that we are admin
+                if (typeof renderAll === "function") renderAll();
+                if (typeof handleSearch === "function") handleSearch();
+                
+            } else {
+                if(errorMsg) errorMsg.style.display = 'block';
+                else alert("Invalid Credentials");
+            }
+        } catch (e) {
+            console.error("Login Error:", e);
+            alert("Could not load Admin settings.");
+        }
+    }
+
+    function logout() { location.reload(); }
+    function toggleModal(v) { 
+        document.getElementById('authModal').style.display = v ? 'flex' : 'none'; 
+        if(!v) document.getElementById('loginError').style.display = 'none';
+    }
+    function handleOutsideClick(e) { if (e.target.id === 'authModal') toggleModal(false); }
+    function cleanNum(v, isPct = false) { if (!v) return 0; let n = parseFloat(String(v).replace(/,/g, '').replace('%', '')); return isNaN(n) ? 0 : (isPct ? n/100 : n); }
+    function formatVal(n) { if (n >= 1e9) return (n/1e9).toFixed(2)+'B'; if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; return n.toLocaleString(); }
 </script>
 </body>
 </html>
