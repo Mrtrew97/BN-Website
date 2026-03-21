@@ -50,6 +50,7 @@
         }
         input:focus { border-color: var(--primary); }
 
+        /* Sort Bar Unified */
         .sort-bar { display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--glass-border); padding-top: 20px; justify-content: center; }
         .sort-btn { background: transparent; border: 1px solid var(--glass-border); color: var(--muted); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; transition: 0.2s; }
         .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -89,13 +90,7 @@
         .roster-item { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid var(--glass-border); }
         .r-val { font-size: 0.85rem; font-weight: 900; color: var(--accent-purple); }
 
-        /* Auth Modal */
-        #authModal { 
-            display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); 
-            backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000; 
-        }
-        .modal-content { background: #1e293b; padding: 40px; border-radius: 30px; width: 320px; text-align: center; border: 1px solid var(--glass-border); }
-
+        /* Auth Modal Overlay */
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -237,8 +232,11 @@
                 const r = rawRows[i];
                 const rawKd = String(r[idx.kd] || "").trim();
                 if (!rawKd) continue;
+
                 const cleanKd = String(parseInt(parseFloat(rawKd)));
-                const isRegistered = currentSnapshotReg.kingdoms?.includes(cleanKd);
+                
+                // STRICT CHECK: Is this ID in the JSON kingdoms array?
+                const isRegistered = currentSnapshotReg.kingdoms && currentSnapshotReg.kingdoms.includes(cleanKd);
                 const regInfo = currentSnapshotReg.data?.[cleanKd] || { class: "TBD", isParagon: false };
 
                 const roster = {};
@@ -247,13 +245,25 @@
                     roster[lbl] = hIdx !== -1 ? cleanNum(r[hIdx]) : 0;
                 }
 
+                // Values & Math Fix
+                const pwr = cleanNum(r[idx.power]);
+                const merits = cleanNum(r[idx.merits]);
+                const mpRatio = pwr > 0 ? (merits / pwr) * 100 : 0;
+
                 allData.push({
-                    kd: cleanKd, name: String(r[idx.name] || "Unknown").trim(),
-                    power: cleanNum(r[idx.power]), merits: cleanNum(r[idx.merits]),
-                    mp: cleanNum(r[idx.mp], true), kills: cleanNum(r[idx.kills]),
-                    deads: cleanNum(r[idx.deads]), heals: cleanNum(r[idx.heals]),
-                    ch25: cleanNum(r[idx.ch25]), status: isRegistered ? "Registered" : "Not Registered", 
-                    class: regInfo.class, isParagon: regInfo.isParagon, roster: roster
+                    kd: cleanKd, 
+                    name: String(r[idx.name] || "Unknown").trim(),
+                    power: pwr, 
+                    merits: merits,
+                    mp: mpRatio, 
+                    kills: cleanNum(r[idx.kills]),
+                    deads: cleanNum(r[idx.deads]), 
+                    heals: cleanNum(r[idx.heals]),
+                    ch25: cleanNum(r[idx.ch25]), 
+                    status: isRegistered ? "Registered" : "Not Registered", 
+                    class: regInfo.class,
+                    isParagon: regInfo.isParagon, 
+                    roster: roster
                 });
             }
             handleSearch();
@@ -263,15 +273,19 @@
 
     function handleSearch() {
         const query = document.getElementById('searchInput').value.toLowerCase();
-        const sFilter = document.getElementById('regFilter').value;
+        const sFilter = document.getElementById('regFilter').value; // 'Registered' or 'Not Registered'
         const cFilter = document.getElementById('classFilter').value;
+        
         filteredData = allData.filter(a => {
             const matchesQuery = a.name.toLowerCase().includes(query) || a.kd.includes(query);
             const matchesStatus = sFilter === 'all' || a.status === sFilter;
             const matchesClass = cFilter === 'all' || a.class === cFilter;
             return matchesQuery && matchesStatus && matchesClass;
         });
+
         applySort();
+        
+        // Ranking Logic - Rank ONLY those currently in the filtered list
         const sortedByPower = [...filteredData].sort((a,b) => b.power - a.power);
         const sortedByMP = [...filteredData].sort((a,b) => b.mp - a.mp);
         filteredData.forEach(a => {
@@ -282,19 +296,20 @@
     }
 
     function handleSort(field, btn) {
-    if (currentSort.field === field) currentSort.direction = (currentSort.direction === 'desc') ? 'asc' : 'desc';
-    else { currentSort.field = field; currentSort.direction = 'desc'; }
+        if (currentSort.field === field) currentSort.direction = (currentSort.direction === 'desc') ? 'asc' : 'desc';
+        else { currentSort.field = field; currentSort.direction = 'desc'; }
 
-    // UNIFIED GLOW LOGIC:
-    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+        // Unified Active Button Glow
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-    handleSearch();
+        handleSearch();
     }
 
     function applySort() {
         filteredData.sort((a, b) => {
-            if (a.status !== b.status) return a.status === "Registered" ? -1 : 1;
+            // Push Registered to top by default if sorting KD
+            if (a.status !== b.status && currentSort.field === 'kd') return a.status === "Registered" ? -1 : 1;
             let valA = a[currentSort.field], valB = b[currentSort.field];
             return currentSort.direction === 'desc' ? (valB - valA) : (valA - valB);
         });
@@ -322,7 +337,7 @@
                 <div class="stat-grid">
                     <div class="stat-box"><span class="stat-label">Power</span><div class="stat-value">${formatVal(a.power)}</div></div>
                     <div class="stat-box box-merits"><span class="stat-label">Merits</span><div class="stat-value">${formatVal(a.merits)}</div></div>
-                    <div class="stat-box box-mp"><span class="stat-label">M/P Ratio</span><div class="stat-value">${a.mp.toFixed(2)}%</div></div>
+                    <div class="stat-box box-mp"><span class="stat-label">M/P Ratio</span><div class="stat-value">${Number(a.mp).toFixed(2)}%</div></div>
                 </div>
                 <div class="stat-grid">
                     <div class="stat-box box-kills"><span class="stat-label">Kills</span><div class="stat-value">${formatVal(a.kills)}</div></div>
@@ -358,7 +373,10 @@
 
     function updateLocalReg(kd, field, value) {
         const entry = allData.find(x => x.kd === kd);
-        if (entry) { entry[field] = value; handleSearch(); }
+        if (entry) { 
+            entry[field] = value; 
+            handleSearch(); 
+        }
     }
 
     async function saveDedicatedJson() {
@@ -380,35 +398,21 @@
         const userTyped = document.getElementById('user').value;
         const passTyped = document.getElementById('pass').value;
         const errorMsg = document.getElementById('loginError');
-
         try {
-            // Fetch the actual credentials from your Admin.json file
             const resp = await fetch('Admin.json');
             const data = await resp.json();
-            
-            // Find if the typed username and password match any user in Admin.json
             const authorized = data.users.find(u => u.username === userTyped && u.password === passTyped);
-
             if (authorized) {
                 isAdmin = true;
-                if(document.getElementById('adminArea')) document.getElementById('adminArea').style.display = 'flex';
-                if(document.getElementById('adminSaveBtn')) document.getElementById('adminSaveBtn').style.display = 'inline-block';
-                if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').style.display = 'inline-block';
+                document.getElementById('adminSaveBtn').style.display = 'inline-block';
+                document.getElementById('logoutBtn').style.display = 'inline-block';
                 document.getElementById('loginBtn').style.display = 'none';
                 toggleModal(false);
-                
-                // Refresh the view now that we are admin
-                if (typeof renderAll === "function") renderAll();
-                if (typeof handleSearch === "function") handleSearch();
-                
+                handleSearch();
             } else {
-                if(errorMsg) errorMsg.style.display = 'block';
-                else alert("Invalid Credentials");
+                errorMsg.style.display = 'block';
             }
-        } catch (e) {
-            console.error("Login Error:", e);
-            alert("Could not load Admin settings.");
-        }
+        } catch (e) { alert("Could not load Admin settings."); }
     }
 
     function logout() { location.reload(); }
@@ -417,7 +421,13 @@
         if(!v) document.getElementById('loginError').style.display = 'none';
     }
     function handleOutsideClick(e) { if (e.target.id === 'authModal') toggleModal(false); }
-    function cleanNum(v, isPct = false) { if (!v) return 0; let n = parseFloat(String(v).replace(/,/g, '').replace('%', '')); return isNaN(n) ? 0 : (isPct ? n/100 : n); }
+
+    function cleanNum(v) { 
+        if (!v) return 0; 
+        let n = parseFloat(String(v).replace(/,/g, '').replace('%', '')); 
+        return isNaN(n) ? 0 : n; 
+    }
+
     function formatVal(n) { if (n >= 1e9) return (n/1e9).toFixed(2)+'B'; if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; return n.toLocaleString(); }
 </script>
 </body>
