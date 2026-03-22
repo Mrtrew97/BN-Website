@@ -31,98 +31,86 @@
             overflow-x: hidden; 
         }
 
-        /* --- LOADING OVERLAY --- */
-        #loadingOverlay {
-            position: fixed; inset: 0; background: #000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 9999; transition: opacity 0.5s ease;
-        }
-        .spinner {
-            width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1);
-            border-top: 5px solid var(--primary); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 15px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* --- CUSTOM SCROLLBAR --- */
+        .table-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-wrapper::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
 
-        /* --- STICKY HEADER --- */
-        .sticky-header { 
-            position: sticky; top: 0; z-index: 1000; 
-            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(15px);
-            padding-bottom: 10px; border-bottom: 1px solid var(--glass-border); margin-bottom: 20px; 
-        }
-        .top-nav { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px 0; max-width: 1400px; margin: 0 auto; }
-        .admin-controls { display: none; gap: 8px; align-items: center; }
-
-        /* --- FILTERS & SEARCH --- */
-        .filter-row { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; justify-content: center; }
-        .filter-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--glass-border); background: var(--glass); cursor: pointer; font-size: 0.75rem; font-weight: 700; color: var(--muted); transition: 0.2s; }
-        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        .search-container { width: 100%; max-width: 1400px; margin: 0 auto 10px; display: flex; gap: 10px; }
-        .search-input { flex-grow: 1; padding: 12px 20px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; font-weight: 500; }
-
-        /* --- SORTING --- */
-        .sort-row { width: 100%; max-width: 1400px; margin: 0 auto; display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 10px 0; white-space: nowrap; scrollbar-width: none; }
-        .sort-btn { padding: 6px 12px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 6px; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); flex-shrink: 0; }
-        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        .btn { padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--glass); color: white; text-decoration: none; }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.2); }
-        .btn-blue { background: var(--primary); border-color: var(--primary); }
-        .btn-green { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); }
-        .btn-purple { background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); }
-
-        /* --- MATCHUP CARDS --- */
-        #matchupsContainer { display: flex; flex-direction: column; gap: 30px; width: 100%; max-width: 1600px; margin: 0 auto; }
-        .matchup-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 20px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        /* --- NON-STICKY TOP SECTION --- */
+        .top-nav-wrapper { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; padding: 10px 20px 20px 20px; }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         
-        .card-header { background: rgba(255,255,255,0.02); padding: 15px 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
-        .name-input { font-size: 1.1rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 300px; outline: none; }
-        .zone-badge { font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; background: #0f172a; color: var(--muted); text-transform: uppercase; border: none; cursor: pointer; }
+        .filter-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 5px; }
+        .filter-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--glass-border); background: var(--glass); cursor: pointer; font-size: 0.75rem; font-weight: 700; color: var(--muted); transition: 0.2s; }
+        .filter-btn.active { background: white; color: black; border-color: white; }
 
-        /* --- TABLES --- */
+        .search-container { width: 100%; display: flex; gap: 10px; }
+        .search-input { flex-grow: 1; padding: 12px 20px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; }
+
+        /* --- STICKY SORT BAR --- */
+        .sort-bar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(15px);
+            padding: 15px 0;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+        .sort-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .sort-btn { 
+            padding: 8px 16px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; 
+            font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase;
+        }
+        .sort-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+
+        /* --- TABLES & CARDS --- */
+        #matchupsContainer { display: flex; flex-direction: column; gap: 30px; width: 100%; max-width: 1600px; margin: 0 auto; }
+        .matchup-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 20px; overflow: hidden; margin-bottom: 20px; }
+        
         .table-wrapper { width: 100%; overflow-x: auto; } 
         table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1750px; }
-        th { text-align: center; padding: 15px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
-        td { padding: 12px 2px; border-bottom: 1px solid var(--glass-border); border-top: 1px solid var(--glass-border); font-size: 0.8rem; text-align: center; background: rgba(255,255,255,0.01); }
+        th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
+        td { padding: 12px 2px; text-align: center; background: rgba(255,255,255,0.01); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 0.8rem; }
         
-        td:first-child { border-left: 1px solid var(--glass-border); border-radius: 10px 0 0 10px; }
-        td:last-child { border-right: 1px solid var(--glass-border); border-radius: 0 10px 10px 0; }
+        .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 900 !important; }
 
-        .paragon-text { color: var(--paragon) !important; font-weight: 900; }
-        .bold-highlight { font-weight: 900 !important; color: white !important; }
-
-        /* SPECIAL ROW STYLES */
         .row-total-a, .row-total-b { background: rgba(59, 130, 246, 0.1) !important; color: var(--primary) !important; }
-        .row-total-a td, .row-total-b td { font-weight: 900 !important; border-color: rgba(59, 130, 246, 0.2); }
         .row-differentials-a-b { background: rgba(168, 85, 247, 0.1) !important; color: var(--accent) !important; }
-        .row-differentials-a-b td { font-weight: 900 !important; border-color: rgba(168, 85, 247, 0.2); }
         
-        .id-input { width: 90%; padding: 4px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 4px; text-align: center; font-weight: 700; color: var(--primary); font-size: 0.8rem; outline: none; }
+        .paragon-text { color: var(--paragon) !important; font-weight: 900; text-decoration: underline; }
         .col-drag { width: 30px; cursor: grab; opacity: 0.3; }
         .col-del { width: 30px; color: var(--danger); font-weight: 900; cursor: pointer; }
 
-        #authModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000; }
-        .modal-content { background: #1e293b; padding: 30px; border-radius: 20px; border: 1px solid var(--glass-border); text-align: center; width: 300px; }
+        #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <div id="loadingOverlay">
     <div class="spinner"></div>
-    <div style="font-weight: 800; color: var(--muted); font-size: 0.9rem; letter-spacing: 2px;">SYNCING MATCHUP DATA</div>
+    <div style="font-weight: 800; font-size: 0.9rem; letter-spacing: 2px;">SYNCING MATCHUP DATA</div>
 </div>
 
-<div class="sticky-header">
+<a href="index.html" class="home-link">← Kingdom Hub</a>
+
+<div class="top-nav-wrapper">
     <div class="top-nav">
         <div style="display:flex; align-items:center; gap:10px;">
-            <a href="index.html" class="home-link">← Kingdom Hub</a>
             <span id="activeFileLabel" style="font-size:0.75rem; font-weight:900; color:var(--primary); text-transform:uppercase;">Select Dataset</span>
+            <select id="fileSelector" onchange="loadSpecificFile(this.value)" style="background:transparent; border:1px solid var(--glass-border); color:white; padding:5px; border-radius:8px;"></select>
         </div>
-        <div id="adminArea" class="admin-controls">
+        <div id="adminArea" style="display:none; gap:10px;">
             <button class="btn btn-purple" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
             <button class="btn btn-green" onclick="addNewMatchup()">+ NEW MATCHUP</button>
-            <button class="btn" style="background:var(--danger)" onclick="logout()">LOGOUT</button>
+            <button class="btn" style="background:var(--danger); border:none;" onclick="logout()">LOGOUT</button>
         </div>
         <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
     </div>
@@ -136,19 +124,24 @@
     </div>
 
     <div class="search-container">
-        <select id="fileSelector" onchange="loadSpecificFile(this.value)"></select>
         <input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup, Alliance, or Kingdom..." oninput="renderAll()">
     </div>
+</div>
 
-    <div class="sort-bar" id="sortBar">
-        <span style="font-size: 0.65rem; font-weight: 800; color: var(--muted); margin-right: 5px;">SORT BY:</span>
+<div class="sort-bar" id="sortBar">
+    <div class="sort-row">
         <button class="sort-btn" onclick="setSort('name', this)">Group Name</button>
         <button class="sort-btn active" onclick="setSort('power', this)">Power</button>
         <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
         <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
+        <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
         <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
         <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
+        <button class="sort-btn" onclick="setSort('heals', this)">Heals</button>
         <button class="sort-btn" onclick="setSort('ch25', this)">CH25</button>
+        <button class="sort-btn" onclick="setSort('ap', this)">CH25 AVG</button>
+    </div>
+    <div class="sort-row">
         <script>
             ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
                 document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
@@ -159,7 +152,6 @@
 
 <div id="matchupsContainer"></div>
 
-<!-- UNIFIED ADMIN MODAL -->
 <div id="authModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 style="margin-top:0; font-weight:900; letter-spacing:-1px;">ADMIN ACCESS</h2>
@@ -181,12 +173,10 @@
     let currentZoneFilter = 'all';
     let currentRegistrations = {};
     let selectedFileName = "";
-    
     const csvKeys = ["10M","20M","30M","40M","50M","80M+","100M+","125M+","150M+","200M+","250M+","300M+"];
     const displayKeys = ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"];
 
     window.onload = async () => {
-        const overlay = document.getElementById('loadingOverlay');
         try {
             const fResp = await fetch(`./Pull/files.json?cb=${Date.now()}`);
             const files = await fResp.json();
@@ -201,69 +191,45 @@
                 await loadSpecificFile(files[0]);
             }
         } catch (e) { console.error(e); }
-        finally {
-            if(overlay) { overlay.style.opacity = '0'; setTimeout(() => overlay.style.display = 'none', 500); }
-        }
+        finally { hideOverlay(); }
     };
 
     async function loadSpecificFile(fileName) {
         selectedFileName = fileName;
         document.getElementById('activeFileLabel').textContent = fileName.replace('.csv','').toUpperCase();
-        currentMatchups = allCloudData[fileName] || [];
-        masterData.clear();
-
         const jsonName = fileName.replace('.csv', '.json');
-        let registeredIDs = new Set();
-
         try {
             const regResp = await fetch(`${RENDER_URL}/load-registration/${jsonName}?cb=${Date.now()}`);
-            if (regResp.ok) {
-                const regWrapper = await regResp.json();
-                currentRegistrations = regWrapper.data || {};
-                registeredIDs = new Set(regWrapper.kingdoms || []);
-            } else {
-                currentRegistrations = {};
-            }
-        } catch (err) {
-            currentRegistrations = {};
-        }
+            const regWrapper = regResp.ok ? await regResp.json() : { kingdoms: [], data: {} };
+            currentRegistrations = regWrapper.data || {};
+            var registeredIDs = new Set(regWrapper.kingdoms || []);
 
-        const csvResp = await fetch(`./Pull/${fileName}?cb=${Date.now()}`);
-        const text = await csvResp.text();
-        const result = Papa.parse(text, { header: true, skipEmptyLines: 'greedy' });
-        
-        let rankedPool = [];
-        result.data.forEach((row) => {
-            const kd = String(row.KD || row['KD#'] || "").trim();
-            const p = cleanNum(row['Top 300 Power'] || row.Power);
-            
-            if (kd && p > 0) {
-                const regInfo = currentRegistrations[kd];
-                const obj = {
-                    kd, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits),
-                    kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads),
-                    heals: cleanNum(row['Top 300 Heals'] || row.Heals), 
-                    ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']),
-                    mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits) / p) : 0,
-                    class: regInfo ? (regInfo.class || "TBD") : "-",
-                    isParagon: regInfo ? (regInfo.isParagon === true) : false,
-                    alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-",
-                    raw: row
-                };
-                masterData.set(kd, obj);
-                
-                // Filter: Only rank kingdoms found in the JSON file
-                if (registeredIDs.has(kd)) {
-                    rankedPool.push(obj);
+            const csvResp = await fetch(`./Pull/${fileName}?cb=${Date.now()}`);
+            const result = Papa.parse(await csvResp.text(), { header: true, skipEmptyLines: 'greedy' });
+            masterData.clear();
+            let rankedPool = [];
+            result.data.forEach(row => {
+                const kd = String(row.KD || row['KD#'] || "").trim();
+                const p = cleanNum(row['Top 300 Power'] || row.Power);
+                if (kd && p > 0) {
+                    const regInfo = currentRegistrations[kd];
+                    const obj = {
+                        kd, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits),
+                        kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads),
+                        heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']),
+                        mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0,
+                        class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true,
+                        alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", raw: row
+                    };
+                    masterData.set(kd, obj);
+                    if (registeredIDs.has(kd)) rankedPool.push(obj);
                 }
-            }
-        });
-
-        // Ranking ONLY the registered kingdoms
-        rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
-        rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
-
-        renderAll();
+            });
+            rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
+            rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
+            currentMatchups = allCloudData[fileName] || [];
+            renderAll();
+        } catch (e) { console.error(e); }
     }
 
     async function fetchMatchupsFromCloud() {
@@ -276,11 +242,11 @@
     async function saveToCloud() {
         if (!isAdmin) return;
         const btn = document.getElementById('saveStatusBtn');
-        btn.textContent = "UPLOADING...";
+        btn.textContent = "SAVING...";
         allCloudData[selectedFileName] = currentMatchups;
         try {
             const resp = await fetch(`${RENDER_URL}/save-matchups`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allCloudData) });
-            if (resp.ok) { btn.textContent = "SYNCED!"; setTimeout(() => btn.textContent="SAVE CLOUD", 2000); }
+            if (resp.ok) { btn.textContent = "SAVED!"; setTimeout(() => btn.textContent="SAVE CLOUD", 2000); }
         } catch (e) { btn.textContent="RETRY"; }
     }
 
@@ -290,6 +256,7 @@
         container.innerHTML = '';
         let displayList = currentMatchups.map((m, idx) => ({ ...m, originalIdx: idx, stats: calculateMatchupStats(m.ids) }));
         if (currentZoneFilter !== 'all') displayList = displayList.filter(m => m.zone === currentZoneFilter);
+        
         if (sT) {
             displayList = displayList.filter(m => {
                 if (m.name.toLowerCase().includes(sT)) return true;
@@ -297,6 +264,21 @@
                     const d = masterData.get(String(id).trim());
                     return String(id).includes(sT) || (d && d.alliance.toLowerCase().includes(sT));
                 });
+            });
+        }
+
+        // ABSOLUTE GAP SORTING LOGIC
+        if (currentSort !== 'name') {
+            displayList.sort((a, b) => {
+                let valA, valB;
+                if (displayKeys.includes(currentSort)) {
+                    valA = Math.abs(a.stats.diff.b[currentSort] || 0);
+                    valB = Math.abs(b.stats.diff.b[currentSort] || 0);
+                } else {
+                    valA = Math.abs(a.stats.diff[currentSort] || 0);
+                    valB = Math.abs(b.stats.diff[currentSort] || 0);
+                }
+                return valB - valA; 
             });
         }
 
@@ -310,14 +292,45 @@
                 const rowData = matchup.stats.rows[rIdx];
                 if (isSpecial) {
                     const rowClass = upper.replace(/\s+/g, '-').replace(/[()]/g, '').toLowerCase();
-                    return `<tr class="row-${rowClass}">${isAdmin ? '<td></td><td></td>' : ''}<td style="text-align:left; padding-left:20px; font-weight:900;" colspan="4">${upper}</td><td class="${currentSort === 'power' ? 'bold-highlight' : ''}">${formatVal(rowData.power)}</td><td class="${currentSort === 'merits' ? 'bold-highlight' : ''}">${formatVal(rowData.merits)}</td><td>${(rowData.mp * 100).toFixed(2)}%</td><td>${rowData.mpRankSum || 0}</td><td>${formatVal(rowData.kills)}</td><td>${formatVal(rowData.deads)}</td><td>${formatVal(rowData.heals)}</td><td>${formatValNoDec(rowData.ch25)}</td><td>${formatVal(rowData.ap)}</td>${displayKeys.map(k => `<td>${formatValNoDec(rowData.b[k])}</td>`).join('')}</tr>`;
+                    return `
+                        <tr class="row-${rowClass}">
+                            ${isAdmin ? '<td></td><td></td>' : ''}
+                            <td style="text-align:left; padding-left:20px; font-weight:900;" colspan="4">${upper}</td>
+                            <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td>
+                            <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td>
+                            <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td>
+                            <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${rowData.mpRankSum || 0}</td>
+                            <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowData.kills)}</td>
+                            <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowData.deads)}</td>
+                            <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowData.heals)}</td>
+                            <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowData.ch25)}</td>
+                            <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowData.ap)}</td>
+                            ${displayKeys.map(k => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(rowData.b[k])}</td>`).join('')}
+                        </tr>`;
                 }
                 const d = masterData.get(String(id).trim());
                 if (!d) return `<tr>${isAdmin ? '<td class="col-drag">≡</td><td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td>' : ''}<td colspan="22" style="color:var(--danger); text-align:left; padding-left:20px;">ID [${id}] Missing</td></tr>`;
-                return `<tr>${isAdmin ? '<td class="col-drag">≡</td><td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td>' : ''}<td>${d.powerRank}</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td><td style="font-weight:900;">${d.class}</td><td style="text-align:left;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td><td class="${currentSort === 'power' ? 'bold-highlight' : ''}">${formatVal(d.power)}</td><td class="${currentSort === 'merits' ? 'bold-highlight' : ''}">${formatVal(d.merits)}</td><td>${(d.mp * 100).toFixed(2)}%</td><td>${d.mpRank || 0}</td><td>${formatVal(d.kills)}</td><td>${formatVal(d.deads)}</td><td>${formatVal(d.heals)}</td><td>${formatValNoDec(d.ch25)}</td><td>${formatVal(d.ap)}</td>${csvKeys.map((k) => `<td>${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}</tr>`;
+                return `
+                    <tr>
+                        ${isAdmin ? '<td class="col-drag">≡</td><td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td>' : ''}
+                        <td>${d.powerRank || '-'}</td>
+                        <td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td>
+                        <td style="font-weight:900;">${d.class}</td>
+                        <td style="text-align:left;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td>
+                        <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
+                        <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
+                        <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
+                        <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td>
+                        <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
+                        <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
+                        <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td>
+                        <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
+                        <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
+                        ${csvKeys.map((k, idx) => `<td class="${currentSort === displayKeys[idx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}
+                    </tr>`;
             }).join('');
 
-            card.innerHTML = `<div class="card-header"><div style="display:flex; align-items:center; gap:15px;">${isAdmin ? `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : `<div class="name-input">${matchup.name}</div>`}${isAdmin ? `<select class="zone-badge" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();"><option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>OVERALL</option><option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option><option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option><option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option></select>` : `<span class="zone-badge">${matchup.zone}</span>`}</div>${isAdmin ? `<div style="display:flex; gap:10px;"><button class="btn btn-green" onclick="addRowA(${mIdx})">+ A</button><button class="btn btn-blue" onclick="addRowB(${mIdx})">+ B</button><button class="btn btn-red" style="background:var(--danger)" onclick="deleteMatchup(${mIdx})">DELETE</button></div>` : ''}</div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th><th></th>' : ''}<th>RANK</th><th>KD#</th><th>CLASS</th><th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody id="tbody-${mIdx}">${rowsHtml}</tbody></table></div>`;
+            card.innerHTML = `<div class="card-header"><div style="display:flex; align-items:center; gap:15px;">${isAdmin ? `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : `<div class="name-input">${matchup.name}</div>`}${isAdmin ? `<select class="zone-badge" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();"><option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>OVERALL</option><option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option><option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option><option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option></select>` : `<span class="zone-badge">${matchup.zone}</span>`}</div>${isAdmin ? `<div style="display:flex; gap:10px;"><button class="btn btn-green" onclick="addRowA(${mIdx})">+ A</button><button class="btn btn-blue" onclick="addRowB(${mIdx})">+ B</button><button class="btn btn-red" style="background:var(--danger); border:none;" onclick="deleteMatchup(${mIdx})">DELETE</button></div>` : ''}</div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th><th></th>' : ''}<th>RANK</th><th>KD#</th><th>CLASS</th><th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>CH25 AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody id="tbody-${mIdx}">${rowsHtml}</tbody></table></div>`;
             container.appendChild(card);
             if(isAdmin) setupSortable(mIdx);
         });
@@ -341,49 +354,20 @@
         });
         const statsA = { ...a, mp: a.power > 0 ? a.merits/a.power : 0, ap: a.count > 0 ? a.ap/a.count : 0 };
         const statsB = { ...b, mp: b.power > 0 ? b.merits/b.power : 0, ap: b.count > 0 ? b.ap/b.count : 0 };
-        return {
-            rows: ids.map(id => {
-                const u = String(id).toUpperCase().trim();
-                if (u === "TOTAL A") return statsA; if (u === "TOTAL B") return statsB;
-                if (u === "DIFFERENTIALS (A-B)") return { power: statsA.power - statsB.power, merits: statsA.merits - statsB.merits, kills: statsA.kills - statsB.kills, deads: statsA.deads - statsB.deads, heals: statsA.heals - statsB.heals, ch25: statsA.ch25 - statsB.ch25, ap: statsA.ap - statsB.ap, mp: statsA.mp - statsB.mp, mpRankSum: statsA.mpRankSum - statsB.mpRankSum, b: displayKeys.reduce((acc, k) => ({...acc, [k]: statsA.b[k] - statsB.b[k]}), {}) };
-                return {};
-            })
+        const diff = {
+            power: statsA.power - statsB.power, merits: statsA.merits - statsB.merits, kills: statsA.kills - statsB.kills,
+            deads: statsA.deads - statsB.deads, heals: statsA.heals - statsB.heals, ch25: statsA.ch25 - statsB.ch25,
+            ap: statsA.ap - statsB.ap, mp: statsA.mp - statsB.mp, mpRank: statsA.mpRankSum - statsB.mpRankSum,
+            b: displayKeys.reduce((acc, k) => ({...acc, [k]: statsA.b[k] - statsB.b[k]}), {})
         };
+        return { rows: ids.map(id => {
+            const u = String(id).toUpperCase().trim();
+            if (u === "TOTAL A") return statsA; if (u === "TOTAL B") return statsB;
+            if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank };
+            return {};
+        }), diff };
     }
-    async function login() {
-        const userTyped = document.getElementById('user').value;
-        const passTyped = document.getElementById('pass').value;
-        const errorMsg = document.getElementById('loginError');
 
-        try {
-            // Fetch the actual credentials from your Admin.json file
-            const resp = await fetch('Admin.json');
-            const data = await resp.json();
-            
-            // Find if the typed username and password match any user in Admin.json
-            const authorized = data.users.find(u => u.username === userTyped && u.password === passTyped);
-
-            if (authorized) {
-                isAdmin = true;
-                if(document.getElementById('adminArea')) document.getElementById('adminArea').style.display = 'flex';
-                if(document.getElementById('adminSaveBtn')) document.getElementById('adminSaveBtn').style.display = 'inline-block';
-                if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').style.display = 'inline-block';
-                document.getElementById('loginBtn').style.display = 'none';
-                toggleModal(false);
-                
-                // Refresh the view now that we are admin
-                if (typeof renderAll === "function") renderAll();
-                if (typeof handleSearch === "function") handleSearch();
-                
-            } else {
-                if(errorMsg) errorMsg.style.display = 'block';
-                else alert("Invalid Credentials");
-            }
-        } catch (e) {
-            console.error("Login Error:", e);
-            alert("Could not load Admin settings.");
-        }
-    }
     function addRowA(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.findIndex(id => String(id).toUpperCase().trim() === "TOTAL A"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
     function addRowB(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.findIndex(id => String(id).toUpperCase().trim() === "TOTAL B"); ids.splice(target !== -1 ? target + 1 : ids.length, 0, "000"); renderAll(); }
     function removeRow(mIdx, rIdx) { currentMatchups[mIdx].ids.splice(rIdx, 1); renderAll(); }
@@ -391,27 +375,16 @@
     function deleteMatchup(idx) { if(confirm("Delete Group?")) { currentMatchups.splice(idx, 1); renderAll(); } }
     function addNewMatchup() { currentMatchups.unshift({ name: "NEW GROUP", zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] }); renderAll(); }
     function setupSortable(mIdx) { new Sortable(document.getElementById(`tbody-${mIdx}`), { handle: '.col-drag', animation: 150, onEnd: (evt) => { const ids = currentMatchups[mIdx].ids; const moved = ids.splice(evt.oldIndex, 1)[0]; ids.splice(evt.newIndex, 0, moved); renderAll(); }}); }
+    function setSort(key, btn) { currentSort = key; document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderAll(); }
+    function setZoneFilter(zone, btn) { currentZoneFilter = zone; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderAll(); }
+    async function login() {
+        const u = document.getElementById('user').value; const p = document.getElementById('pass').value;
+        const resp = await fetch('Admin.json'); const data = await resp.json();
+        if(data.users.find(x => x.username === u && x.password === p)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); }
+    }
     function logout() { location.reload(); }
     function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
-    function setSort(key, btn) {
-        currentSort = key;
-        
-        // UNIFIED GLOW LOGIC:
-        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-        if (btn) {
-            btn.classList.add('active'); 
-        } else {
-            // This handles the default 'Team Name' button on load
-            const defaultBtn = document.getElementById('nameSort');
-            if (defaultBtn) defaultBtn.classList.add('active');
-        }
-
-        renderAll();
-    }
-    function toggleModal(v) { 
-    document.getElementById('authModal').style.display = v ? 'flex' : 'none'; 
-    }
-    function setZoneFilter(zone, btn) { currentZoneFilter = zone; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderAll(); }
+    function hideOverlay() { document.getElementById('loadingOverlay').style.opacity = '0'; setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500); }
     function cleanNum(v) { return v ? parseFloat(String(v).replace(/,/g, '')) || 0 : 0; }
     function formatVal(n) { if (!n && n !== 0) return "0.00"; const abs = Math.abs(n); let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
     function formatValNoDec(n) { if (!n && n !== 0) return "0"; const abs = Math.floor(Math.abs(n)); let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
