@@ -56,9 +56,7 @@
         .button-grid { display: flex; flex-direction: column; gap: 15px; }
 
         .btn {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.05);
             color: white;
             text-decoration: none;
             padding: 18px;
@@ -77,22 +75,18 @@
             transform: translateY(-3px);
             box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.5);
         }
-
-        .btn-placeholder { opacity: 0.3; cursor: not-allowed; }
     </style>
 </head>
 <body>
     <div class="glass-card">
         <h1>KINGDOM HUB</h1>
-        <p>SELECT ANALYTICS TOOL</p>
+        <p></p>
         <div class="button-grid">
-            <a href="SingleGraph.html" class="btn">Single KD Tracker</a>
-            <a href="CompareKingdoms.html" class="btn">Comparison Tool</a>
-            <a href="HistoricalPercents.html" class="btn">Intelligence Hub</a>
+            <a href="HistoricalPercents.html" class="btn">Kingdom History</a>
+            <a href="CompareKingdoms.html" class="btn">Kingdom Comparisons</a>
             <a href="KDPVP.html" class="btn">KD | PVP Analytics</a>
             <a href="Teams.html" class="btn">Official Teams</a>
             <a href="Matchups.html" class="btn">Official Matchups</a>
-            <a href="#" class="btn btn-placeholder">Future Module</a>
         </div>
     </div>
 </body>
