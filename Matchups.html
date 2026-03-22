@@ -11,103 +11,66 @@
     <style>
         body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
         
-        /* --- SCROLLBAR --- */
-        .table-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
-        .table-wrapper::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
-        .table-wrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+        /* --- NAVIGATION LAYOUT --- */
+        .top-admin-nav { max-width: 1600px; margin: 20px auto 10px auto; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-left-cluster, .nav-right-cluster { min-width: 150px; display: flex; align-items: center; }
+        .nav-right-cluster { justify-content: flex-end; }
+        .top-admin-nav .home-link { position: static; margin: 0; }
 
-        /* --- UNIFIED TOP NAVIGATION --- */
-        .top-navigation-bar { 
-            max-width: 1600px; 
-            margin: 20px auto 10px auto; 
-            padding: 0 25px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            gap: 20px; 
+        /* TOOLS ROW (Point 2) */
+        .tools-row-wrapper { width: 100%; display: flex; justify-content: center; margin-bottom: 20px; }
+        .tools-row { 
+            width: calc(100% - 50px); max-width: 1600px; 
+            background: var(--glass); border: 1px solid var(--glass-border); 
+            padding: 10px 15px; border-radius: 18px; 
+            display: flex; align-items: center; gap: 15px; 
         }
-        .nav-left-cluster { display: flex; align-items: center; gap: 15px; }
-        .nav-left-cluster .home-link { position: static; margin: 0; backdrop-filter: none; }
-        .search-center-cluster { flex-grow: 1; display: flex; justify-content: center; }
-        .search-input { width: 100%; max-width: 600px; padding: 12px 20px; border-radius: 15px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; transition: 0.3s; }
-        .search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
-        .nav-right-cluster { display: flex; align-items: center; gap: 10px; }
+        .search-center { flex-grow: 1; }
+        .search-input { width: 100%; padding: 10px 20px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; outline: none; }
 
-        /* --- ZONE SELECTOR (NON-STICKY) --- */
-        .zone-container { width: 100%; display: flex; justify-content: center; margin-bottom: 15px; }
-
-        /* --- STICKY METRICS ISLAND (POINT 1, 2, 3) --- */
-        .sticky-nav-wrapper {
-            position: sticky;
-            top: 15px; /* Floating slightly from the top */
-            z-index: 1000;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            padding: 0 25px;
-            box-sizing: border-box;
-            pointer-events: none; /* Allows scrolling through empty space */
-        }
+        /* STICKY SORT BAR */
+        .sticky-nav-wrapper { position: sticky; top: 0; z-index: 1000; width: 100%; display: flex; justify-content: center; }
         .sticky-nav { 
-            pointer-events: auto; /* Re-enable clicks for buttons */
-            width: 100%;
-            max-width: 1550px; /* Point 1: Match card width */
-            background: rgba(15, 23, 42, 0.96); 
-            backdrop-filter: blur(20px); 
-            padding: 10px 0; 
-            border: 1px solid var(--glass-border); 
-            border-radius: 24px; /* Point 3: Fully rounded corners */
-            display: flex; 
-            flex-direction: column; 
-            gap: 4px; /* Point 2: Reduced vertical gap */
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            margin-bottom: 40px;
+            width: calc(100% - 50px); max-width: 1600px; background: rgba(15, 23, 42, 0.96); 
+            backdrop-filter: blur(20px); padding: 12px 0 5px 0; 
+            border: 1px solid var(--glass-border); border-top: none; border-radius: 0 0 24px 24px;
+            display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .sort-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-        
         .sort-btn, .filter-btn { padding: 8px 16px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase; }
-        .sort-btn:hover, .filter-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .sort-btn.active, .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 
-        /* --- CARDS & TABLES --- */
+        /* TABLES */
         #matchupsContainer { display: flex; flex-direction: column; gap: 40px; width: 100%; max-width: 1600px; margin: 0 auto; padding: 0 25px 50px 25px; box-sizing: border-box; }
         .matchup-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
         .name-input { font-size: 1.2rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 350px; outline: none; }
-        
         .table-wrapper { width: 100%; overflow-x: auto; border-radius: 15px; } 
         table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1850px; }
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
         td { padding: 12px 2px; text-align: center; background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 0.8rem; }
-        
         .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 950 !important; }
         .row-total-a, .row-total-b { background: rgba(59, 130, 246, 0.1) !important; color: var(--primary) !important; }
         .row-differentials-a-b { background: rgba(168, 85, 247, 0.1) !important; color: var(--accent) !important; }
-        
         .id-input { width: 90%; padding: 4px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; text-align: center; font-weight: 700; color: #3b82f6; font-size: 0.8rem; outline: none; }
         .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; background: var(--glass); color: white; transition: 0.2s; text-transform: uppercase; }
         .btn:hover { background: var(--primary); transform: translateY(-2px); }
         .col-drag { width: 30px; cursor: grab; opacity: 0.3; }
         .col-del { width: 30px; color: var(--danger); font-weight: 900; cursor: pointer; }
-
-        #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="loadingOverlay"><div class="spinner"></div></div>
+<div id="loadingOverlay" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>
 
-<!-- NAVIGATION ROW (HUB, FILE, SEARCH, ADMIN) -->
-<div class="top-navigation-bar">
+<!-- TOP ADMIN NAV (Point 3 & 4) -->
+<div class="top-admin-nav">
     <div class="nav-left-cluster">
         <a href="index.html" class="home-link">← Kingdom Hub</a>
-        <select id="fileSelector" onchange="loadSpecificFile(this.value)"></select>
     </div>
-    <div class="search-center-cluster">
-        <input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup Group, Alliance, or Kingdom ID..." oninput="renderAll()">
-    </div>
+    
+    <h1 class="page-title-main">Matchups (Official)</h1>
+
     <div class="nav-right-cluster">
         <div id="adminArea" style="display:none; gap:10px;">
             <button class="btn" style="background:#a855f7; border:none;" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
@@ -118,20 +81,26 @@
     </div>
 </div>
 
-<!-- ZONE SELECTOR (NON-STICKY) -->
-<div class="zone-container">
-    <div class="sort-row" id="zoneFilterRow">
-        <button class="filter-btn active" onclick="setZoneFilter('all', this)">All Zones</button>
-        <button class="filter-btn" onclick="setZoneFilter('overall', this)">Overall</button>
-        <button class="filter-btn" onclick="setZoneFilter('zone 2', this)">Zone 2</button>
-        <button class="filter-btn" onclick="setZoneFilter('zone 3', this)">Zone 3</button>
-        <button class="filter-btn" onclick="setZoneFilter('zone 4', this)">Zone 4</button>
+<!-- TOOLS ROW (Point 2) -->
+<div class="tools-row-wrapper">
+    <div class="tools-row">
+        <select id="fileSelector" onchange="loadSpecificFile(this.value)" style="min-width:180px;"></select>
+        <div class="search-center">
+            <input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup Group, Alliance, or Kingdom ID..." oninput="renderAll()">
+        </div>
+        <div class="sort-row" id="zoneFilterRow" style="padding:0; margin:0; border:none;">
+            <button class="filter-btn active" onclick="setZoneFilter('all', this)">All</button>
+            <button class="filter-btn" onclick="setZoneFilter('overall', this)">Overall</button>
+            <button class="filter-btn" onclick="setZoneFilter('zone 2', this)">Zone 2</button>
+            <button class="filter-btn" onclick="setZoneFilter('zone 3', this)">Zone 3</button>
+            <button class="filter-btn" onclick="setZoneFilter('zone 4', this)">Zone 4</button>
+        </div>
     </div>
 </div>
 
-<!-- STICKY METRICS ISLAND -->
+<!-- STICKY SORT BAR (Point 1) -->
 <div class="sticky-nav-wrapper">
-    <div class="sticky-nav" id="sortBar">
+    <div class="sticky-nav">
         <div class="sort-row">
             <button class="sort-btn" onclick="setSort('name', this)">Group Name</button>
             <button class="sort-btn active" onclick="setSort('power', this)">Power</button>
@@ -144,12 +113,20 @@
             <button class="sort-btn" onclick="setSort('ch25', this)">CH25</button>
             <button class="sort-btn" onclick="setSort('ap', this)">CH25 AVG</button>
         </div>
-        <div class="sort-row">
-            <script>
-                ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
-                    document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
-                });
-            </script>
+        
+        <!-- Collapsible Troop Row -->
+        <div id="troopRow" class="troop-row-container">
+            <div class="sort-row" style="padding-top:10px;">
+                <script>
+                    ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
+                        document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
+                    });
+                </script>
+            </div>
+        </div>
+
+        <div class="toggle-trigger" id="troopToggle" onclick="toggleTroops()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
     </div>
 </div>
@@ -157,11 +134,10 @@
 <div id="matchupsContainer"></div>
 
 <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000;">
-    <div class="modal-content" style="background: #1e293b; padding: 40px; border-radius: 24px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+    <div class="modal-content" style="background: #1e293b; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; width: 320px;">
         <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
-        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:12px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;">
-        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:20px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;" onkeydown="if(event.key==='Enter') login()">
-        <div id="loginError" style="color: #ef4444; font-size: 0.7rem; font-weight: 800; margin-bottom: 15px; display: none;">INVALID CREDENTIALS</div>
+        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:10px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;">
+        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:15px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;" onkeydown="if(event.key==='Enter') login()">
         <button class="btn btn-blue" style="width: 100%; padding: 15px;" onclick="login()">AUTHORIZE</button>
         <button onclick="toggleModal(false)" class="btn" style="width:100%; margin-top:10px; background:transparent;">Cancel</button>
     </div>
@@ -186,9 +162,18 @@
         } catch (e) { console.error(e); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
     };
 
+    function toggleTroops() {
+        const row = document.getElementById('troopRow');
+        const trigger = document.getElementById('troopToggle');
+        row.classList.toggle('open');
+        trigger.classList.toggle('open');
+    }
+
     async function loadSpecificFile(fileName) {
-        selectedFileName = fileName; const cleanName = fileName.replace('.csv', '').replace('.CSV', '');
-        const jsonName = cleanName + ".json"; const csvFile = fileName.toUpperCase().endsWith('.CSV') ? fileName : fileName + ".csv";
+        selectedFileName = fileName;
+        const cleanDate = fileName.replace('.csv', '').replace('.CSV', '');
+        const jsonName = cleanDate + ".json"; 
+        const csvFile = fileName.toUpperCase().endsWith('.CSV') ? fileName : fileName + ".csv";
         try {
             const regResp = await fetch(`${RENDER_URL}/load-registration/${jsonName}?cb=${Date.now()}`);
             const regWrapper = regResp.ok ? await regResp.json() : { kingdoms: [], data: {} };
@@ -206,7 +191,7 @@
             });
             rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
             rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
-            currentMatchups = allCloudData[cleanName] || allCloudData[fileName] || [];
+            currentMatchups = allCloudData[cleanDate] || allCloudData[fileName] || [];
             renderAll();
         } catch (e) { console.error(e); }
     }
@@ -226,6 +211,7 @@
             const mIdx = matchup.originalIdx; const card = document.createElement('div'); card.className = 'matchup-card';
             const allTbd = matchup.ids.every(id => { const d = masterData.get(String(id).trim()); return !d || d.class === "TBD" || d.class === "-"; });
             const dataColsSpan = 21 + (!allTbd ? 1 : 0);
+
             let rowsHtml = matchup.ids.map((id, rIdx) => {
                 const upper = String(id).toUpperCase().trim(); const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper); const rowData = matchup.stats.rows[rIdx];
                 if (isSpecial) {
