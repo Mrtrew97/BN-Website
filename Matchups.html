@@ -11,68 +11,48 @@
     <style>
         body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
         
-        /* --- CUSTOM SCROLLBAR --- */
-        .table-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
-        .table-wrapper::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
-        .table-wrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+        /* --- UNIFIED CONTAINER SYSTEM --- */
+        .unified-container { max-width: 1600px; margin: 0 auto; padding: 0 25px; box-sizing: border-box; width: 100%; }
 
-        /* --- UNIFIED TOP NAVIGATION (ONE ROW) --- */
-        .top-nav-container { 
-            max-width: 1600px; 
-            margin: 25px auto 15px auto; 
-            padding: 0 25px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            gap: 20px; /* Unified Spacing */
+        /* --- ROW 1: TOP NAV (HUB, TITLE, ADMIN) --- */
+        .header-top-row { margin-top: 25px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-side-box { display: flex; align-items: center; min-width: 180px; }
+        .nav-side-box.right { justify-content: flex-end; }
+        .header-top-row .home-link { position: static; margin: 0; backdrop-filter: none; }
+
+        /* --- ROW 2: TOOLS (FILE, SEARCH, ZONE) --- */
+        .tools-glass-row {
+            background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); 
+            border-radius: 20px; padding: 12px 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 20px;
         }
-        
-        .nav-left { display: flex; align-items: center; gap: 20px; }
-        .nav-left .home-link { position: static; margin: 0; backdrop-filter: none; }
-
         .search-wrapper { flex: 1; display: flex; justify-content: center; }
-        .search-input { 
-            width: 100%; 
-            max-width: 450px; /* Reduced size to balance spacing */
-            padding: 10px 18px; 
-            border-radius: 12px; 
-            border: 1px solid var(--glass-border); 
-            background: rgba(0,0,0,0.3); 
-            color: white; 
-            font-size: 0.9rem; 
-            outline: none; 
-            transition: 0.3s; 
-        }
+        .search-input { width: 100%; max-width: 600px; padding: 10px 18px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; transition: 0.3s; }
         .search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
+        .zone-cluster { display: flex; gap: 6px; flex-shrink: 0; }
 
-        .nav-right { display: flex; align-items: center; gap: 20px; }
-
-        /* --- STICKY METRICS ISLAND --- */
-        .sticky-wrapper {
-            position: sticky; top: 0px; z-index: 1000;
-            width: 100%; display: flex; justify-content: center; padding-top: 15px;
-        }
+        /* --- ROW 3: STICKY METRICS ISLAND --- */
+        .sticky-wrapper { position: sticky; top: 0px; z-index: 1000; width: 100%; display: flex; justify-content: center; padding-top: 15px; margin-bottom: 40px; }
         .metrics-island { 
             width: calc(100% - 50px); max-width: 1550px;
             background: var(--glass); backdrop-filter: blur(20px); 
-            padding: 6px 0; border: 1px solid var(--glass-border);
+            padding: 8px 0; border: 1px solid var(--glass-border);
             border-radius: 24px; display: flex; flex-direction: column; gap: 2px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-            margin-bottom: 40px;
+            box-shadow: none !important; /* Point 2: Removed shadow */
         }
 
-        /* --- BUTTON STYLES --- */
+        /* --- BUTTONS --- */
         .sort-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
         .sort-btn, .filter-btn { padding: 8px 16px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase; }
-        .sort-btn:hover, .filter-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .sort-btn.active, .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 
         /* --- MATCHUP CARDS --- */
-        #matchupsContainer { display: flex; flex-direction: column; gap: 40px; width: 100%; max-width: 1600px; margin: 0 auto; padding: 0 25px 60px 25px; box-sizing: border-box; }
+        #matchupsContainer { display: flex; flex-direction: column; gap: 40px; padding-bottom: 60px; }
         .matchup-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
         .name-input { font-size: 1.2rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 350px; outline: none; }
         
+        .header-right-side { display: flex; align-items: center; gap: 15px; } /* Point 3 Fix */
+
         .table-wrapper { width: 100%; overflow-x: auto; border-radius: 15px; } 
         table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1850px; }
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
@@ -93,45 +73,50 @@
         .troop-row-container.open { max-height: 100px; padding-bottom: 5px; }
 
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="loadingOverlay"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>
+<div id="loadingOverlay"><div class="spinner"></div></div>
 
-<!-- NAVIGATION HUB (ONE ROW - ALIGNED LEFT/RIGHT) -->
-<div class="top-nav-container">
-    <div class="nav-left">
-        <a href="index.html" class="home-link">← Kingdom Hub</a>
-        <select id="fileSelector" onchange="loadSpecificFile(this.value)" style="min-width: 140px;"></select>
+<!-- ROW 1: HEADER NAVIGATION (HUB, TITLE, ADMIN) -->
+<div class="unified-container">
+    <div class="header-top-row">
+        <div class="nav-side-box">
+            <a href="index.html" class="home-link">← Kingdom Hub</a>
+        </div>
+        <h1 class="page-title-main">Matchups (Official)</h1>
+        <div class="nav-side-box right">
+            <div id="adminArea" style="display:none; gap:10px;">
+                <button class="btn" style="background:#a855f7; border:none;" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
+                <button class="btn" style="background:#10b981; border:none;" onclick="addNewMatchup()">+ NEW MATCHUP</button>
+                <button class="btn" style="background:#ef4444; border:none;" onclick="logout()">LOGOUT</button>
+            </div>
+            <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
+        </div>
     </div>
+</div>
 
-    <div class="search-wrapper">
-        <input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup, Alliance, or ID..." oninput="renderAll()">
-    </div>
-
-    <div class="nav-right">
-        <div id="zoneFilterRow" class="sort-row">
+<!-- ROW 2: TOOLS (FILE, SEARCH, ZONE) -->
+<div class="unified-container">
+    <div class="tools-glass-row">
+        <select id="fileSelector" onchange="loadSpecificFile(this.value)" style="min-width: 150px;"></select>
+        <div class="search-wrapper">
+            <input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup Group, Alliance, or Kingdom ID..." oninput="renderAll()">
+        </div>
+        <div class="zone-cluster" id="zoneFilterRow">
             <button class="filter-btn active" onclick="setZoneFilter('all', this)">ALL</button>
             <button class="filter-btn" onclick="setZoneFilter('overall', this)">KVK START</button>
             <button class="filter-btn" onclick="setZoneFilter('zone 2', this)">Z2</button>
             <button class="filter-btn" onclick="setZoneFilter('zone 3', this)">Z3</button>
             <button class="filter-btn" onclick="setZoneFilter('zone 4', this)">Z4</button>
         </div>
-        <div id="adminArea" style="display:none; gap:8px;">
-            <button class="btn" style="background:#a855f7; border:none;" id="saveStatusBtn" onclick="saveToCloud()">SAVE</button>
-            <button class="btn" style="background:#10b981; border:none;" onclick="addNewMatchup()">+ NEW</button>
-            <button class="btn" style="background:#ef4444; border:none;" onclick="logout()">LOGOUT</button>
-        </div>
-        <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
     </div>
 </div>
 
-<div style="width:100%; display:flex; justify-content:center; margin-bottom:15px;">
-    <h1 class="page-title-main">Matchups (Official)</h1>
-</div>
-
-<!-- STICKY METRICS ISLAND -->
+<!-- ROW 3: STICKY METRICS ISLAND -->
 <div class="sticky-wrapper">
     <div class="metrics-island" id="sortBar">
         <div class="sort-row">
@@ -161,10 +146,13 @@
     </div>
 </div>
 
-<div id="matchupsContainer"></div>
+<!-- ROW 4: MATCHUPS -->
+<div class="unified-container">
+    <div id="matchupsContainer"></div>
+</div>
 
 <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000;">
-    <div class="modal-content" style="background: #1e293b; padding: 30px; border-radius: 24px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+    <div class="modal-content" style="background: #1e293b; padding: 30px; border-radius: 24px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center; width: 320px;">
         <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
         <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:10px;">
         <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:15px;" onkeydown="if(event.key==='Enter') login()">
@@ -224,7 +212,7 @@
     }
 
     async function fetchMatchupsFromCloud() { try { const resp = await fetch(`${RENDER_URL}/load-matchups?cb=${Date.now()}`); if (resp.ok) allCloudData = await resp.json(); } catch (e) { console.error(e); } }
-    async function saveToCloud() { if (!isAdmin) return; allCloudData[selectedFileName.replace('.csv','').replace('.CSV','')] = currentMatchups; try { const resp = await fetch(`${RENDER_URL}/save-matchups`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allCloudData) }); if (resp.ok) { document.getElementById('saveStatusBtn').textContent = "SAVED!"; setTimeout(() => document.getElementById('saveStatusBtn').textContent="SAVE", 2000); } } catch (e) { alert("Save failed."); } }
+    async function saveToCloud() { if (!isAdmin) return; allCloudData[selectedFileName.replace('.csv','').replace('.CSV','')] = currentMatchups; try { const resp = await fetch(`${RENDER_URL}/save-matchups`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allCloudData) }); if (resp.ok) { document.getElementById('saveStatusBtn').textContent = "SAVED!"; setTimeout(() => document.getElementById('saveStatusBtn').textContent="SAVE CLOUD", 2000); } } catch (e) { alert("Save failed."); } }
 
     function renderAll() {
         const container = document.getElementById('matchupsContainer'); const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); container.innerHTML = '';
@@ -238,6 +226,8 @@
             const mIdx = matchup.originalIdx; const card = document.createElement('div'); card.className = 'matchup-card';
             const allTbd = matchup.ids.every(id => { const d = masterData.get(String(id).trim()); return !d || d.class === "TBD" || d.class === "-"; });
             const dataColsSpan = 21 + (!allTbd ? 1 : 0);
+            const delBtn = (r) => isAdmin ? `<td class="col-drag">≡</td><td class="col-del" onclick="removeRow(${mIdx}, ${r})">×</td>` : '';
+
             let rowsHtml = matchup.ids.map((id, rIdx) => {
                 const upper = String(id).toUpperCase().trim(); const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper); const rowData = matchup.stats.rows[rIdx];
                 if (isSpecial) {
@@ -245,11 +235,14 @@
                     return `<tr class="row-${rowClass}">${isAdmin ? '<td></td><td></td>' : ''}<td style="text-align:left; padding-left:20px; font-weight:950;" colspan="${!allTbd ? 4 : 3}">${upper}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${rowData.mpRankSum || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowData.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowData.deads)}</td><td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowData.heals)}</td><td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowData.ch25)}</td><td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowData.ap)}</td>${displayKeys.map(k => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(rowData.b[k])}</td>`).join('')}</tr>`;
                 }
                 const d = masterData.get(String(id).trim());
-                const delBtn = isAdmin ? `<td class="col-drag">≡</td><td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td>` : '';
-                if (!d) return `<tr>${delBtn}<td class="col-small">-</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td><td colspan="${dataColsSpan}" style="color:var(--danger); text-align:left; padding-left:20px;">ID [${id}] Not Found</td></tr>`;
-                return `<tr>${delBtn}<td>${d.powerRank || '-'}</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td>${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}<td style="text-align:left; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td><td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td><td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td><td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>${csvKeys.map((k, idx) => `<td class="${currentSort === displayKeys[idx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}</tr>`;
+                if (!d) return `<tr>${delBtn(rIdx)}<td class="col-small">-</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td><td colspan="${dataColsSpan}" style="color:var(--danger); text-align:left; padding-left:20px;">ID [${id}] Not Found</td></tr>`;
+                return `<tr>${delBtn(rIdx)}<td>${d.powerRank || '-'}</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td>${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}<td style="text-align:left; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td><td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td><td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td><td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>${csvKeys.map((k, idx) => `<td class="${currentSort === displayKeys[idx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}</tr>`;
             }).join('');
-            card.innerHTML = `<div class="card-header"><div style="display:flex; align-items:center; gap:15px;">${isAdmin ? `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : `<div class="name-input">${matchup.name}</div>`}${isAdmin ? `<select style="background:#0f172a; border:1px solid var(--glass-border); color:white; font-size:0.7rem; border-radius:5px;" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();"><option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>KVK START</option><option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option><option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option><option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option></select>` : `<span class="btn" style="font-size:0.6rem; padding:4px 10px;">${matchup.zone === 'overall' ? 'KVK START' : matchup.zone.toUpperCase()}</span>`}</div>${isAdmin ? `<div style="display:flex; gap:10px;"><button class="btn" style="background:#10b981; border:none;" onclick="addRowA(${mIdx})">+ A</button><button class="btn" style="background:#3b82f6; border:none;" onclick="addRowB(${mIdx})">+ B</button><button class="btn" style="background:#ef4444; border:none;" onclick="deleteMatchup(${mIdx})">DELETE</button></div>` : ''}</div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th><th></th>' : ''}<th>RANK</th><th>KD#</th>${!allTbd ? '<th>CLASS</th>' : ''}<th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>CH25 AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody id="tbody-${mIdx}">${rowsHtml}</tbody></table></div>`;
+
+            const zoneLabel = matchup.zone === 'overall' ? 'KVK START' : matchup.zone.toUpperCase();
+            const adminZoneSelect = isAdmin ? `<select style="background:#0f172a; border:1px solid var(--glass-border); color:white; font-size:0.7rem; border-radius:5px;" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();"><option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>KVK START</option><option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option><option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option><option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option></select>` : `<span class="btn" style="font-size:0.6rem; padding:4px 10px;">${zoneLabel}</span>`;
+
+            card.innerHTML = `<div class="card-header"><div>${isAdmin ? `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : `<div class="name-input">${matchup.name}</div>`}</div><div class="header-right-side">${adminZoneSelect}${isAdmin ? `<button class="btn" style="background:#10b981; border:none;" onclick="addRowA(${mIdx})">+ A</button><button class="btn" style="background:#3b82f6; border:none;" onclick="addRowB(${mIdx})">+ B</button><button class="btn" style="background:#ef4444; border:none;" onclick="deleteMatchup(${mIdx})">DELETE</button>` : ''}</div></div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th><th></th>' : ''}<th>RANK</th><th>KD#</th>${!allTbd ? '<th>CLASS</th>' : ''}<th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>CH25 AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody id="tbody-${mIdx}">${rowsHtml}</tbody></table></div>`;
             container.appendChild(card); if(isAdmin) setupSortable(mIdx);
         });
     }
