@@ -68,3 +68,34 @@
     border-color: var(--primary);
     box-shadow: 0 0 15px var(--primary-glow);
 }
+/* --- DROPDOWN & SELECT STYLING --- */
+select {
+    background-color: #0f172a !important; /* Deep Navy/Black */
+    color: #f8fafc !important; /* Bright White Text */
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 12px;
+    padding: 10px 15px;
+    cursor: pointer;
+    outline: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+/* This targets the actual list that opens up */
+select option {
+    background-color: #0f172a; /* Dark background for the list */
+    color: #ffffff; /* White text for choices */
+    padding: 10px;
+}
+
+/* Hover effect for the menu */
+select:hover {
+    border-color: var(--primary) !important;
+    background-color: #1e293b !important; /* Slightly lighter slate on hover */
+}
+
+/* Focus effect when the menu is open */
+select:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 15px var(--primary-glow);
+}
