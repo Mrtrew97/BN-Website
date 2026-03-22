@@ -99,3 +99,51 @@ select:focus {
     border-color: var(--primary) !important;
     box-shadow: 0 0 15px var(--primary-glow);
 }
+
+
+/* --- REUSABLE PAGE TITLE --- */
+.page-title-main {
+    font-size: 1.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    background: linear-gradient(to bottom, #ffffff, #94a3b8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+    text-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+}
+
+/* --- EXPANDABLE TROOP ROW --- */
+.troop-row-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+}
+
+.troop-row-container.open {
+    max-height: 100px;
+    opacity: 1;
+    margin-top: 5px;
+}
+
+.toggle-trigger {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    cursor: pointer;
+    padding-top: 5px;
+    color: var(--muted);
+    transition: 0.3s;
+}
+
+.toggle-trigger:hover { color: var(--primary); }
+
+.toggle-trigger svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s;
+}
+
+.toggle-trigger.open svg { transform: rotate(180deg); }
