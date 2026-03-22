@@ -127,8 +127,7 @@
     <div class="main-controls">
         <select id="fileSelector" onchange="processFile(this.value)" style="flex:1;"></select>
         <select id="regFilter" onchange="handleSearch()">
-            <option value="all">All Status</option>
-            <option value="Registered">Registered</option>
+            <option value="Registered" selected>Registered</option>
             <option value="Not Registered">Not Registered</option>
         </select>
         <select id="classFilter" onchange="handleSearch()">
@@ -256,28 +255,28 @@
                 });
             }
             handleSearch();
-            document.getElementById('status').textContent = `TOTAL ANALYZED: ${allData.length}`;
+            document.getElementById('status').textContent = `SNAPSHOT READY`;
         } catch (e) { console.error("Process Error:", e); }
     }
 
     function handleSearch() {
         const query = document.getElementById('searchInput').value.toLowerCase();
-        const sFilter = document.getElementById('regFilter').value;
+        const sFilter = document.getElementById('regFilter').value; // 'Registered' or 'Not Registered'
         const cFilter = document.getElementById('classFilter').value;
         
         filteredData = allData.filter(a => {
             const matchesQuery = a.name.toLowerCase().includes(query) || a.kd.includes(query);
-            const matchesStatus = sFilter === 'all' || a.status === sFilter;
+            const matchesStatus = a.status === sFilter;
             const matchesClass = cFilter === 'all' || a.class === cFilter;
             return matchesQuery && matchesStatus && matchesClass;
         });
 
-        // MATH LOGIC: Ranks are calculated strictly against Registered Kingdoms only
-        const registeredPool = allData.filter(x => x.status === "Registered");
-        const sortedByPower = [...registeredPool].sort((a,b) => b.power - a.power);
-        const sortedByMP = [...registeredPool].sort((a,b) => b.mp - a.mp);
+        // Calculate Ranks strictly against the pool of currently Registered kingdoms in the entire data set
+        const registeredOnlyPool = allData.filter(x => x.status === "Registered");
+        const sortedByPower = [...registeredOnlyPool].sort((a,b) => b.power - a.power);
+        const sortedByMP = [...registeredOnlyPool].sort((a,b) => b.mp - a.mp);
 
-        // Apply ranks to allData (if registered)
+        // Apply ranks to filteredData (Only registered kingdoms get a rank number)
         allData.forEach(a => {
             if (a.status === "Registered") {
                 a.powerRank = sortedByPower.findIndex(x => x.kd === a.kd) + 1;
@@ -302,7 +301,6 @@
 
     function applySort() {
         filteredData.sort((a, b) => {
-            if (a.status !== b.status && currentSort.field === 'kd') return a.status === "Registered" ? -1 : 1;
             let valA = a[currentSort.field], valB = b[currentSort.field];
             return currentSort.direction === 'desc' ? (valB - valA) : (valA - valB);
         });
@@ -393,6 +391,7 @@
             const authorized = data.users.find(u => u.username === userTyped && u.password === passTyped);
             if (authorized) {
                 isAdmin = true;
+                document.getElementById('adminArea').style.display = 'flex';
                 document.getElementById('adminSaveBtn').style.display = 'inline-block';
                 document.getElementById('logoutBtn').style.display = 'inline-block';
                 document.getElementById('loginBtn').style.display = 'none';
