@@ -9,170 +9,127 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --primary: #3b82f6; 
-            --accent: #a855f7;
-            --bg: #0f172a; 
-            --glass: rgba(255, 255, 255, 0.03); 
-            --glass-border: rgba(255, 255, 255, 0.08); 
-            --text: #f8fafc; 
-            --muted: #94a3b8;
-            --danger: #ef4444;
-            --paragon: #f59e0b;
-        }
-
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
-            background-attachment: fixed;
-            color: var(--text); 
-            margin: 0; 
-            padding: 15px; 
-            overflow-x: hidden; 
-        }
-
-        /* --- CUSTOM SCROLLBAR --- */
+        :root { --primary: #3b82f6; --accent: #a855f7; --bg: #0f172a; --glass: rgba(255, 255, 255, 0.03); --glass-border: rgba(255, 255, 255, 0.08); --text: #f8fafc; --muted: #94a3b8; --danger: #ef4444; --paragon: #f59e0b; }
+        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 15px; overflow-x: hidden; }
+        
         .table-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
         .table-wrapper::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
         .table-wrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
 
-        /* --- NON-STICKY TOP SECTION --- */
-        .top-nav-wrapper { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; padding: 10px 20px 20px 20px; }
-        .top-nav { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        /* --- POINT 1 & 2: LAYOUT FIXES --- */
+        .header-container { max-width: 1400px; margin: 0 auto 10px auto; display: flex; flex-direction: column; gap: 15px; }
+        .nav-row { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; }
+        .nav-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+        .nav-right { display: flex; align-items: center; gap: 10px; }
         
-        .filter-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 5px; }
-        .filter-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--glass-border); background: var(--glass); cursor: pointer; font-size: 0.75rem; font-weight: 700; color: var(--muted); transition: 0.2s; }
-        .filter-btn.active { background: white; color: black; border-color: white; }
+        /* Kingdom Hub Button Reset */
+        .nav-row .home-link { position: static; margin: 0; backdrop-filter: none; }
 
-        .search-container { width: 100%; display: flex; gap: 10px; }
-        .search-input { flex-grow: 1; padding: 12px 20px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; }
+        .search-row { width: 100%; margin-top: 5px; }
+        .search-input { width: 100%; padding: 12px 20px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; }
 
         /* --- STICKY SORT BAR --- */
-        .sort-bar {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(15px);
-            padding: 15px 0;
-            border-bottom: 1px solid var(--glass-border);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 30px;
-        }
+        .sticky-sort { position: sticky; top: 0; z-index: 1000; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); padding: 15px 0; border-bottom: 1px solid var(--glass-border); margin-bottom: 30px; }
+        .sort-bar { display: flex; flex-direction: column; gap: 8px; }
         .sort-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-        .sort-btn { 
-            padding: 8px 16px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; 
-            font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase;
-        }
-        .sort-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .sort-btn { padding: 8px 16px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase; }
         .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 
-        /* --- TABLES & CARDS --- */
+        .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; background: var(--glass); color: white; transition: 0.2s; text-transform: uppercase; }
+        .btn:hover { background: var(--primary); transform: translateY(-2px); }
+
+        /* --- CARDS & TABLES --- */
         #matchupsContainer { display: flex; flex-direction: column; gap: 30px; width: 100%; max-width: 1600px; margin: 0 auto; }
-        .matchup-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 20px; overflow: hidden; margin-bottom: 20px; }
+        .matchup-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
+        .name-input { font-size: 1.2rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 350px; outline: none; }
         
-        .table-wrapper { width: 100%; overflow-x: auto; } 
-        table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1750px; }
+        .table-wrapper { width: 100%; overflow-x: auto; border-radius: 15px; } 
+        table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1850px; }
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
-        td { padding: 12px 2px; text-align: center; background: rgba(255,255,255,0.01); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 0.8rem; }
+        td { padding: 12px 2px; text-align: center; background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 0.8rem; }
         
         .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 900 !important; }
-
         .row-total-a, .row-total-b { background: rgba(59, 130, 246, 0.1) !important; color: var(--primary) !important; }
         .row-differentials-a-b { background: rgba(168, 85, 247, 0.1) !important; color: var(--accent) !important; }
         
-        .paragon-text { color: var(--paragon) !important; font-weight: 900; text-decoration: underline; }
+        /* POINT 3: ADMIN ID INPUT FIX */
+        .id-input { width: 90%; padding: 4px; background: rgba(0,0,0,0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 4px; text-align: center; font-weight: 700; color: #3b82f6; font-size: 0.8rem; outline: none; }
         .col-drag { width: 30px; cursor: grab; opacity: 0.3; }
         .col-del { width: 30px; color: var(--danger); font-weight: 900; cursor: pointer; }
-
-        #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="loadingOverlay">
-    <div class="spinner"></div>
-    <div style="font-weight: 800; font-size: 0.9rem; letter-spacing: 2px;">SYNCING MATCHUP DATA</div>
-</div>
+<div id="loadingOverlay" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>
 
-<a href="index.html" class="home-link">← Kingdom Hub</a>
-
-<div class="top-nav-wrapper">
-    <div class="top-nav">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <span id="activeFileLabel" style="font-size:0.75rem; font-weight:900; color:var(--primary); text-transform:uppercase;">Select Dataset</span>
-            <select id="fileSelector" onchange="loadSpecificFile(this.value)" style="background:transparent; border:1px solid var(--glass-border); color:white; padding:5px; border-radius:8px;"></select>
+<div class="header-container">
+    <div class="nav-row">
+        <div class="nav-left">
+            <a href="index.html" class="home-link">← HUB</a>
+            <select id="fileSelector" onchange="loadSpecificFile(this.value)"></select>
+            <div id="zoneFilterRow" style="display: flex; gap: 5px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 12px; border: 1px solid var(--glass-border);">
+                <button class="filter-btn active" onclick="setZoneFilter('all', this)">All</button>
+                <button class="filter-btn" onclick="setZoneFilter('overall', this)">Overall</button>
+                <button class="filter-btn" onclick="setZoneFilter('zone 2', this)">Z2</button>
+                <button class="filter-btn" onclick="setZoneFilter('zone 3', this)">Z3</button>
+                <button class="filter-btn" onclick="setZoneFilter('zone 4', this)">Z4</button>
+            </div>
         </div>
-        <div id="adminArea" style="display:none; gap:10px;">
-            <button class="btn btn-purple" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
-            <button class="btn btn-green" onclick="addNewMatchup()">+ NEW MATCHUP</button>
-            <button class="btn" style="background:var(--danger); border:none;" onclick="logout()">LOGOUT</button>
+        <div class="nav-right">
+            <div id="adminArea" style="display:none; gap:10px;">
+                <button class="btn" style="background:#a855f7; border:none;" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
+                <button class="btn" style="background:#10b981; border:none;" onclick="addNewMatchup()">+ NEW MATCHUP</button>
+                <button class="btn" style="background:#ef4444; border:none;" onclick="logout()">LOGOUT</button>
+            </div>
+            <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
         </div>
-        <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
     </div>
-
-    <div class="filter-row" id="zoneFilterRow">
-        <button class="filter-btn active" onclick="setZoneFilter('all', this)">SHOW ALL</button>
-        <button class="filter-btn" onclick="setZoneFilter('overall', this)">OVERALL</button>
-        <button class="filter-btn" onclick="setZoneFilter('zone 2', this)">ZONE 2</button>
-        <button class="filter-btn" onclick="setZoneFilter('zone 3', this)">ZONE 3</button>
-        <button class="filter-btn" onclick="setZoneFilter('zone 4', this)">ZONE 4</button>
-    </div>
-
-    <div class="search-container">
-        <input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup, Alliance, or Kingdom..." oninput="renderAll()">
+    <div class="search-row">
+        <input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup Group, Alliance, or Kingdom ID..." oninput="renderAll()">
     </div>
 </div>
 
-<div class="sort-bar" id="sortBar">
-    <div class="sort-row">
-        <button class="sort-btn" onclick="setSort('name', this)">Group Name</button>
-        <button class="sort-btn active" onclick="setSort('power', this)">Power</button>
-        <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
-        <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
-        <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
-        <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
-        <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
-        <button class="sort-btn" onclick="setSort('heals', this)">Heals</button>
-        <button class="sort-btn" onclick="setSort('ch25', this)">CH25</button>
-        <button class="sort-btn" onclick="setSort('ap', this)">CH25 AVG</button>
-    </div>
-    <div class="sort-row">
-        <script>
-            ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
-                document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
-            });
-        </script>
+<div class="sticky-sort">
+    <div class="sort-bar" id="sortBar">
+        <div class="sort-row">
+            <button class="sort-btn" onclick="setSort('name', this)">Group Name</button>
+            <button class="sort-btn active" onclick="setSort('power', this)">Power</button>
+            <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
+            <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
+            <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
+            <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
+            <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
+            <button class="sort-btn" onclick="setSort('heals', this)">Heals</button>
+            <button class="sort-btn" onclick="setSort('ch25', this)">CH25</button>
+            <button class="sort-btn" onclick="setSort('ap', this)">CH25 AVG</button>
+        </div>
+        <div class="sort-row">
+            <script>
+                ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
+                    document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
+                });
+            </script>
+        </div>
     </div>
 </div>
 
 <div id="matchupsContainer"></div>
 
-<div id="authModal">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <h2 style="margin-top:0; font-weight:900; letter-spacing:-1px;">ADMIN ACCESS</h2>
-        <input type="text" id="user" class="modal-input" placeholder="Username">
-        <input type="password" id="pass" class="modal-input" placeholder="Password" onkeydown="if(event.key==='Enter') login()">
+<div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000;">
+    <div class="modal-content" style="background: #1e293b; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; width: 320px;">
+        <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
+        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:10px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;">
+        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:15px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;" onkeydown="if(event.key==='Enter') login()">
         <div id="loginError" style="color: #ef4444; font-size: 0.7rem; font-weight: 800; margin-bottom: 15px; display: none;">INVALID CREDENTIALS</div>
-        <button class="btn btn-blue" style="width: 100%; padding: 15px;" onclick="login()">AUTHORIZE SESSION</button>
-        <button onclick="toggleModal(false)" style="background:none; border:none; color:var(--muted); margin-top:15px; cursor:pointer; font-weight:700; font-size:0.7rem; text-transform:uppercase;">Cancel</button>
+        <button class="btn btn-blue" style="width: 100%; padding: 15px;" onclick="login()">AUTHORIZE</button>
+        <button onclick="toggleModal(false)" class="btn" style="width:100%; margin-top:10px; background:transparent;">Cancel</button>
     </div>
 </div>
 
 <script>
     const RENDER_URL = "https://kd-backend-icbu.onrender.com";
-    let isAdmin = false;
-    let masterData = new Map();
-    let allCloudData = {};
-    let currentMatchups = [];
-    let currentSort = 'power';
-    let currentZoneFilter = 'all';
-    let currentRegistrations = {};
-    let selectedFileName = "";
+    let isAdmin = false; let masterData = new Map(); let allCloudData = {}; let currentMatchups = []; let currentSort = 'power'; let currentZoneFilter = 'all'; let currentRegistrations = {}; let selectedFileName = "";
     const csvKeys = ["10M","20M","30M","40M","50M","80M+","100M+","125M+","150M+","200M+","250M+","300M+"];
     const displayKeys = ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"];
 
@@ -180,192 +137,72 @@
         try {
             const fResp = await fetch(`./Pull/files.json?cb=${Date.now()}`);
             const files = await fResp.json();
-            const selector = document.getElementById('fileSelector');
-            if (files && files.length > 0) {
-                files.reverse().forEach(f => {
-                    const opt = document.createElement('option');
-                    opt.value = f; opt.textContent = f.replace('.csv','').toUpperCase();
-                    selector.appendChild(opt);
-                });
-                await fetchMatchupsFromCloud();
-                await loadSpecificFile(files[0]);
-            }
-        } catch (e) { console.error(e); }
-        finally { hideOverlay(); }
+            const selector = document.getElementById('fileSelector'); selector.innerHTML = '';
+            files.reverse().forEach(f => { const opt = document.createElement('option'); opt.value = f; opt.textContent = f.toUpperCase(); selector.appendChild(opt); });
+            await fetchMatchupsFromCloud();
+            if (files.length > 0) await loadSpecificFile(files[0]);
+        } catch (e) { console.error(e); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
     };
 
     async function loadSpecificFile(fileName) {
-        selectedFileName = fileName;
-        document.getElementById('activeFileLabel').textContent = fileName.replace('.csv','').toUpperCase();
-        const jsonName = fileName.replace('.csv', '.json');
+        selectedFileName = fileName; document.getElementById('activeFileLabel').textContent = fileName.toUpperCase(); 
+        const jsonName = fileName + ".json"; 
         try {
             const regResp = await fetch(`${RENDER_URL}/load-registration/${jsonName}?cb=${Date.now()}`);
             const regWrapper = regResp.ok ? await regResp.json() : { kingdoms: [], data: {} };
-            currentRegistrations = regWrapper.data || {};
-            var registeredIDs = new Set(regWrapper.kingdoms || []);
-
-            const csvResp = await fetch(`./Pull/${fileName}?cb=${Date.now()}`);
+            currentRegistrations = regWrapper.data || {}; var registeredIDs = new Set(regWrapper.kingdoms || []);
+            const csvResp = await fetch(`./Pull/${fileName}.csv?cb=${Date.now()}`);
             const result = Papa.parse(await csvResp.text(), { header: true, skipEmptyLines: 'greedy' });
-            masterData.clear();
-            let rankedPool = [];
+            masterData.clear(); let rankedPool = [];
             result.data.forEach(row => {
-                const kd = String(row.KD || row['KD#'] || "").trim();
-                const p = cleanNum(row['Top 300 Power'] || row.Power);
+                const kd = String(row.KD || row['KD#'] || "").trim(); const p = cleanNum(row['Top 300 Power'] || row.Power);
                 if (kd && p > 0) {
                     const regInfo = currentRegistrations[kd];
-                    const obj = {
-                        kd, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits),
-                        kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads),
-                        heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']),
-                        mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0,
-                        class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true,
-                        alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", raw: row
-                    };
-                    masterData.set(kd, obj);
-                    if (registeredIDs.has(kd)) rankedPool.push(obj);
+                    const obj = { kd, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits), kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads), heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']), mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0, class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true, alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", raw: row };
+                    masterData.set(kd, obj); if (registeredIDs.has(kd)) rankedPool.push(obj);
                 }
             });
             rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
             rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
-            currentMatchups = allCloudData[fileName] || [];
+            currentMatchups = allCloudData[fileName] || allCloudData[fileName + ".csv"] || [];
             renderAll();
         } catch (e) { console.error(e); }
     }
 
-    async function fetchMatchupsFromCloud() {
-        try {
-            const resp = await fetch(`${RENDER_URL}/load-matchups?cb=${Date.now()}`);
-            if (resp.ok) allCloudData = await resp.json();
-        } catch (e) { console.error(e); }
-    }
-
-    async function saveToCloud() {
-        if (!isAdmin) return;
-        const btn = document.getElementById('saveStatusBtn');
-        btn.textContent = "SAVING...";
-        allCloudData[selectedFileName] = currentMatchups;
-        try {
-            const resp = await fetch(`${RENDER_URL}/save-matchups`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allCloudData) });
-            if (resp.ok) { btn.textContent = "SAVED!"; setTimeout(() => btn.textContent="SAVE CLOUD", 2000); }
-        } catch (e) { btn.textContent="RETRY"; }
-    }
+    async function fetchMatchupsFromCloud() { try { const resp = await fetch(`${RENDER_URL}/load-matchups?cb=${Date.now()}`); if (resp.ok) allCloudData = await resp.json(); } catch (e) { console.error(e); } }
+    async function saveToCloud() { if (!isAdmin) return; allCloudData[selectedFileName] = currentMatchups; try { const resp = await fetch(`${RENDER_URL}/save-matchups`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allCloudData) }); if (resp.ok) { document.getElementById('saveStatusBtn').textContent = "SAVED!"; setTimeout(() => document.getElementById('saveStatusBtn').textContent="SAVE CLOUD", 2000); } } catch (e) { alert("Save failed."); } }
 
     function renderAll() {
-        const container = document.getElementById('matchupsContainer');
-        const sT = document.getElementById('teamSearch').value.toLowerCase().trim();
-        container.innerHTML = '';
+        const container = document.getElementById('matchupsContainer'); const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); container.innerHTML = '';
         let displayList = currentMatchups.map((m, idx) => ({ ...m, originalIdx: idx, stats: calculateMatchupStats(m.ids) }));
         if (currentZoneFilter !== 'all') displayList = displayList.filter(m => m.zone === currentZoneFilter);
-        
-        if (sT) {
-            displayList = displayList.filter(m => {
-                if (m.name.toLowerCase().includes(sT)) return true;
-                return m.ids.some(id => {
-                    const d = masterData.get(String(id).trim());
-                    return String(id).includes(sT) || (d && d.alliance.toLowerCase().includes(sT));
-                });
-            });
-        }
-
-        // ABSOLUTE GAP SORTING LOGIC
-        if (currentSort !== 'name') {
-            displayList.sort((a, b) => {
-                let valA, valB;
-                if (displayKeys.includes(currentSort)) {
-                    valA = Math.abs(a.stats.diff.b[currentSort] || 0);
-                    valB = Math.abs(b.stats.diff.b[currentSort] || 0);
-                } else {
-                    valA = Math.abs(a.stats.diff[currentSort] || 0);
-                    valB = Math.abs(b.stats.diff[currentSort] || 0);
-                }
-                return valB - valA; 
-            });
-        }
+        if (sT) { displayList = displayList.filter(m => m.name.toLowerCase().includes(sT) || m.ids.some(id => masterData.get(String(id).trim())?.alliance.toLowerCase().includes(sT) || String(id).includes(sT))); }
+        if (currentSort !== 'name') { displayList.sort((a, b) => { let valA, valB; if (displayKeys.includes(currentSort)) { valA = Math.abs(a.stats.diff.b[currentSort] || 0); valB = Math.abs(b.stats.diff.b[currentSort] || 0); } else { valA = Math.abs(a.stats.diff[currentSort] || 0); valB = Math.abs(b.stats.diff[currentSort] || 0); } return valB - valA; }); }
 
         displayList.forEach(matchup => {
-            const mIdx = matchup.originalIdx;
-            const card = document.createElement('div');
-            card.className = 'matchup-card';
+            const mIdx = matchup.originalIdx; const card = document.createElement('div'); card.className = 'matchup-card';
             let rowsHtml = matchup.ids.map((id, rIdx) => {
-                const upper = String(id).toUpperCase().trim();
-                const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper);
-                const rowData = matchup.stats.rows[rIdx];
+                const upper = String(id).toUpperCase().trim(); const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper); const rowData = matchup.stats.rows[rIdx];
                 if (isSpecial) {
                     const rowClass = upper.replace(/\s+/g, '-').replace(/[()]/g, '').toLowerCase();
-                    return `
-                        <tr class="row-${rowClass}">
-                            ${isAdmin ? '<td></td><td></td>' : ''}
-                            <td style="text-align:left; padding-left:20px; font-weight:900;" colspan="4">${upper}</td>
-                            <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td>
-                            <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td>
-                            <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td>
-                            <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${rowData.mpRankSum || 0}</td>
-                            <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowData.kills)}</td>
-                            <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowData.deads)}</td>
-                            <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowData.heals)}</td>
-                            <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowData.ch25)}</td>
-                            <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowData.ap)}</td>
-                            ${displayKeys.map(k => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(rowData.b[k])}</td>`).join('')}
-                        </tr>`;
+                    return `<tr class="row-${rowClass}">${isAdmin ? '<td></td><td></td>' : ''}<td style="text-align:left; padding-left:20px; font-weight:900;" colspan="4">${upper}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${rowData.mpRankSum || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowData.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowData.deads)}</td><td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowData.heals)}</td><td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowData.ch25)}</td><td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowData.ap)}</td>${displayKeys.map(k => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(rowData.b[k])}</td>`).join('')}</tr>`;
                 }
                 const d = masterData.get(String(id).trim());
-                if (!d) return `<tr>${isAdmin ? '<td class="col-drag">≡</td><td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td>' : ''}<td colspan="22" style="color:var(--danger); text-align:left; padding-left:20px;">ID [${id}] Missing</td></tr>`;
-                return `
-                    <tr>
-                        ${isAdmin ? '<td class="col-drag">≡</td><td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td>' : ''}
-                        <td>${d.powerRank || '-'}</td>
-                        <td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td>
-                        <td style="font-weight:900;">${d.class}</td>
-                        <td style="text-align:left;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td>
-                        <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
-                        <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
-                        <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
-                        <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td>
-                        <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
-                        <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
-                        <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td>
-                        <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
-                        <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
-                        ${csvKeys.map((k, idx) => `<td class="${currentSort === displayKeys[idx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}
-                    </tr>`;
+                const deleteCross = isAdmin ? `<td class="col-drag">≡</td><td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td>` : '';
+                if (!d) return `<tr>${deleteCross}<td class="col-small">-</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td><td colspan="23" style="color:var(--danger); text-align:left; padding-left:20px;">ID [${id}] Not Found</td></tr>`;
+                return `<tr>${deleteCross}<td>${d.powerRank || '-'}</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td><td style="font-weight:900;">${d.class}</td><td style="text-align:left; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td><td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td><td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td><td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>${csvKeys.map((k, idx) => `<td class="${currentSort === displayKeys[idx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}</tr>`;
             }).join('');
-
-            card.innerHTML = `<div class="card-header"><div style="display:flex; align-items:center; gap:15px;">${isAdmin ? `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : `<div class="name-input">${matchup.name}</div>`}${isAdmin ? `<select class="zone-badge" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();"><option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>OVERALL</option><option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option><option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option><option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option></select>` : `<span class="zone-badge">${matchup.zone}</span>`}</div>${isAdmin ? `<div style="display:flex; gap:10px;"><button class="btn btn-green" onclick="addRowA(${mIdx})">+ A</button><button class="btn btn-blue" onclick="addRowB(${mIdx})">+ B</button><button class="btn btn-red" style="background:var(--danger); border:none;" onclick="deleteMatchup(${mIdx})">DELETE</button></div>` : ''}</div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th><th></th>' : ''}<th>RANK</th><th>KD#</th><th>CLASS</th><th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>CH25 AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody id="tbody-${mIdx}">${rowsHtml}</tbody></table></div>`;
-            container.appendChild(card);
-            if(isAdmin) setupSortable(mIdx);
+            card.innerHTML = `<div class="card-header"><div style="display:flex; align-items:center; gap:15px;">${isAdmin ? `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : `<div class="name-input">${matchup.name}</div>`}${isAdmin ? `<select style="background:#0f172a; border:1px solid var(--glass-border); color:white; font-size:0.7rem; border-radius:5px;" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();"><option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>OVERALL</option><option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option><option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option><option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option></select>` : `<span class="btn" style="font-size:0.6rem; padding:4px 10px;">${matchup.zone}</span>`}</div>${isAdmin ? `<div style="display:flex; gap:10px;"><button class="btn" style="background:#10b981; border:none;" onclick="addRowA(${mIdx})">+ A</button><button class="btn" style="background:#3b82f6; border:none;" onclick="addRowB(${mIdx})">+ B</button><button class="btn" style="background:#ef4444; border:none;" onclick="deleteMatchup(${mIdx})">DELETE</button></div>` : ''}</div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th><th></th>' : ''}<th>RANK</th><th>KD#</th><th>CLASS</th><th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>CH25 AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody id="tbody-${mIdx}">${rowsHtml}</tbody></table></div>`;
+            container.appendChild(card); if(isAdmin) setupSortable(mIdx);
         });
     }
 
     function calculateMatchupStats(ids) {
-        let a = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} };
-        let b = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} };
-        displayKeys.forEach(k => { a.b[k]=0; b.b[k]=0; });
-        let current = a;
-        ids.forEach(id => {
-            const u = String(id).toUpperCase().trim();
-            if (u === "TOTAL A") current = b;
-            else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) {
-                const d = masterData.get(String(id).trim());
-                if (d) {
-                    current.power += d.power; current.merits += d.merits; current.kills += d.kills; current.deads += d.deads; current.heals += d.heals; current.ch25 += d.ch25; current.ap += d.ap; current.count++; current.mpRankSum += (d.mpRank || 0);
-                    displayKeys.forEach((k, idx) => { current.b[k] += cleanNum(d.raw[k] || d.raw[csvKeys[idx]]); });
-                }
-            }
-        });
-        const statsA = { ...a, mp: a.power > 0 ? a.merits/a.power : 0, ap: a.count > 0 ? a.ap/a.count : 0 };
-        const statsB = { ...b, mp: b.power > 0 ? b.merits/b.power : 0, ap: b.count > 0 ? b.ap/b.count : 0 };
-        const diff = {
-            power: statsA.power - statsB.power, merits: statsA.merits - statsB.merits, kills: statsA.kills - statsB.kills,
-            deads: statsA.deads - statsB.deads, heals: statsA.heals - statsB.heals, ch25: statsA.ch25 - statsB.ch25,
-            ap: statsA.ap - statsB.ap, mp: statsA.mp - statsB.mp, mpRank: statsA.mpRankSum - statsB.mpRankSum,
-            b: displayKeys.reduce((acc, k) => ({...acc, [k]: statsA.b[k] - statsB.b[k]}), {})
-        };
-        return { rows: ids.map(id => {
-            const u = String(id).toUpperCase().trim();
-            if (u === "TOTAL A") return statsA; if (u === "TOTAL B") return statsB;
-            if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank };
-            return {};
-        }), diff };
+        let a = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} }; let b = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} }; displayKeys.forEach(k => { a.b[k]=0; b.b[k]=0; }); let current = a;
+        ids.forEach(id => { const u = String(id).toUpperCase().trim(); if (u === "TOTAL A") current = b; else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { const d = masterData.get(String(id).trim()); if (d) { current.power += d.power; current.merits += d.merits; current.kills += d.kills; current.deads += d.deads; current.heals += d.heals; current.ch25 += d.ch25; current.ap += d.ap; current.count++; current.mpRankSum += (d.mpRank || 0); displayKeys.forEach((k, idx) => { current.b[k] += cleanNum(d.raw[k] || d.raw[csvKeys[idx]]); }); } } });
+        const statsA = { ...a, mp: a.power > 0 ? a.merits/a.power : 0, ap: a.count > 0 ? a.ap/a.count : 0 }; const statsB = { ...b, mp: b.power > 0 ? b.merits/b.power : 0, ap: b.count > 0 ? b.ap/b.count : 0 };
+        const diff = { power: statsA.power - statsB.power, merits: statsA.merits - statsB.merits, kills: statsA.kills - statsB.kills, deads: statsA.deads - statsB.deads, heals: statsA.heals - statsB.heals, ch25: statsA.ch25 - statsB.ch25, ap: statsA.ap - statsB.ap, mp: statsA.mp - statsB.mp, mpRank: statsA.mpRankSum - statsB.mpRankSum, b: displayKeys.reduce((acc, k) => ({...acc, [k]: statsA.b[k] - statsB.b[k]}), {}) };
+        return { rows: ids.map(id => { const u = String(id).toUpperCase().trim(); if (u === "TOTAL A") return statsA; if (u === "TOTAL B") return statsB; if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; return {}; }), diff };
     }
 
     function addRowA(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.findIndex(id => String(id).toUpperCase().trim() === "TOTAL A"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
@@ -375,17 +212,12 @@
     function deleteMatchup(idx) { if(confirm("Delete Group?")) { currentMatchups.splice(idx, 1); renderAll(); } }
     function addNewMatchup() { currentMatchups.unshift({ name: "NEW GROUP", zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] }); renderAll(); }
     function setupSortable(mIdx) { new Sortable(document.getElementById(`tbody-${mIdx}`), { handle: '.col-drag', animation: 150, onEnd: (evt) => { const ids = currentMatchups[mIdx].ids; const moved = ids.splice(evt.oldIndex, 1)[0]; ids.splice(evt.newIndex, 0, moved); renderAll(); }}); }
-    function setSort(key, btn) { currentSort = key; document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderAll(); }
+    function setSort(key, btn) { currentSort = key; document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); renderAll(); }
     function setZoneFilter(zone, btn) { currentZoneFilter = zone; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderAll(); }
-    async function login() {
-        const u = document.getElementById('user').value; const p = document.getElementById('pass').value;
-        const resp = await fetch('Admin.json'); const data = await resp.json();
-        if(data.users.find(x => x.username === u && x.password === p)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); }
-    }
+    async function login() { const u = document.getElementById('user').value; const p = document.getElementById('pass').value; try { const resp = await fetch('Admin.json'); const data = await resp.json(); if (data.users.find(x => x.username === u && x.password === p)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); } else { document.getElementById('loginError').style.display = 'block'; } } catch (e) { alert("Admin.json error."); } }
     function logout() { location.reload(); }
     function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
-    function hideOverlay() { document.getElementById('loadingOverlay').style.opacity = '0'; setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500); }
-    function cleanNum(v) { return v ? parseFloat(String(v).replace(/,/g, '')) || 0 : 0; }
+    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '')) || 0; }
     function formatVal(n) { if (!n && n !== 0) return "0.00"; const abs = Math.abs(n); let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
     function formatValNoDec(n) { if (!n && n !== 0) return "0"; const abs = Math.floor(Math.abs(n)); let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
 </script>
