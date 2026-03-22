@@ -37,42 +37,28 @@
         .table-wrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
         .table-wrapper::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
 
-        /* --- NON-STICKY TOP SECTION --- */
-        .top-nav-wrapper { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; padding: 0 20px 20px 20px; }
+        /* --- STICKY LOGIC --- */
+        .sticky-nav { 
+            position: sticky; top: 0; z-index: 1000; 
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(15px);
+            padding: 10px 0; border-bottom: 1px solid var(--glass-border); margin-bottom: 20px;
+        }
+
+        .top-nav-wrapper { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; padding: 10px 20px; }
         .top-nav { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         
-        .search-container { width: 100%; }
-        .search-input { 
-            width: 100%; padding: 14px 20px; border-radius: 15px; border: 1px solid var(--glass-border); 
-            font-size: 0.9rem; outline: none; box-sizing: border-box; background: rgba(0,0,0,0.3); color: white; transition: 0.3s;
-        }
+        .search-input { width: 100%; padding: 14px 20px; border-radius: 15px; border: 1px solid var(--glass-border); font-size: 0.9rem; outline: none; background: rgba(0,0,0,0.3); color: white; transition: 0.3s; }
         .search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
 
-        /* --- STICKY SORT BAR --- */
-        .sort-bar {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(15px);
-            padding: 15px 0;
-            border-bottom: 1px solid var(--glass-border);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 30px;
-        }
+        /* --- SORT BAR --- */
+        .sort-bar { display: flex; flex-direction: column; gap: 8px; }
         .sort-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-        .sort-btn { 
-            padding: 8px 16px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; 
-            font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase;
-        }
-        .sort-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .sort-btn { padding: 8px 16px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase; }
         .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 
         /* --- TEAM CARDS --- */
         #teamsContainer { display: flex; flex-direction: column; gap: 30px; width: 100%; max-width: 1600px; margin: 0 auto; }
-        .team-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; }
+        .team-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .name-input { font-size: 1.2rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 350px; outline: none; }
         .note-display { font-size: 0.85rem; color: var(--muted); font-style: italic; margin-bottom: 10px; padding-left: 8px; }
@@ -84,18 +70,18 @@
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
         td { padding: 12px 2px; text-align: center; font-size: 0.85rem; background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); }
         
-        .col-small { width: 50px; }
-        .col-kd { width: 65px; font-weight: 800; color: var(--primary); }
-        .col-class { width: 55px; font-weight: 900 !important; } 
-        .col-alliance { width: 120px; font-weight: 700; text-align: left; padding-left: 10px; } 
-        .col-stat { width: 90px; }
-        .col-breakdown { width: 55px; color: var(--muted); font-size: 0.75rem; }
-
         .summary-row td { background: rgba(168, 85, 247, 0.1); color: var(--accent); font-weight: 950 !important; border-color: rgba(168, 85, 247, 0.2); }
         .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 900 !important; }
 
         .paragon-text { color: var(--paragon) !important; font-weight: 900; text-decoration: underline; }
         .drag-handle { cursor: grab; color: var(--muted); width: 25px; opacity: 0.3; }
+
+        .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--glass); color: white; text-decoration: none; text-transform: uppercase; transition: 0.2s; }
+        .btn:hover { background: var(--primary); transform: translateY(-2px); }
+        .btn-blue { background: var(--primary); }
+        .btn-green { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); }
+        .btn-purple { background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); }
+        .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: white; }
 
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
@@ -104,23 +90,18 @@
 </head>
 <body>
 
-<div id="loadingOverlay">
-    <div class="spinner"></div>
-    <div style="margin-top:15px; font-weight:800; font-size:0.8rem; letter-spacing:1px;">SYNCING ANALYTICS...</div>
-</div>
+<div id="loadingOverlay"><div class="spinner"></div></div>
 
 <a href="index.html" class="home-link">← Kingdom Hub</a>
 
-<!-- NON-STICKY SECTION -->
+<!-- NON-STICKY TOP -->
 <div class="top-nav-wrapper">
     <div class="top-nav">
-        <select id="fileSelector" onchange="loadSelectedFile(this.value)">
-            <option value="">Loading...</option>
-        </select>
+        <select id="fileSelector" onchange="loadSelectedFile(this.value)"><option value="">Loading...</option></select>
         <div id="adminArea" style="display:none; gap:10px;">
             <button class="btn btn-purple" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
             <button class="btn btn-green" onclick="addNewTeam()">+ NEW TEAM</button>
-            <button class="btn" style="background:var(--danger); border:none;" onclick="logout()">LOGOUT</button>
+            <button class="btn btn-red" onclick="logout()">LOGOUT</button>
         </div>
         <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
     </div>
@@ -129,25 +110,27 @@
     </div>
 </div>
 
-<!-- STICKY SORT BAR -->
-<div class="sort-bar" id="sortBar">
-    <div class="sort-row">
-        <button class="sort-btn active" id="nameSort" onclick="setSort('teamName', this)">Team Name</button>
-        <button class="sort-btn" onclick="setSort('power', this)">Power</button>
-        <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
-        <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
-        <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
-        <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
-        <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
-        <button class="sort-btn" onclick="setSort('totalCh25', this)">CH25</button>
-        <button class="sort-btn" onclick="setSort('avgAp', this)">CH25 AVG</button>
-    </div>
-    <div class="sort-row">
-        <script>
-            ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
-                document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
-            });
-        </script>
+<!-- STICKY SORTING BAR -->
+<div class="sticky-nav">
+    <div class="sort-bar" id="sortBar">
+        <div class="sort-row">
+            <button class="sort-btn active" id="nameSort" onclick="setSort('teamName', this)">Team Name</button>
+            <button class="sort-btn" onclick="setSort('power', this)">Power</button>
+            <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
+            <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
+            <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
+            <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
+            <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
+            <button class="sort-btn" onclick="setSort('totalCh25', this)">CH25</button>
+            <button class="sort-btn" onclick="setSort('avgAp', this)">CH25 AVG</button>
+        </div>
+        <div class="sort-row">
+            <script>
+                ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
+                    document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
+                });
+            </script>
+        </div>
     </div>
 </div>
 
@@ -167,13 +150,7 @@
 
 <script>
     const RENDER_URL = "https://kd-backend-icbu.onrender.com";
-    let isAdmin = false;
-    let masterData = new Map();
-    let allTeamsData = {}; 
-    let currentTeams = []; 
-    let selectedFileName = "";
-    let currentSort = 'teamName';
-    let currentRegistrations = {};
+    let isAdmin = false; let masterData = new Map(); let allTeamsData = {}; let currentTeams = []; let selectedFileName = ""; let currentSort = 'teamName'; let currentRegistrations = {};
     const csvKeys = ["10M","20M","30M","40M","50M","80M+","100M+","125M+","150M+","200M+","250M+","300M+"];
     const displayKeys = ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"];
 
@@ -181,220 +158,76 @@
         try {
             const fResp = await fetch(`./Pull/files.json?cb=${Date.now()}`);
             const files = await fResp.json();
-            const selector = document.getElementById('fileSelector');
-            selector.innerHTML = '';
-            files.reverse().forEach(file => {
-                const opt = document.createElement('option');
-                opt.value = file; opt.textContent = file.replace('.csv','').toUpperCase();
-                selector.appendChild(opt);
-            });
-            await fetchTeamsFromCloud();
-            if (files.length > 0) await loadSelectedFile(files[0]);
-        } catch (e) { console.error(e); }
-        finally { hideOverlay(); }
+            const selector = document.getElementById('fileSelector'); selector.innerHTML = '';
+            files.reverse().forEach(file => { const opt = document.createElement('option'); opt.value = file; opt.textContent = file.replace('.csv','').toUpperCase(); selector.appendChild(opt); });
+            await fetchTeamsFromCloud(); if (files.length > 0) await loadSelectedFile(files[0]);
+        } catch (e) { console.error(e); } finally { hideOverlay(); }
     };
 
     async function loadSelectedFile(fileName) {
-        showOverlay();
-        selectedFileName = fileName;
-        const jsonName = fileName.replace('.csv', '.json');
+        showOverlay(); selectedFileName = fileName; const jsonName = fileName.replace('.csv', '.json');
         try {
             const regResp = await fetch(`${RENDER_URL}/load-registration/${jsonName}?cb=${Date.now()}`);
             const regWrapper = regResp.ok ? await regResp.json() : { kingdoms: [], data: {} };
-            currentRegistrations = regWrapper.data || {};
-            var registeredIDs = new Set(regWrapper.kingdoms || []);
-
+            currentRegistrations = regWrapper.data || {}; var registeredIDs = new Set(regWrapper.kingdoms || []);
             const csvResp = await fetch(`./Pull/${fileName}?cb=${Date.now()}`);
             const result = Papa.parse(await csvResp.text(), { header: true, skipEmptyLines: 'greedy' });
-            masterData.clear();
-            let rankedPool = [];
+            masterData.clear(); let rankedPool = [];
             result.data.forEach(row => {
-                const kd = String(row.KD || row['KD#'] || "").trim();
-                const p = cleanNum(row['Top 300 Power'] || row.Power);
+                const kd = String(row.KD || row['KD#'] || "").trim(); const p = cleanNum(row['Top 300 Power'] || row.Power);
                 if (kd && p > 0) {
                     const regInfo = currentRegistrations[kd];
-                    const obj = {
-                        kd, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits),
-                        kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads),
-                        heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']),
-                        mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0,
-                        class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true,
-                        alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", raw: row
-                    };
-                    masterData.set(kd, obj);
-                    if (registeredIDs.has(kd)) rankedPool.push(obj);
+                    const obj = { kd, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits), kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads), heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']), mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0, class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true, alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", raw: row };
+                    masterData.set(kd, obj); if (registeredIDs.has(kd)) rankedPool.push(obj);
                 }
             });
             rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
             rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
-            currentTeams = allTeamsData[fileName] || [];
-            renderAll();
-        } catch (e) { console.error(e); }
-        finally { hideOverlay(); }
+            currentTeams = allTeamsData[fileName] || []; renderAll();
+        } catch (e) { console.error(e); } finally { hideOverlay(); }
     }
 
-    async function fetchTeamsFromCloud() {
-        try {
-            const resp = await fetch(`${RENDER_URL}/load-teams?cb=${Date.now()}`);
-            if (resp.ok) allTeamsData = await resp.json();
-        } catch (e) { console.error(e); }
-    }
+    async function fetchTeamsFromCloud() { try { const resp = await fetch(`${RENDER_URL}/load-teams?cb=${Date.now()}`); if (resp.ok) allTeamsData = await resp.json(); } catch (e) { console.error(e); } }
 
     async function saveToCloud() {
-        if (!isAdmin) return;
-        const btn = document.getElementById('saveStatusBtn');
-        btn.textContent = "SAVING...";
-        allTeamsData[selectedFileName] = currentTeams;
-        try {
-            const resp = await fetch(`${RENDER_URL}/save-teams`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allTeamsData) });
-            if (resp.ok) { btn.textContent = "SAVED!"; setTimeout(() => btn.textContent="SAVE CLOUD", 2000); }
-        } catch (e) { btn.textContent="RETRY"; }
+        if (!isAdmin) return; const btn = document.getElementById('saveStatusBtn'); btn.textContent = "SAVING..."; allTeamsData[selectedFileName] = currentTeams;
+        try { const resp = await fetch(`${RENDER_URL}/save-teams`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allTeamsData) }); if (resp.ok) { btn.textContent = "SAVED!"; setTimeout(() => btn.textContent="SAVE CLOUD", 2000); } } catch (e) { btn.textContent="RETRY"; }
     }
 
     function renderAll() {
-        const container = document.getElementById('teamsContainer');
-        const sT = document.getElementById('teamSearch').value.toLowerCase().trim();
-        container.innerHTML = '';
+        const container = document.getElementById('teamsContainer'); const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); container.innerHTML = '';
         let displayTeams = currentTeams.map((t, idx) => ({ ...t, originalIdx: idx, stats: calculateTeamTotals(t) }));
-        
         if (currentSort !== 'teamName') {
-            displayTeams.sort((a, b) => {
-                if (currentSort === 'mpRank') return a.stats.totalMpRank - b.stats.totalMpRank;
-                let valA = a.stats[currentSort] || (a.stats.b && a.stats.b[currentSort]) || 0;
-                let valB = b.stats[currentSort] || (b.stats.b && b.stats.b[currentSort]) || 0;
-                if (displayKeys.includes(currentSort)) {
-                    valA = a.stats.b[csvKeys[displayKeys.indexOf(currentSort)]] || 0;
-                    valB = b.stats.b[csvKeys[displayKeys.indexOf(currentSort)]] || 0;
-                }
-                return valB - valA;
-            });
+            displayTeams.sort((a, b) => { if (currentSort === 'mpRank') return a.stats.totalMpRank - b.stats.totalMpRank; let valA = a.stats[currentSort] || (a.stats.b && a.stats.b[currentSort]) || 0; let valB = b.stats[currentSort] || (b.stats.b && b.stats.b[currentSort]) || 0; if (displayKeys.includes(currentSort)) { valA = a.stats.b[csvKeys[displayKeys.indexOf(currentSort)]] || 0; valB = b.stats.b[csvKeys[displayKeys.indexOf(currentSort)]] || 0; } return valB - valA; });
         }
-
-        if (sT) {
-            displayTeams = displayTeams.filter(t => {
-                if (t.name.toLowerCase().includes(sT)) return true;
-                return t.ids.some(id => {
-                    const d = masterData.get(String(id).trim());
-                    return String(id).includes(sT) || (d && d.alliance.toLowerCase().includes(sT));
-                });
-            });
-        }
-
+        if (sT) { displayTeams = displayTeams.filter(t => t.name.toLowerCase().includes(sT) || t.ids.some(id => masterData.get(String(id).trim())?.alliance.toLowerCase().includes(sT) || String(id).includes(sT))); }
         displayTeams.forEach(team => {
-            const tIdx = team.originalIdx;
-            const sums = team.stats;
-            const card = document.createElement('div');
-            card.className = 'team-card';
-            const allTbd = team.ids.every(id => {
-                const d = masterData.get(String(id).trim());
-                return !d || d.class === "TBD" || d.class === "-";
-            });
-
+            const tIdx = team.originalIdx; const sums = team.stats; const card = document.createElement('div'); card.className = 'team-card';
+            const allTbd = team.ids.every(id => { const d = masterData.get(String(id).trim()); return !d || d.class === "TBD" || d.class === "-"; });
             let rowsHtml = team.ids.map((id, rowIdx) => {
                 const d = masterData.get(String(id).trim());
                 if (!d) return `<tr>${isAdmin ? '<td class="drag-handle">≡</td>' : ''}<td class="col-small">-</td><td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:40px; background:transparent; border:1px solid var(--glass-border); color:var(--primary); text-align:center;">` : id}</td><td colspan="25" style="color:var(--danger); text-align:left; padding-left:20px;">ID Not Found</td>${isAdmin ? '<td></td>' : ''}</tr>`;
-                return `
-                    <tr>
-                        ${isAdmin ? '<td class="drag-handle">≡</td>' : ''}
-                        <td class="col-small">${d.powerRank || '-'}</td>
-                        <td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:50px; background:transparent; border:1px solid var(--glass-border); color:var(--primary); text-align:center;">` : id}</td>
-                        ${!allTbd ? `<td class="col-class">${d.class}</td>` : ''}
-                        <td class="col-alliance ${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td>
-                        <td class="col-stat ${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
-                        <td class="col-stat ${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
-                        <td class="col-stat ${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
-                        <td class="col-small ${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td>
-                        <td class="col-stat ${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
-                        <td class="col-stat ${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
-                        <td class="col-stat ${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
-                        <td class="col-stat ${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
-                        ${csvKeys.map((k, kIdx) => `<td class="col-breakdown ${currentSort === displayKeys[kIdx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}
-                        ${isAdmin ? `<td><button class="btn-red" style="padding:2px 8px; border:none; cursor:pointer;" onclick="removeRow(${tIdx}, ${rowIdx})">×</button></td>` : ''}
-                    </tr>`;
+                return `<tr>${isAdmin ? '<td class="drag-handle">≡</td>' : ''}<td>${d.powerRank || '-'}</td><td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:50px; background:transparent; border:1px solid var(--glass-border); color:var(--primary); text-align:center;">` : id}</td>${!allTbd ? `<td class="col-class">${d.class}</td>` : ''}<td class="col-alliance ${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td><td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td><td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>${csvKeys.map((k, kIdx) => `<td class="${currentSort === displayKeys[kIdx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}${isAdmin ? `<td><button class="btn-red" style="padding:2px 8px; border:none; cursor:pointer;" onclick="removeRow(${tIdx}, ${rowIdx})">×</button></td>` : ''}</tr>`;
             }).join('');
-
             const labelColSpan = (isAdmin ? 4 : 3) + (allTbd ? 0 : 1);
-            card.innerHTML = `
-                <div class="team-header">
-                    <div style="display:flex; flex-direction:column;">
-                        <input class="name-input" value="${team.name}" ${!isAdmin ? 'disabled' : ''} onchange="updateName(${tIdx}, this.value)">
-                        ${!isAdmin && team.note ? `<div class="note-display">${team.note}</div>` : ''}
-                        ${isAdmin ? `<input class="note-input" placeholder="Add note..." value="${team.note || ''}" onchange="updateNote(${tIdx}, this.value)">` : ''}
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        ${isAdmin ? `<button class="btn btn-green" onclick="addRow(${tIdx})">+ ROW</button><button class="btn btn-red" onclick="deleteTeam(${tIdx})">DEL</button>` : ''}
-                    </div>
-                </div>
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                ${isAdmin ? '<th class="col-small"></th>' : ''}
-                                <th class="col-small">RANK</th><th class="col-kd">KD#</th>${!allTbd ? '<th class="col-class">CLASS</th>' : ''}<th class="col-alliance">ALLIANCE</th><th class="col-stat">POWER</th><th class="col-stat">MERITS</th><th class="col-stat">M/P</th><th class="col-small">M/P R</th><th class="col-stat">KILLS</th><th class="col-stat">DEADS</th><th class="col-stat">CH25</th><th class="col-stat">CH25 AVG</th>
-                                ${displayKeys.map(k => `<th class="col-breakdown">${k}</th>`).join('')}
-                                ${isAdmin ? '<th class="col-small"></th>' : ''}
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-${tIdx}">${rowsHtml}</tbody>
-                        <tr class="summary-row">
-                            <td colspan="${labelColSpan}" class="summary-label">TEAM TOTALS</td>
-                            <td class="col-stat ${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(sums.power)}</td>
-                            <td class="col-stat ${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(sums.merits)}</td>
-                            <td class="col-stat ${currentSort === 'mp' ? 'highlight-sort' : ''}">${(sums.mp*100).toFixed(2)}%</td>
-                            <td class="col-small ${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td>
-                            <td class="col-stat ${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(sums.kills)}</td>
-                            <td class="col-stat ${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td>
-                            <td class="col-stat ${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td>
-                            <td class="col-stat ${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td>
-                            ${csvKeys.map((k, kIdx) => `<td class="col-breakdown ${currentSort === displayKeys[kIdx] ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>`).join('')}
-                            ${isAdmin ? '<td></td>' : ''}
-                        </tr>
-                    </table>
-                </div>`;
-            container.appendChild(card);
-            if(isAdmin) setupSortable(tIdx);
+            card.innerHTML = `<div class="team-header"><div style="display:flex; flex-direction:column;"><input class="name-input" value="${team.name}" ${!isAdmin ? 'disabled' : ''} onchange="updateName(${tIdx}, this.value)">${!isAdmin && team.note ? `<div class="note-display">${team.note}</div>` : ''}${isAdmin ? `<input class="note-input" placeholder="Add note..." value="${team.note || ''}" onchange="updateNote(${tIdx}, this.value)">` : ''}</div><div style="display:flex; gap:10px;">${isAdmin ? `<button class="btn btn-green" onclick="addRow(${tIdx})">+ ROW</button><button class="btn btn-red" onclick="deleteTeam(${tIdx})">DEL</button>` : ''}</div></div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th>' : ''}<th>RANK</th><th>KD#</th>${!allTbd ? '<th>CLASS</th>' : ''}<th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>CH25</th><th>CH25 AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}${isAdmin ? '<th></th>' : ''}</tr></thead><tbody id="tbody-${tIdx}">${rowsHtml}</tbody><tr class="summary-row"><td colspan="${labelColSpan}" class="summary-label">TEAM TOTALS</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(sums.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(sums.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(sums.mp*100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(sums.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td><td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td><td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td>${displayKeys.map((k, kIdx) => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[csvKeys[kIdx]])}</td>`).join('')}${isAdmin ? '<td></td>' : ''}</tr></table></div>`;
+            container.appendChild(card); if(isAdmin) setupSortable(tIdx);
         });
     }
 
     function calculateTeamTotals(team) {
-        let s = { power:0, merits:0, kills:0, deads:0, totalCh25:0, ap:0, count:0, totalMpRank: 0, b: {} };
-        csvKeys.forEach(k => s.b[k] = 0);
-        team.ids.forEach(id => {
-            const d = masterData.get(String(id).trim());
-            if (d) {
-                s.power += d.power; s.merits += d.merits; s.kills += d.kills; s.deads += d.deads;
-                s.totalCh25 += d.ch25; s.ap += d.ap; s.count++;
-                if (typeof d.mpRank === 'number') s.totalMpRank += d.mpRank;
-                csvKeys.forEach(k => s.b[k] += cleanNum(d.raw[k]));
-            }
-        });
+        let s = { power:0, merits:0, kills:0, deads:0, totalCh25:0, ap:0, count:0, totalMpRank: 0, b: {} }; csvKeys.forEach(k => s.b[k] = 0);
+        team.ids.forEach(id => { const d = masterData.get(String(id).trim()); if (d) { s.power += d.power; s.merits += d.merits; s.kills += d.kills; s.deads += d.deads; s.totalCh25 += d.ch25; s.ap += d.ap; s.count++; if (typeof d.mpRank === 'number') s.totalMpRank += d.mpRank; csvKeys.forEach(k => s.b[k] += cleanNum(d.raw[k])); } });
         return { ...s, mp: s.power > 0 ? (s.merits / s.power) : 0, avgAp: s.count > 0 ? (s.ap / s.count) : 0 };
     }
 
-    function cleanNum(v) { return v ? parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0 : 0; }
+    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
     function formatVal(n) { if (!n) return "-"; if (n >= 1e9) return (n/1e9).toFixed(2) + 'B'; if (n >= 1e6) return (n/1e6).toFixed(2) + 'M'; return n.toLocaleString(); }
     function formatValNoDec(n) { return n ? Math.floor(n).toLocaleString() : "-"; }
-    function setSort(key, btn) {
-        currentSort = key;
-        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-        if (btn) btn.classList.add('active');
-        renderAll();
-    }
+    function setSort(key, btn) { currentSort = key; document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); renderAll(); }
     async function login() {
-        const userTyped = document.getElementById('user').value;
-        const passTyped = document.getElementById('pass').value;
-        try {
-            const resp = await fetch('Admin.json');
-            const data = await resp.json();
-            const authorized = data.users.find(u => u.username === userTyped && u.password === passTyped);
-            if (authorized) {
-                isAdmin = true;
-                document.getElementById('adminArea').style.display = 'flex';
-                document.getElementById('loginBtn').style.display = 'none';
-                toggleModal(false);
-                renderAll();
-            } else { document.getElementById('loginError').style.display = 'block'; }
-        } catch (e) { console.error(e); }
+        const u = document.getElementById('user').value; const p = document.getElementById('pass').value;
+        try { const resp = await fetch('Admin.json'); const data = await resp.json(); if (data.users.find(x => x.username === u && x.password === p)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); } else { document.getElementById('loginError').style.display = 'block'; } } catch (e) { alert("Could not load Admin settings."); }
     }
     function updateId(tIdx, rIdx, val) { currentTeams[tIdx].ids[rIdx] = val; renderAll(); }
     function updateName(tIdx, val) { currentTeams[tIdx].name = val; }
@@ -403,14 +236,7 @@
     function removeRow(tIdx, rIdx) { currentTeams[tIdx].ids.splice(rIdx, 1); renderAll(); }
     function deleteTeam(tIdx) { if(confirm("Delete Team?")) { currentTeams.splice(tIdx, 1); renderAll(); } }
     function addNewTeam() { currentTeams.unshift({ name: "NEW TEAM", ids: ["000"], note: "" }); renderAll(); }
-    function setupSortable(tIdx) {
-        new Sortable(document.getElementById(`tbody-${tIdx}`), { handle: '.drag-handle', animation: 150, onEnd: (evt) => {
-            const team = currentTeams[tIdx];
-            const moved = team.ids.splice(evt.oldIndex, 1)[0];
-            team.ids.splice(evt.newIndex, 0, moved);
-            renderAll();
-        }});
-    }
+    function setupSortable(tIdx) { new Sortable(document.getElementById(`tbody-${tIdx}`), { handle: '.drag-handle', animation: 150, onEnd: (evt) => { const team = currentTeams[tIdx]; const moved = team.ids.splice(evt.oldIndex, 1)[0]; team.ids.splice(evt.newIndex, 0, moved); renderAll(); } }); }
     function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
     function logout() { location.reload(); }
     function showOverlay() { document.getElementById('loadingOverlay').style.display = 'flex'; document.getElementById('loadingOverlay').style.opacity = '1'; }
