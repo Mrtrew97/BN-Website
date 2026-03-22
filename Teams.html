@@ -71,20 +71,36 @@
         .btn-purple { background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); }
         .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: var(--danger); }
 
-        .search-container { width: 100%; margin-bottom: 10px; }
+        .search-container { width: 100%; margin-bottom: 5px; }
         .search-input { 
             width: 100%; padding: 14px 20px; border-radius: 15px; border: 1px solid var(--glass-border); 
             font-size: 0.9rem; outline: none; box-sizing: border-box; background: rgba(0,0,0,0.3); color: white; transition: 0.3s;
         }
         .search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
 
-        .sort-row { width: 100%; display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 10px 0; white-space: nowrap; scrollbar-width: none; }
+        /* --- UPDATED SORT BAR LAYOUT --- */
+        .sort-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 15px 0;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 10px;
+        }
+        .sort-row { 
+            display: flex; 
+            gap: 8px; 
+            overflow-x: auto; 
+            justify-content: center;
+            scrollbar-width: none; 
+            flex-wrap: wrap;
+        }
         .sort-row::-webkit-scrollbar { display: none; }
         .sort-btn { 
-            padding: 6px 14px; background: transparent; border: 1px solid var(--glass-border); border-radius: 20px; 
+            padding: 8px 16px; background: transparent; border: 1px solid var(--glass-border); border-radius: 20px; 
             font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); flex-shrink: 0; transition: 0.2s; text-transform: uppercase;
         }
-        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 
         /* --- TEAM CARDS --- */
         #teamsContainer { display: flex; flex-direction: column; gap: 30px; width: 100%; max-width: 1600px; margin: 0 auto; }
@@ -111,7 +127,7 @@
         .col-small { width: 50px; }
         .col-kd { width: 65px; font-weight: 800; color: var(--primary); }
         .col-class { width: 55px; font-weight: 900 !important; } 
-        .col-alliance { width: 120px; font-weight: 700; text-align: left !padding-left: 10px; } 
+        .col-alliance { width: 120px; font-weight: 700; text-align: left; padding-left: 10px; } 
         .col-stat { width: 90px; }
         .col-breakdown { width: 55px; color: var(--muted); font-size: 0.75rem; }
 
@@ -160,21 +176,26 @@
             <input type="text" id="teamSearch" autocomplete="off" class="search-input" placeholder="Search Team, Kingdom, or Alliance..." oninput="renderAll()">
         </div>
 
+        <!-- TWO-ROW SORT BAR -->
         <div class="sort-bar" id="sortBar">
-            <span style="font-size:0.65rem; font-weight:800; color:var(--muted); margin-right:5px;">SORT BY:</span>
-            <button class="sort-btn active" id="nameSort" onclick="setSort('teamName', this)">Team Name</button>
-            <button class="sort-btn" onclick="setSort('power', this)">Power</button>
-            <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
-            <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
-            <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
-            <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
-            <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
-            <button class="sort-btn" onclick="setSort('totalCh25', this)">CH25</button>
-            <script>
-                ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
-                    document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
-                });
-            </script>
+            <div class="sort-row">
+                <button class="sort-btn active" id="nameSort" onclick="setSort('teamName', this)">Team Name</button>
+                <button class="sort-btn" onclick="setSort('power', this)">Power</button>
+                <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
+                <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
+                <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
+                <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
+                <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
+                <button class="sort-btn" onclick="setSort('totalCh25', this)">CH25</button>
+                <button class="sort-btn" onclick="setSort('avgAp', this)">CH25 AVG</button>
+            </div>
+            <div class="sort-row">
+                <script>
+                    ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
+                        document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
+                    });
+                </script>
+            </div>
         </div>
     </div>
 </div>
@@ -340,7 +361,7 @@
                         <td class="col-stat ${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
                         <td class="col-stat ${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td>
                         <td class="col-stat ${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
-                        <td class="col-stat">${formatVal(d.ap)}</td>
+                        <td class="col-stat ${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
                         ${csvKeys.map(k => `<td class="col-breakdown ${currentSort === k.replace('+','') ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}
                         ${isAdmin ? `<td><button class="btn-red" style="padding:2px 8px; border:none; cursor:pointer;" onclick="removeRow(${tIdx}, ${rowIdx})">×</button></td>` : ''}
                     </tr>
@@ -365,7 +386,7 @@
                         <thead>
                             <tr>
                                 ${isAdmin ? '<th class="col-small"></th>' : ''}
-                                <th class="col-small">RANK</th><th class="col-kd">KD#</th>${!allTbd ? '<th class="col-class">CLASS</th>' : ''}<th class="col-alliance">ALLIANCE</th><th class="col-stat">POWER</th><th class="col-stat">MERITS</th><th class="col-stat">M/P</th><th class="col-small">M/P R</th><th class="col-stat">KILLS</th><th class="col-stat">DEADS</th><th class="col-stat">HEALS</th><th class="col-stat">CH25</th><th class="col-stat">AVG</th>
+                                <th class="col-small">RANK</th><th class="col-kd">KD#</th>${!allTbd ? '<th class="col-class">CLASS</th>' : ''}<th class="col-alliance">ALLIANCE</th><th class="col-stat">POWER</th><th class="col-stat">MERITS</th><th class="col-stat">M/P</th><th class="col-small">M/P R</th><th class="col-stat">KILLS</th><th class="col-stat">DEADS</th><th class="col-stat">HEALS</th><th class="col-stat">CH25</th><th class="col-stat">CH25 AVG</th>
                                 ${displayKeys.map(k => `<th class="col-breakdown">${k}</th>`).join('')}
                                 ${isAdmin ? '<th class="col-small"></th>' : ''}
                             </tr>
@@ -381,7 +402,7 @@
                             <td class="col-stat ${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td>
                             <td class="col-stat ${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(sums.heals)}</td>
                             <td class="col-stat ${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td>
-                            <td class="col-stat">${formatVal(sums.avgAp)}</td>
+                            <td class="col-stat ${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td>
                             ${csvKeys.map((k, kIdx) => {
                                 const isSorted = currentSort === displayKeys[kIdx];
                                 return `<td class="col-breakdown ${isSorted ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>`
