@@ -32,120 +32,71 @@
         }
 
         /* --- CUSTOM SCROLLBAR --- */
-        .table-wrapper::-webkit-scrollbar {
-            height: 8px;
-            width: 8px;
-        }
-        .table-wrapper::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 10px;
-        }
-        .table-wrapper::-webkit-scrollbar-thumb {
-            background: rgba(59, 130, 246, 0.3);
-            border-radius: 10px;
-            border: 2px solid rgba(15, 23, 42, 0.1);
-        }
-        .table-wrapper::-webkit-scrollbar-thumb:hover {
-            background: rgba(59, 130, 246, 0.5);
-        }
+        .table-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-wrapper::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
 
-        /* --- STICKY NAV --- */
-        .sticky-header { 
-            position: sticky; top: 0; z-index: 1000; 
-            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(15px);
-            padding: 15px 0; border-bottom: 1px solid var(--glass-border); margin-bottom: 30px;
-        }
-        .header-content { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; padding: 0 20px; }
-        
+        /* --- NON-STICKY TOP SECTION --- */
+        .top-nav-wrapper { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; padding: 0 20px 20px 20px; }
         .top-nav { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-        .admin-controls { display: none; gap: 10px; align-items: center; }
-
-        .btn { 
-            padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); 
-            font-size: 0.75rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-            background: var(--glass); color: white; text-decoration: none; text-transform: uppercase;
-        }
-        .btn:hover { background: var(--primary); transform: translateY(-2px); border-color: var(--primary); }
-        .btn-blue { background: var(--primary); }
-        .btn-green { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); }
-        .btn-purple { background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.4); }
-        .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: var(--danger); }
-
-        .search-container { width: 100%; margin-bottom: 5px; }
+        
+        .search-container { width: 100%; }
         .search-input { 
             width: 100%; padding: 14px 20px; border-radius: 15px; border: 1px solid var(--glass-border); 
             font-size: 0.9rem; outline: none; box-sizing: border-box; background: rgba(0,0,0,0.3); color: white; transition: 0.3s;
         }
         .search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
 
-        /* --- UPDATED SORT BAR LAYOUT --- */
+        /* --- STICKY SORT BAR --- */
         .sort-bar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(15px);
+            padding: 15px 0;
+            border-bottom: 1px solid var(--glass-border);
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            padding: 15px 0;
-            border-top: 1px solid var(--glass-border);
-            margin-top: 10px;
+            gap: 8px;
+            margin-bottom: 30px;
         }
         .sort-row { 
-            display: flex; 
-            gap: 8px; 
-            overflow-x: auto; 
-            justify-content: center;
-            scrollbar-width: none; 
-            flex-wrap: wrap;
+            display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
         }
-        .sort-row::-webkit-scrollbar { display: none; }
         .sort-btn { 
-            padding: 8px 16px; background: transparent; border: 1px solid var(--glass-border); border-radius: 20px; 
-            font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); flex-shrink: 0; transition: 0.2s; text-transform: uppercase;
+            padding: 8px 16px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 20px; 
+            font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase;
         }
+        .sort-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 
-        /* --- TEAM CARDS --- */
-        #teamsContainer { display: flex; flex-direction: column; gap: 30px; width: 100%; max-width: 1600px; margin: 0 auto; }
-        .team-card { 
-            background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); 
-            border-radius: 24px; padding: 25px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        /* --- UI COMPONENTS --- */
+        .btn { 
+            padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); 
+            font-size: 0.75rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+            background: var(--glass); color: white; text-decoration: none; text-transform: uppercase;
         }
-        
-        .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .name-input { font-size: 1.2rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 350px; outline: none; }
-        .name-input:focus { border-color: var(--glass-border); background: rgba(0,0,0,0.2); }
-        .note-display { font-size: 0.85rem; color: var(--muted); font-style: italic; margin-top: 4px; padding-left: 8px; }
-        .note-input { width: 100%; margin-top: 8px; padding: 8px 12px; border: 1px solid var(--glass-border); border-radius: 10px; font-size: 0.8rem; background: rgba(0,0,0,0.2); color: var(--muted); outline: none; }
+        .btn:hover { background: var(--primary); transform: translateY(-2px); border-color: var(--primary); }
 
-        /* --- TABLES --- */
+        /* --- TEAM CARDS & TABLES --- */
+        #teamsContainer { display: flex; flex-direction: column; gap: 30px; width: 100%; max-width: 1600px; margin: 0 auto; }
+        .team-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; }
         .table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 15px; } 
         table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1850px; }
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
         td { padding: 12px 2px; text-align: center; font-size: 0.85rem; background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); }
         
-        td:first-child { border-left: 1px solid var(--glass-border); border-radius: 10px 0 0 10px; }
-        td:last-child { border-right: 1px solid var(--glass-border); border-radius: 0 10px 10px 0; }
-
-        .col-small { width: 50px; }
-        .col-kd { width: 65px; font-weight: 800; color: var(--primary); }
-        .col-class { width: 55px; font-weight: 900 !important; } 
-        .col-alliance { width: 120px; font-weight: 700; text-align: left; padding-left: 10px; } 
-        .col-stat { width: 90px; }
-        .col-breakdown { width: 55px; color: var(--muted); font-size: 0.75rem; }
+        .summary-row td { background: rgba(168, 85, 247, 0.1); color: var(--accent); font-weight: 950 !important; border-color: rgba(168, 85, 247, 0.2); }
+        .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 900 !important; }
 
         .paragon-text { color: var(--paragon) !important; font-weight: 900; text-decoration: underline; }
         .drag-handle { cursor: grab; color: var(--muted); width: 25px; opacity: 0.3; }
-        
-        .summary-row td { background: rgba(168, 85, 247, 0.1); color: var(--accent); font-weight: 900 !important; border-color: rgba(168, 85, 247, 0.2); }
-        .summary-label { text-align: left !important; padding-left: 20px !important; letter-spacing: 1px; }
-        
-        .highlight-sort { font-weight: 900 !important; color: white !important; }
 
-        /* --- MODALS --- */
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        #authModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000; }
-        .modal-content { background: #1e293b; padding: 30px; border-radius: 24px; width: 300px; border: 1px solid var(--glass-border); text-align: center; }
     </style>
 </head>
 <body>
@@ -155,54 +106,50 @@
     <div style="margin-top:15px; font-weight:800; font-size:0.8rem; letter-spacing:1px;">SYNCING ANALYTICS...</div>
 </div>
 
-<div class="sticky-header">
-    <div class="header-content">
-        <div class="top-nav">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <a href="index.html" class="home-link">← Kingdom Hub</a>
-                <select id="fileSelector" onchange="loadSelectedFile(this.value)">
-                    <option value="">Loading...</option>
-                </select>
-            </div>
-            <div id="adminArea" class="admin-controls">
-                <button class="btn btn-purple" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
-                <button class="btn btn-green" onclick="addNewTeam()">+ NEW TEAM</button>
-                <button class="btn btn-red" onclick="logout()">LOGOUT</button>
-            </div>
-            <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
-        </div>
+<a href="index.html" class="home-link">← Kingdom Hub</a>
 
-        <div class="search-container">
-            <input type="text" id="teamSearch" autocomplete="off" class="search-input" placeholder="Search Team, Kingdom, or Alliance..." oninput="renderAll()">
+<!-- NON-STICKY SECTION -->
+<div class="top-nav-wrapper">
+    <div class="top-nav">
+        <select id="fileSelector" class="btn" style="border-color:var(--primary); color:var(--primary);" onchange="loadSelectedFile(this.value)">
+            <option value="">Loading...</option>
+        </select>
+        <div id="adminArea" style="display:none; gap:10px;">
+            <button class="btn btn-purple" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
+            <button class="btn btn-green" onclick="addNewTeam()">+ NEW TEAM</button>
+            <button class="btn" style="background:var(--danger); border:none;" onclick="logout()">LOGOUT</button>
         </div>
+        <button id="loginBtn" class="btn btn-blue" onclick="toggleModal(true)">ADMIN</button>
+    </div>
+    <div class="search-container">
+        <input type="text" id="teamSearch" autocomplete="off" class="search-input" placeholder="Search Team, Kingdom, or Alliance..." oninput="renderAll()">
+    </div>
+</div>
 
-        <!-- TWO-ROW SORT BAR -->
-        <div class="sort-bar" id="sortBar">
-            <div class="sort-row">
-                <button class="sort-btn active" id="nameSort" onclick="setSort('teamName', this)">Team Name</button>
-                <button class="sort-btn" onclick="setSort('power', this)">Power</button>
-                <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
-                <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
-                <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
-                <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
-                <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
-                <button class="sort-btn" onclick="setSort('totalCh25', this)">CH25</button>
-                <button class="sort-btn" onclick="setSort('avgAp', this)">CH25 AVG</button>
-            </div>
-            <div class="sort-row">
-                <script>
-                    ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
-                        document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
-                    });
-                </script>
-            </div>
-        </div>
+<!-- STICKY SORT BAR -->
+<div class="sort-bar" id="sortBar">
+    <div class="sort-row">
+        <button class="sort-btn active" id="nameSort" onclick="setSort('teamName', this)">Team Name</button>
+        <button class="sort-btn" onclick="setSort('power', this)">Power</button>
+        <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
+        <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
+        <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
+        <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
+        <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
+        <button class="sort-btn" onclick="setSort('totalCh25', this)">CH25</button>
+        <button class="sort-btn" onclick="setSort('avgAp', this)">CH25 AVG</button>
+    </div>
+    <div class="sort-row">
+        <script>
+            ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
+                document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
+            });
+        </script>
     </div>
 </div>
 
 <div id="teamsContainer"></div>
 
-<!-- UNIFIED ADMIN MODAL -->
 <div id="authModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 style="margin-top:0; font-weight:900; letter-spacing:-1px;">ADMIN ACCESS</h2>
@@ -308,9 +255,7 @@
         
         if (currentSort !== 'teamName') {
             displayTeams.sort((a, b) => {
-                if (currentSort === 'mpRank') {
-                    return a.stats.totalMpRank - b.stats.totalMpRank; 
-                }
+                if (currentSort === 'mpRank') return a.stats.totalMpRank - b.stats.totalMpRank;
                 let valA = a.stats[currentSort] || (a.stats.b && a.stats.b[currentSort]) || 0;
                 let valB = b.stats[currentSort] || (b.stats.b && b.stats.b[currentSort]) || 0;
                 if (displayKeys.includes(currentSort)) {
@@ -362,7 +307,7 @@
                         <td class="col-stat ${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td>
                         <td class="col-stat ${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
                         <td class="col-stat ${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
-                        ${csvKeys.map(k => `<td class="col-breakdown ${currentSort === k.replace('+','') ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}
+                        ${csvKeys.map((k, kIdx) => `<td class="col-breakdown ${currentSort === displayKeys[kIdx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}
                         ${isAdmin ? `<td><button class="btn-red" style="padding:2px 8px; border:none; cursor:pointer;" onclick="removeRow(${tIdx}, ${rowIdx})">×</button></td>` : ''}
                     </tr>
                 `;
@@ -403,10 +348,7 @@
                             <td class="col-stat ${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(sums.heals)}</td>
                             <td class="col-stat ${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td>
                             <td class="col-stat ${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td>
-                            ${csvKeys.map((k, kIdx) => {
-                                const isSorted = currentSort === displayKeys[kIdx];
-                                return `<td class="col-breakdown ${isSorted ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>`
-                            }).join('')}
+                            ${csvKeys.map((k, kIdx) => `<td class="col-breakdown ${currentSort === displayKeys[kIdx] ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>`).join('')}
                             ${isAdmin ? '<td></td>' : ''}
                         </tr>
                     </table>
@@ -440,10 +382,7 @@
         currentSort = key;
         document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
-        else if (key === 'teamName') {
-            const ns = document.getElementById('nameSort');
-            if (ns) ns.classList.add('active');
-        }
+        else if (key === 'teamName') document.getElementById('nameSort').classList.add('active');
         renderAll();
     }
 
@@ -456,9 +395,7 @@
             const authorized = data.users.find(u => u.username === userTyped && u.password === passTyped);
             if (authorized) {
                 isAdmin = true;
-                if(document.getElementById('adminArea')) document.getElementById('adminArea').style.display = 'flex';
-                if(document.getElementById('adminSaveBtn')) document.getElementById('adminSaveBtn').style.display = 'inline-block';
-                if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').style.display = 'inline-block';
+                document.getElementById('adminArea').style.display = 'flex';
                 document.getElementById('loginBtn').style.display = 'none';
                 toggleModal(false);
                 renderAll();
