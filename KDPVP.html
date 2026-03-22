@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kingdom PVP Analytics</title>
+    <title>KINGDOM PVP</title>
     <link rel="stylesheet" href="global.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -95,8 +95,8 @@
 <!-- ROW 1: HEADER -->
 <div class="unified-container">
     <div class="nav-container">
-        <div class="nav-side-box"><a href="index.html" class="home-link">← Kingdom Hub</a></div>
-        <h1 class="page-title-main">PVP Analytics</h1>
+        <div class="nav-side-box"><a href="index.html" class="home-link">HOME PAGE</a></div>
+        <h1 class="page-title-main">KINGDOM PVP STATS</h1>
         <div class="nav-side-box right">
             <button id="adminSaveBtn" class="btn" style="display:none; background:var(--accent-purple); border:none;" onclick="saveDedicatedJson()">SAVE CLOUD</button>
             <button id="logoutBtn" class="btn btn-red" style="display:none;" onclick="logout()">LOGOUT</button>
@@ -263,22 +263,32 @@
     }
 
     async function login() {
-        const userTyped = document.getElementById('user').value;
-        const passTyped = document.getElementById('pass').value;
+        const u = document.getElementById('user').value;
+        const p = document.getElementById('pass').value;
+        const err = document.getElementById('loginError');
+
         try {
-            const resp = await fetch('Admin.json');
-            if (!resp.ok) throw new Error("Failed to fetch Admin.json");
-            const data = await resp.json();
-            const authorized = data.users.find(admin => admin.username === userTyped && admin.password === passTyped);
-            if (authorized) {
+            const resp = await fetch(`${RENDER_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            const result = await resp.json();
+
+            if (result.success) {
                 isAdmin = true;
                 document.getElementById('adminSaveBtn').style.display = 'inline-block';
                 document.getElementById('logoutBtn').style.display = 'inline-block';
                 document.getElementById('loginBtn').style.display = 'none';
                 toggleModal(false);
                 handleSearch();
-            } else { document.getElementById('loginError').style.display = 'block'; }
-        } catch (e) { alert("Admin Error."); }
+            } else {
+                err.style.display = 'block';
+            }
+        } catch (e) {
+            alert("Backend Login Error.");
+        }
     }
 
     function logout() { location.reload(); }

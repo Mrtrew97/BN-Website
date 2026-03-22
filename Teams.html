@@ -102,7 +102,7 @@
 <div class="unified-container">
     <div class="header-top-row">
         <div class="nav-side-box">
-            <a href="index.html" class="home-link">← Kingdom Hub</a>
+            <a href="index.html" class="home-link">HOME PAGE</a>
         </div>
         <h1 class="page-title-main">Teams (Official)</h1>
         <div class="nav-side-box right">
@@ -265,8 +265,31 @@
     function formatValNoDec(n) { return n ? Math.floor(n).toLocaleString() : "-"; }
     function setSort(key, btn) { currentSort = key; document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); else if (key === 'teamName') document.getElementById('nameSort').classList.add('active'); renderAll(); }
     async function login() {
-        const u = document.getElementById('user').value; const p = document.getElementById('pass').value;
-        try { const resp = await fetch('Admin.json'); const data = await resp.json(); if (data.users.find(x => x.username === u && x.password === p)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); } else { document.getElementById('loginError').style.display = 'block'; } } catch (e) { alert("Admin.json not found."); }
+        const u = document.getElementById('user').value;
+        const p = document.getElementById('pass').value;
+        const err = document.getElementById('loginError');
+
+        try {
+            const resp = await fetch(`${RENDER_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            
+            const result = await resp.json();
+
+            if (result.success) {
+                isAdmin = true;
+                document.getElementById('adminArea').style.display = 'flex';
+                document.getElementById('loginBtn').style.display = 'none';
+                toggleModal(false);
+                renderAll();
+            } else {
+                err.style.display = 'block';
+            }
+        } catch (e) {
+            alert("Backend Login Error. Check if Render is awake.");
+        }
     }
     function updateId(tIdx, rIdx, val) { currentTeams[tIdx].ids[rIdx] = val; renderAll(); }
     function updateName(tIdx, val) { currentTeams[tIdx].name = val; }
