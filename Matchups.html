@@ -11,37 +11,39 @@
     <style>
         body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
         
-        /* --- CUSTOM SCROLLBAR --- */
+        /* --- SCROLLBAR --- */
         .table-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
         .table-wrapper::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
         .table-wrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
 
-        /* --- UNIFIED SINGLE TOP ROW --- */
-        .top-navigation-bar { 
-            max-width: 1600px; 
-            margin: 20px auto; 
-            padding: 0 25px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            gap: 20px; 
+        /* --- TOP NAV: HUB, FILE, SEARCH, ADMIN (POINT 1, 3, 4) --- */
+        .header-main-nav { 
+            max-width: 1600px; margin: 20px auto 10px auto; padding: 0 25px; 
+            display: flex; justify-content: space-between; align-items: center; gap: 20px;
         }
-        
         .nav-left-cluster { display: flex; align-items: center; gap: 15px; }
         .nav-left-cluster .home-link { position: static; margin: 0; backdrop-filter: none; }
-
+        
         .search-center-cluster { flex-grow: 1; display: flex; justify-content: center; }
-        .search-input { width: 100%; max-width: 600px; padding: 12px 20px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; transition: 0.3s; }
+        .search-input { width: 100%; max-width: 600px; padding: 12px 20px; border-radius: 15px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; transition: 0.3s; }
         .search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
-
+        
         .nav-right-cluster { display: flex; align-items: center; gap: 10px; }
 
-        /* --- STICKY SORT BAR (NO LINES) --- */
+        /* --- ZONE SELECTOR (NON-STICKY) --- */
+        .zone-container { width: 100%; display: flex; justify-content: center; margin-bottom: 20px; }
+
+        /* --- STICKY SORT BAR (POINT 1 & 3) --- */
+        .sticky-nav-wrapper {
+            position: sticky; top: 0; z-index: 1000;
+            width: 100%; display: flex; justify-content: center;
+        }
         .sticky-nav { 
-            position: sticky; top: 0; z-index: 1000; 
+            width: calc(100% - 50px); max-width: 1600px;
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); 
-            padding: 15px 0; border-bottom: 1px solid var(--glass-border); 
-            display: flex; flex-direction: column; gap: 8px; margin-bottom: 40px;
+            padding: 12px 0; border: 1px solid var(--glass-border);
+            border-top: none; border-radius: 0 0 24px 24px;
+            display: flex; flex-direction: column; gap: 5px; /* Point 2: Closer rows */
         }
         .sort-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; border: none !important; }
         
@@ -64,23 +66,25 @@
         .row-total-a, .row-total-b { background: rgba(59, 130, 246, 0.1) !important; color: var(--primary) !important; }
         .row-differentials-a-b { background: rgba(168, 85, 247, 0.1) !important; color: var(--accent) !important; }
         
+        /* Point 3 Admin ID Input fix */
         .id-input { width: 90%; padding: 4px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; text-align: center; font-weight: 700; color: #3b82f6; font-size: 0.8rem; outline: none; }
         .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; background: var(--glass); color: white; transition: 0.2s; text-transform: uppercase; }
         .btn:hover { background: var(--primary); transform: translateY(-2px); }
         .col-drag { width: 30px; cursor: grab; opacity: 0.3; }
         .col-del { width: 30px; color: var(--danger); font-weight: 900; cursor: pointer; }
+
+        #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-<div id="loadingOverlay" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>
+<div id="loadingOverlay"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style></div>
 
-<!-- ONE SINGLE TOP ROW -->
-<div class="top-navigation-bar">
+<!-- SINGLE NAVIGATION ROW (HUB, FILE, SEARCH, ADMIN) -->
+<div class="header-main-nav">
     <div class="nav-left-cluster">
         <a href="index.html" class="home-link">← Kingdom Hub</a>
         <select id="fileSelector" onchange="loadSpecificFile(this.value)"></select>
-        <span id="activeFileLabel" style="display:none;"></span>
     </div>
 
     <div class="search-center-cluster">
@@ -97,8 +101,8 @@
     </div>
 </div>
 
-<!-- STICKY CLUSTER -->
-<div class="sticky-nav">
+<!-- ZONE SELECTOR (NON-STICKY) -->
+<div class="zone-container">
     <div class="sort-row" id="zoneFilterRow">
         <button class="filter-btn active" onclick="setZoneFilter('all', this)">All Zones</button>
         <button class="filter-btn" onclick="setZoneFilter('overall', this)">Overall</button>
@@ -106,24 +110,30 @@
         <button class="filter-btn" onclick="setZoneFilter('zone 3', this)">Zone 3</button>
         <button class="filter-btn" onclick="setZoneFilter('zone 4', this)">Zone 4</button>
     </div>
-    <div class="sort-row">
-        <button class="sort-btn" onclick="setSort('name', this)">Group Name</button>
-        <button class="sort-btn active" onclick="setSort('power', this)">Power</button>
-        <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
-        <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
-        <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
-        <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
-        <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
-        <button class="sort-btn" onclick="setSort('heals', this)">Heals</button>
-        <button class="sort-btn" onclick="setSort('ch25', this)">CH25</button>
-        <button class="sort-btn" onclick="setSort('ap', this)">CH25 AVG</button>
-    </div>
-    <div class="sort-row">
-        <script>
-            ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
-                document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
-            });
-        </script>
+</div>
+
+<!-- STICKY METRICS BAR -->
+<div class="sticky-nav-wrapper">
+    <div class="sticky-nav">
+        <div class="sort-row">
+            <button class="sort-btn" onclick="setSort('name', this)">Group Name</button>
+            <button class="sort-btn active" onclick="setSort('power', this)">Power</button>
+            <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
+            <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
+            <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
+            <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
+            <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
+            <button class="sort-btn" onclick="setSort('heals', this)">Heals</button>
+            <button class="sort-btn" onclick="setSort('ch25', this)">CH25</button>
+            <button class="sort-btn" onclick="setSort('ap', this)">CH25 AVG</button>
+        </div>
+        <div class="sort-row">
+            <script>
+                ["10M","20M","30M","40M","50M","80M","100M","125M","150M","200M","250M","300M"].forEach(k => {
+                    document.write(`<button class="sort-btn" onclick="setSort('${k}', this)">${k}</button>`);
+                });
+            </script>
+        </div>
     </div>
 </div>
 
@@ -132,8 +142,8 @@
 <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000;">
     <div class="modal-content" style="background: #1e293b; padding: 40px; border-radius: 24px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
         <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
-        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:12px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:10px; color:white;">
-        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:20px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:10px; color:white;" onkeydown="if(event.key==='Enter') login()">
+        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:12px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;">
+        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:20px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;" onkeydown="if(event.key==='Enter') login()">
         <div id="loginError" style="color: #ef4444; font-size: 0.7rem; font-weight: 800; margin-bottom: 15px; display: none;">INVALID CREDENTIALS</div>
         <button class="btn btn-blue" style="width: 100%; padding: 15px;" onclick="login()">AUTHORIZE</button>
         <button onclick="toggleModal(false)" class="btn" style="width:100%; margin-top:10px; background:transparent;">Cancel</button>
@@ -152,27 +162,22 @@
             const files = await fResp.json();
             const selector = document.getElementById('fileSelector'); selector.innerHTML = '';
             files.reverse().forEach(f => {
-                const opt = document.createElement('option');
-                opt.value = f;
-                opt.textContent = f.toUpperCase().replace('.CSV', ''); 
-                selector.appendChild(opt);
+                const opt = document.createElement('option'); opt.value = f;
+                opt.textContent = f.toUpperCase().replace('.CSV', ''); selector.appendChild(opt);
             });
-            await fetchMatchupsFromCloud();
-            if (files.length > 0) await loadSpecificFile(files[0]);
+            await fetchMatchupsFromCloud(); if (files.length > 0) await loadSpecificFile(files[0]);
         } catch (e) { console.error(e); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
     };
 
     async function loadSpecificFile(fileName) {
-        selectedFileName = fileName;
+        selectedFileName = fileName; 
         const cleanName = fileName.replace('.csv', '').replace('.CSV', '');
         const jsonName = cleanName + ".json"; 
         const csvFile = fileName.toUpperCase().endsWith('.CSV') ? fileName : fileName + ".csv";
-
         try {
             const regResp = await fetch(`${RENDER_URL}/load-registration/${jsonName}?cb=${Date.now()}`);
             const regWrapper = regResp.ok ? await regResp.json() : { kingdoms: [], data: {} };
             currentRegistrations = regWrapper.data || {}; var registeredIDs = new Set(regWrapper.kingdoms || []);
-            
             const csvResp = await fetch(`./Pull/${csvFile}?cb=${Date.now()}`);
             const result = Papa.parse(await csvResp.text(), { header: true, skipEmptyLines: 'greedy' });
             masterData.clear(); let rankedPool = [];
@@ -186,7 +191,6 @@
             });
             rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
             rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
-            
             currentMatchups = allCloudData[cleanName] || allCloudData[fileName] || [];
             renderAll();
         } catch (e) { console.error(e); }
@@ -200,18 +204,13 @@
         let displayList = currentMatchups.map((m, idx) => ({ ...m, originalIdx: idx, stats: calculateMatchupStats(m.ids) }));
         if (currentZoneFilter !== 'all') displayList = displayList.filter(m => m.zone === currentZoneFilter);
         if (sT) { displayList = displayList.filter(m => m.name.toLowerCase().includes(sT) || m.ids.some(id => masterData.get(String(id).trim())?.alliance.toLowerCase().includes(sT) || String(id).includes(sT))); }
-        
-        if (currentSort === 'name') {
-            displayList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-        } else {
-            displayList.sort((a, b) => { let valA, valB; if (displayKeys.includes(currentSort)) { valA = Math.abs(a.stats.diff.b[currentSort] || 0); valB = Math.abs(b.stats.diff.b[currentSort] || 0); } else { valA = Math.abs(a.stats.diff[currentSort] || 0); valB = Math.abs(b.stats.diff[currentSort] || 0); } return valB - valA; });
-        }
+        if (currentSort === 'name') { displayList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })); }
+        else { displayList.sort((a, b) => { let valA, valB; if (displayKeys.includes(currentSort)) { valA = Math.abs(a.stats.diff.b[currentSort] || 0); valB = Math.abs(b.stats.diff.b[currentSort] || 0); } else { valA = Math.abs(a.stats.diff[currentSort] || 0); valB = Math.abs(b.stats.diff[currentSort] || 0); } return valB - valA; }); }
 
         displayList.forEach(matchup => {
             const mIdx = matchup.originalIdx; const card = document.createElement('div'); card.className = 'matchup-card';
             const allTbd = matchup.ids.every(id => { const d = masterData.get(String(id).trim()); return !d || d.class === "TBD" || d.class === "-"; });
             const dataColsSpan = 21 + (!allTbd ? 1 : 0);
-
             let rowsHtml = matchup.ids.map((id, rIdx) => {
                 const upper = String(id).toUpperCase().trim(); const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper); const rowData = matchup.stats.rows[rIdx];
                 if (isSpecial) {
@@ -245,16 +244,10 @@
     function setupSortable(mIdx) { new Sortable(document.getElementById(`tbody-${mIdx}`), { handle: '.col-drag', animation: 150, onEnd: (evt) => { const team = currentMatchups[mIdx]; const moved = team.ids.splice(evt.oldIndex, 1)[0]; team.ids.splice(evt.newIndex, 0, moved); renderAll(); }}); }
     function setSort(key, btn) { currentSort = key; document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); renderAll(); }
     function setZoneFilter(zone, btn) { currentZoneFilter = zone; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderAll(); }
-    async function login() {
-        const userTyped = document.getElementById('user').value; const passTyped = document.getElementById('pass').value;
-        try { const resp = await fetch('Admin.json'); const data = await resp.json();
-            if(data.users.find(x => x.username === userTyped && x.password === passTyped)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); }
-            else { document.getElementById('loginError').style.display = 'block'; }
-        } catch (e) { alert("Admin.json error."); }
-    }
+    async function login() { const u = document.getElementById('user').value; const p = document.getElementById('pass').value; try { const resp = await fetch('Admin.json'); const data = await resp.json(); if (data.users.find(x => x.username === u && x.password === p)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); } else { document.getElementById('loginError').style.display = 'block'; } } catch (e) { alert("Admin.json error."); } }
     function logout() { location.reload(); }
     function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
-    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
+    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '')) || 0; }
     function formatVal(n) { if (!n && n !== 0) return "0.00"; const abs = Math.abs(n); let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
     function formatValNoDec(n) { if (!n && n !== 0) return "0"; const abs = Math.floor(Math.abs(n)); let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
 </script>
