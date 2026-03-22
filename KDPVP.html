@@ -34,9 +34,10 @@
         .btn { 
             background: var(--glass); border: 1px solid var(--glass-border); color: white; padding: 10px 20px; 
             border-radius: 12px; text-decoration: none; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
         }
         .btn:hover { background: var(--primary); transform: translateY(-2px); }
-        .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); }
+        .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: white; }
 
         /* Controls Area */
         .controls-wrapper { 
@@ -44,15 +45,17 @@
             background: var(--glass); backdrop-filter: blur(15px); border-radius: 24px; border: 1px solid var(--glass-border); 
         }
         .main-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-        input { 
+        
+        /* Unified Inputs */
+        input.search-input { 
             background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 14px; 
             border-radius: 12px; color: white; font-weight: 700; outline: none; transition: 0.2s;
         }
-        input:focus { border-color: var(--primary); }
+        input.search-input:focus { border-color: var(--primary); }
 
         .sort-bar { display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--glass-border); padding-top: 20px; justify-content: center; }
         .sort-btn { background: transparent; border: 1px solid var(--glass-border); color: var(--muted); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; transition: 0.2s; }
-        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 
         /* Cards */
         #cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 25px; max-width: 1400px; margin: 0 auto; }
@@ -88,6 +91,7 @@
         .roster-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
         .roster-item { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid var(--glass-border); }
         .r-val { font-size: 0.85rem; font-weight: 900; color: var(--accent-purple); }
+        .badge { font-size: 0.65rem; font-weight: 900; padding: 5px 12px; border-radius: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); }
 
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
@@ -264,7 +268,7 @@
         const sFilter = document.getElementById('regFilter').value; 
         const cFilter = document.getElementById('classFilter').value;
         
-        // 1. Define the Context Pool for Rankings based strictly on the Status Dropdown
+        // Context Pool for dynamic ranking
         let rankingPool = [];
         if (sFilter === 'all') {
             rankingPool = [...allData];
@@ -272,14 +276,13 @@
             rankingPool = allData.filter(a => a.status === sFilter);
         }
 
-        // 2. Perform Ranking Calculations within that Context Pool
+        // Rank Calculation within current context pool
         const sortedByPower = [...rankingPool].sort((a,b) => b.power - a.power);
         const sortedByMP = [...rankingPool].sort((a,b) => b.mp - a.mp);
 
-        // Assign ranks to the entire dataset (those not in pool get "-")
         allData.forEach(a => {
-            const poolMatch = rankingPool.find(x => x.kd === a.kd);
-            if (poolMatch) {
+            const inPool = rankingPool.some(x => x.kd === a.kd);
+            if (inPool) {
                 a.powerRank = sortedByPower.findIndex(x => x.kd === a.kd) + 1;
                 a.mpRank = sortedByMP.findIndex(x => x.kd === a.kd) + 1;
             } else {
@@ -288,7 +291,7 @@
             }
         });
 
-        // 3. Filter for Display (Pool + Query + Class)
+        // Final Display Filter (Class + Search)
         filteredData = rankingPool.filter(a => {
             const matchesQuery = a.name.toLowerCase().includes(query) || a.kd.includes(query);
             const matchesClass = (cFilter === 'all') || (a.class === cFilter);
@@ -310,7 +313,6 @@
     function applySort() {
         filteredData.sort((a, b) => {
             let valA = a[currentSort.field], valB = b[currentSort.field];
-            // Handle ranking strings if sorting by rank
             if(currentSort.field === 'powerRank' || currentSort.field === 'mpRank') {
                 valA = (valA === "-") ? 999999 : valA;
                 valB = (valB === "-") ? 999999 : valB;
@@ -398,20 +400,26 @@
     async function login() {
         const userTyped = document.getElementById('user').value;
         const passTyped = document.getElementById('pass').value;
+        const errorMsg = document.getElementById('loginError');
         try {
             const resp = await fetch('Admin.json');
+            if (!resp.ok) throw new Error("Failed to fetch Admin.json");
             const data = await resp.json();
             const authorized = data.users.find(u => u.username === userTyped && u.password === passTyped);
             if (authorized) {
                 isAdmin = true;
-                document.getElementById('adminArea').style.display = 'flex';
                 document.getElementById('adminSaveBtn').style.display = 'inline-block';
                 document.getElementById('logoutBtn').style.display = 'inline-block';
                 document.getElementById('loginBtn').style.display = 'none';
                 toggleModal(false);
                 handleSearch();
-            } else { document.getElementById('loginError').style.display = 'block'; }
-        } catch (e) { alert("Could not load Admin settings."); }
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        } catch (e) { 
+            console.error(e);
+            alert("Could not load Admin settings. Ensure Admin.json is in your root folder."); 
+        }
     }
 
     function logout() { location.reload(); }
@@ -420,7 +428,7 @@
         if(!v) document.getElementById('loginError').style.display = 'none';
     }
     function handleOutsideClick(e) { if (e.target.id === 'authModal') toggleModal(false); }
-    function cleanNum(v) { if (!v) return 0; let n = parseFloat(String(v).replace(/,/g, '').replace('%', '')); return isNaN(n) ? 0 : n; }
+    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
     function formatVal(n) { if (n >= 1e9) return (n/1e9).toFixed(2)+'B'; if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; return n.toLocaleString(); }
 </script>
 </body>
