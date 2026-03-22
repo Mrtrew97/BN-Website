@@ -14,19 +14,26 @@
             --text: #f8fafc; --muted: #94a3b8;
             --brd-merits: #bb4dc5; --brd-kills: #f59e0b; --brd-deads: #ef4444; --brd-heals: #10b981;
         }
-        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 20px; overflow-x: hidden; }
+        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
         
+        /* --- UNIFIED CONTAINER SYSTEM --- */
+        .unified-container { max-width: 1600px; margin: 0 auto; width: 100%; padding: 0 25px; box-sizing: border-box; }
+
         /* --- ROW 1: NAVIGATION --- */
-        .nav-container { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; max-width: 1600px; margin: 0 auto 30px; }
+        .nav-container { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-top: 25px; margin-bottom: 20px; }
         .nav-side-box { display: flex; align-items: center; }
         .nav-side-box.right { justify-content: flex-end; gap: 10px; }
         .nav-container .home-link { position: static; margin: 0; backdrop-filter: none; }
 
         /* --- ROW 2: TOOLS --- */
-        .controls-wrapper { max-width: 1600px; margin: 0 auto 25px auto; padding: 25px; background: var(--glass); backdrop-filter: blur(15px); border-radius: 24px; border: 1px solid var(--glass-border); }
-        .main-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-        input.search-input { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 14px; border-radius: 12px; color: white; font-weight: 700; outline: none; flex: 2; transition: 0.3s; }
-        input.search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
+        .tools-glass-bar {
+            background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); 
+            border-radius: 24px; padding: 12px 20px; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 15px;
+        }
+        .search-wrapper { flex: 1; display: flex; align-items: center; }
+        .search-input { width: 100%; padding: 10px 18px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.9rem; outline: none; transition: 0.3s; }
+        .search-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
 
         /* --- ROW 3: STICKY METRICS --- */
         .sticky-wrapper { position: sticky; top: 15px; z-index: 1000; width: 100%; display: flex; justify-content: center; margin-bottom: 40px; }
@@ -36,13 +43,20 @@
         .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
 
         /* --- CARDS GRID --- */
-        #cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 25px; max-width: 1600px; margin: 0 auto; }
+        #cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 25px; padding-bottom: 60px; }
         .pvp-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 20px; transition: 0.3s; }
         .pvp-card:hover { border-color: var(--primary); transform: translateY(-5px); }
         
         .card-header { text-align: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
         .ally-name-row { font-size: 1.3rem; font-weight: 900; color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
         .sep-bar { margin: 0 10px; opacity: 0.3; }
+
+        /* Colored Badges */
+        .rank-badge-pwr { background: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .rank-badge-mp { background: rgba(16, 185, 129, 0.15) !important; color: #10b981 !important; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .paragon-badge { background: rgba(245, 158, 11, 0.15) !important; color: #f59e0b !important; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-std { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid var(--glass-border); }
+        .badge { font-size: 0.65rem; font-weight: 900; padding: 5px 12px; border-radius: 8px; text-transform: uppercase; }
 
         .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .stat-box { padding: 14px 10px; border-radius: 16px; text-align: center; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-left-width: 5px; }
@@ -59,7 +73,6 @@
         .roster-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
         .roster-item { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid var(--glass-border); }
         .r-val { font-size: 0.85rem; font-weight: 900; color: var(--accent-purple); }
-        .badge { font-size: 0.65rem; font-weight: 900; padding: 5px 12px; border-radius: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); }
 
         /* Admin UI */
         .admin-card-controls { display: flex; gap: 10px; border-top: 1px solid var(--glass-border); padding-top: 15px; justify-content: center; align-items: center; }
@@ -70,16 +83,14 @@
 
         .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; background: var(--glass); color: white; text-decoration: none; text-transform: uppercase; transition: 0.2s; }
         .btn:hover { background: var(--primary); transform: translateY(-2px); }
-        .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: white; }
+        .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: white; border: 1px solid transparent; }
 
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body onclick="handleOutsideClick(event)">
 
-<div id="loadingOverlay"><div class="spinner"></div></div>
+<div id="loadingOverlay" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style></div>
 
 <!-- ROW 1: HEADER -->
 <div class="unified-container">
@@ -87,7 +98,7 @@
         <div class="nav-side-box"><a href="index.html" class="home-link">← Kingdom Hub</a></div>
         <h1 class="page-title-main">PVP Analytics</h1>
         <div class="nav-side-box right">
-            <button id="adminSaveBtn" class="btn" style="display:none; background:var(--accent-purple);" onclick="saveDedicatedJson()">SAVE CLOUD</button>
+            <button id="adminSaveBtn" class="btn" style="display:none; background:var(--accent-purple); border:none;" onclick="saveDedicatedJson()">SAVE CLOUD</button>
             <button id="logoutBtn" class="btn btn-red" style="display:none;" onclick="logout()">LOGOUT</button>
             <button id="loginBtn" class="btn" onclick="toggleModal(true)">ADMIN</button>
         </div>
@@ -96,38 +107,40 @@
 
 <!-- ROW 2: TOOLS -->
 <div class="unified-container">
-    <div class="controls-wrapper">
-        <div class="main-controls">
-            <select id="fileSelector" onchange="processFile(this.value)" style="min-width: 150px;"></select>
-            <select id="regFilter" onchange="handleSearch()">
-                <option value="all">All Status</option>
-                <option value="Registered" selected>Registered</option>
-                <option value="Not Registered">Not Registered</option>
-            </select>
-            <select id="classFilter" onchange="handleSearch()">
-                <option value="all">All Classes</option>
-                <option value="A">Class A</option>
-                <option value="B">Class B</option>
-                <option value="C">Class C</option>
-                <option value="D">Class D</option>
-            </select>
+    <div class="tools-glass-bar">
+        <select id="fileSelector" onchange="processFile(this.value)" style="min-width: 150px;"></select>
+        <select id="regFilter" onchange="handleSearch()">
+            <option value="all">All Status</option>
+            <option value="Registered" selected>Registered</option>
+            <option value="Not Registered">Not Registered</option>
+        </select>
+        <select id="classFilter" onchange="handleSearch()">
+            <option value="all">All Classes</option>
+            <option value="A">Class A</option>
+            <option value="B">Class B</option>
+            <option value="C">Class C</option>
+            <option value="D">Class D</option>
+        </select>
+        <div class="search-wrapper">
             <input type="text" id="searchInput" class="search-input" placeholder="Search Alliance or Kingdom..." oninput="handleSearch()">
         </div>
     </div>
 </div>
 
-<!-- ROW 3: STICKY METRICS -->
+<!-- ROW 3: STICKY METRICS ISLAND -->
 <div class="sticky-wrapper">
-    <div class="metrics-island" id="sortBar">
-        <div class="sort-row">
-            <button class="sort-btn" onclick="handleSort('kd', this)">Kingdom</button>
-            <button class="sort-btn active" onclick="handleSort('power', this)">Power</button>
-            <button class="sort-btn" onclick="handleSort('merits', this)">Merits</button>
-            <button class="sort-btn" onclick="handleSort('mp', this)">M/P Ratio</button>
-            <button class="sort-btn" onclick="handleSort('kills', this)">Kills</button>
-            <button class="sort-btn" onclick="handleSort('deads', this)">Deads</button>
-            <button class="sort-btn" onclick="handleSort('heals', this)">Heals</button>
-            <button class="sort-btn" onclick="handleSort('ch25', this)">CH25</button>
+    <div class="unified-container">
+        <div class="metrics-island" id="sortBar">
+            <div class="sort-row">
+                <button class="sort-btn" onclick="handleSort('kd', this)">Kingdom</button>
+                <button class="sort-btn active" onclick="handleSort('power', this)">Power</button>
+                <button class="sort-btn" onclick="handleSort('merits', this)">Merits</button>
+                <button class="sort-btn" onclick="handleSort('mp', this)">M/P Ratio</button>
+                <button class="sort-btn" onclick="handleSort('kills', this)">Kills</button>
+                <button class="sort-btn" onclick="handleSort('deads', this)">Deads</button>
+                <button class="sort-btn" onclick="handleSort('heals', this)">Heals</button>
+                <button class="sort-btn" onclick="handleSort('ch25', this)">CH25</button>
+            </div>
         </div>
     </div>
 </div>
@@ -138,11 +151,12 @@
     <div style="text-align: center; padding: 40px;"><button id="loadMoreBtn" class="btn" style="display:none;" onclick="showNextPage()">LOAD MORE</button></div>
 </div>
 
-<div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000;">
-    <div class="modal-content" style="background: #1e293b; padding: 40px; border-radius: 30px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
-        <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
-        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:12px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;">
-        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:20px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;" onkeydown="if(event.key==='Enter') login()">
+<!-- UNIFIED ADMIN MODAL -->
+<div id="authModal">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2 style="margin-top:0; font-weight:900; letter-spacing:-1px;">ADMIN ACCESS</h2>
+        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:12px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:10px; color:white;">
+        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:20px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); padding:12px; border-radius:10px; color:white;" onkeydown="if(event.key==='Enter') login()">
         <div id="loginError" style="color: #ef4444; font-size: 0.7rem; font-weight: 800; margin-bottom: 15px; display: none;">INVALID CREDENTIALS</div>
         <button class="btn btn-blue" style="width: 100%; padding: 15px;" onclick="login()">AUTHORIZE</button>
         <button onclick="toggleModal(false)" class="btn" style="width:100%; margin-top:10px; background:transparent;">Cancel</button>
@@ -231,27 +245,42 @@
         const grid = document.getElementById('cardGrid'); const nextBatch = filteredData.slice(itemsShown, itemsShown + pageSize);
         nextBatch.forEach(a => {
             const card = document.createElement('div'); card.className = 'pvp-card';
-            card.innerHTML = `<div class="card-header"><div class="ally-name-row"><div>${a.name}</div><span class="sep-bar">|</span><div>KD ${a.kd}</div></div><div style="font-size:0.8rem; font-weight:800; opacity:0.6; margin-bottom:15px;">CH25 COUNT: ${a.ch25}</div><div style="display:flex; gap:8px; justify-content:center;"><span class="badge" style="color:var(--brd-deads)">#${a.powerRank} PWR</span><span class="badge" style="color:var(--brd-heals)">#${a.mpRank} M/P</span><span class="badge" style="color:var(--primary)">CLASS ${a.class}</span>${a.isParagon ? '<span class="badge" style="color:var(--brd-kills)">★ PARAGON</span>' : ''}</div></div><div class="stat-grid"><div class="stat-box"><span class="stat-label">Power</span><div class="stat-value">${formatVal(a.power)}</div></div><div class="stat-box box-merits"><span class="stat-label">Merits</span><div class="stat-value">${formatVal(a.merits)}</div></div><div class="stat-box box-mp"><span class="stat-label">M/P Ratio</span><div class="stat-value">${Number(a.mp).toFixed(2)}%</div></div></div><div class="stat-grid"><div class="stat-box box-kills"><span class="stat-label">Kills</span><div class="stat-value">${formatVal(a.kills)}</div></div><div class="stat-box box-deads"><span class="stat-label">Deads</span><div class="stat-value">${formatVal(a.deads)}</div></div><div class="stat-box box-heals"><span class="stat-label">Heals</span><div class="stat-value">${formatVal(a.heals)}</div></div></div><div class="roster-section"><span class="stat-label" style="display:block; text-align:center; color:var(--accent-purple)">Troop Distribution</span><div class="roster-grid">${Object.entries(a.roster).map(([label, val]) => `<div class="roster-item" style="${val === 0 ? 'opacity:0.2' : ''}"><div class="stat-label" style="font-size:0.5rem;">${label}</div><div class="r-val">${val}</div></div>`).join('')}</div></div><div class="admin-card-controls" style="display: ${isAdmin ? 'flex' : 'none'}; gap:10px; border-top:1px solid var(--glass-border); padding-top:15px; justify-content:center; align-items:center;"><select onchange="updateLocalReg('${a.kd}', 'status', this.value)"><option value="Not Registered" ${a.status === 'Not Registered' ? 'selected' : ''}>Not Registered</option><option value="Registered" ${a.status === 'Registered' ? 'selected' : ''}>Registered</option></select><select onchange="updateLocalReg('${a.kd}', 'class', this.value)"><option value="TBD" ${a.class === 'TBD' ? 'selected' : ''}>TBD</option><option value="A" ${a.class === 'A' ? 'selected' : ''}>A</option><option value="B" ${a.class === 'B' ? 'selected' : ''}>B</option><option value="C" ${a.class === 'C' ? 'selected' : ''}>C</option><option value="D" ${a.class === 'D' ? 'selected' : ''}>D</option></select><label class="paragon-label"><input type="checkbox" class="paragon-checkbox" ${a.isParagon ? 'checked' : ''} onchange="updateLocalReg('${a.kd}', 'isParagon', this.checked)"> PARAGON</label></div>`;
+            card.innerHTML = `<div class="card-header"><div class="ally-name-row"><div>${a.name}</div><span class="sep-bar">|</span><div>KD ${a.kd}</div></div><div style="font-size:0.8rem; font-weight:800; opacity:0.6; margin-bottom:15px;">CH25 COUNT: ${a.ch25}</div><div style="display:flex; gap:8px; justify-content:center;"><span class="badge rank-badge-pwr">#${a.powerRank} PWR</span><span class="badge rank-badge-mp">#${a.mpRank} M/P</span><span class="badge badge-std">CLASS ${a.class}</span>${a.isParagon ? '<span class="badge paragon-badge">★ PARAGON</span>' : ''}</div></div><div class="stat-grid"><div class="stat-box"><span class="stat-label">Power</span><div class="stat-value">${formatVal(a.power)}</div></div><div class="stat-box box-merits"><span class="stat-label">Merits</span><div class="stat-value">${formatVal(a.merits)}</div></div><div class="stat-box box-mp"><span class="stat-label">M/P Ratio</span><div class="stat-value">${Number(a.mp).toFixed(2)}%</div></div></div><div class="stat-grid"><div class="stat-box box-kills"><span class="stat-label">Kills</span><div class="stat-value">${formatVal(a.kills)}</div></div><div class="stat-box box-deads"><span class="stat-label">Deads</span><div class="stat-value">${formatVal(a.deads)}</div></div><div class="stat-box box-heals"><span class="stat-label">Heals</span><div class="stat-value">${formatVal(a.heals)}</div></div></div><div class="roster-section"><span class="stat-label" style="display:block; text-align:center; color:var(--accent-purple)">Troop Distribution</span><div class="roster-grid">${Object.entries(a.roster).map(([label, val]) => `<div class="roster-item" style="${val === 0 ? 'opacity:0.2' : ''}"><div class="stat-label" style="font-size:0.5rem;">${label}</div><div class="r-val">${val}</div></div>`).join('')}</div></div><div class="admin-card-controls" style="display: ${isAdmin ? 'flex' : 'none'}; gap:10px; border-top:1px solid var(--glass-border); padding-top:15px; justify-content:center; align-items:center;"><select onchange="updateLocalReg('${a.kd}', 'status', this.value)"><option value="Not Registered" ${a.status === 'Not Registered' ? 'selected' : ''}>Not Registered</option><option value="Registered" ${a.status === 'Registered' ? 'selected' : ''}>Registered</option></select><select onchange="updateLocalReg('${a.kd}', 'class', this.value)"><option value="TBD" ${a.class === 'TBD' ? 'selected' : ''}>TBD</option><option value="A" ${a.class === 'A' ? 'selected' : ''}>A</option><option value="B" ${a.class === 'B' ? 'selected' : ''}>B</option><option value="C" ${a.class === 'C' ? 'selected' : ''}>C</option><option value="D" ${a.class === 'D' ? 'selected' : ''}>D</option></select><label class="paragon-label"><input type="checkbox" class="paragon-checkbox" ${a.isParagon ? 'checked' : ''} onchange="updateLocalReg('${a.kd}', 'isParagon', this.checked)"> PARAGON</label></div>`;
             grid.appendChild(card);
         });
         itemsShown += pageSize; document.getElementById('loadMoreBtn').style.display = (itemsShown < filteredData.length) ? 'inline-block' : 'none';
     }
+
     function updateLocalReg(kd, field, value) { const entry = allData.find(x => x.kd === kd); if (entry) { entry[field] = value; handleSearch(); } }
+
     async function saveDedicatedJson() {
         const btn = document.getElementById('adminSaveBtn'); const fileName = document.getElementById('fileSelector').value; const jsonName = fileName.replace('.csv', '.json');
+        const registeredList = allData.filter(item => item.status === "Registered").map(item => item.kd);
         const dataMap = {}; allData.filter(item => item.status === "Registered").forEach(item => { dataMap[item.kd] = { class: item.class, isParagon: item.isParagon }; });
-        const payload = { kingdoms: allData.filter(item => item.status === "Registered").map(item => item.kd), data: dataMap };
+        const payload = { kingdoms: registeredList, data: dataMap };
         btn.textContent = "SAVING...";
         try { const resp = await fetch(`${RENDER_URL}/save-registration/${jsonName}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (resp.ok) { btn.textContent = "SAVED!"; setTimeout(() => btn.textContent = "SAVE CLOUD", 2000); } } catch (e) { alert("Save failed."); btn.textContent = "RETRY"; }
     }
+
     async function login() {
-        const u = document.getElementById('user').value; const p = document.getElementById('pass').value;
+        const userTyped = document.getElementById('user').value;
+        const passTyped = document.getElementById('pass').value;
         try {
-            const resp = await fetch('Admin.json'); const data = await resp.json();
-            if (data.users.find(u => u.username === u && u.password === p)) { isAdmin = true; document.getElementById('adminSaveBtn').style.display = 'inline-block'; document.getElementById('logoutBtn').style.display = 'inline-block'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); handleSearch(); }
-            else { document.getElementById('loginError').style.display = 'block'; }
-        } catch (e) { console.error(e); }
+            const resp = await fetch('Admin.json');
+            if (!resp.ok) throw new Error("Failed to fetch Admin.json");
+            const data = await resp.json();
+            const authorized = data.users.find(admin => admin.username === userTyped && admin.password === passTyped);
+            if (authorized) {
+                isAdmin = true;
+                document.getElementById('adminSaveBtn').style.display = 'inline-block';
+                document.getElementById('logoutBtn').style.display = 'inline-block';
+                document.getElementById('loginBtn').style.display = 'none';
+                toggleModal(false);
+                handleSearch();
+            } else { document.getElementById('loginError').style.display = 'block'; }
+        } catch (e) { alert("Admin Error."); }
     }
+
     function logout() { location.reload(); }
     function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; if(!v) document.getElementById('loginError').style.display = 'none'; }
     function handleOutsideClick(e) { if (e.target.id === 'authModal') toggleModal(false); }
