@@ -11,6 +11,12 @@
     <style>
         body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
         
+        /* --- CUSTOM GLASS SCROLLBAR --- */
+        .table-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-wrapper::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 10px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 10px; }
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
+
         /* --- UNIFIED CONTAINER SYSTEM --- */
         .unified-container { max-width: 1600px; margin: 0 auto; padding: 0 25px; box-sizing: border-box; width: 100%; }
 
@@ -61,7 +67,7 @@
 
         /* --- TEAM CARDS & TABLES --- */
         #teamsContainer { display: flex; flex-direction: column; gap: 40px; width: 100%; max-width: 1600px; margin: 0 auto; padding: 0 25px 60px 25px; box-sizing: border-box; }
-        .team-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; }
+        .team-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .name-input { font-size: 1.2rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 350px; outline: none; }
         .note-display { font-size: 0.85rem; color: var(--muted); font-style: italic; margin-bottom: 10px; padding-left: 8px; }
@@ -75,7 +81,7 @@
         .summary-row td { background: rgba(168, 85, 247, 0.1); color: var(--accent); font-weight: 950 !important; border-color: rgba(168, 85, 247, 0.2); }
         .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 900 !important; }
 
-        .paragon-text { color: var(--paragon) !important; font-weight: 900; text-decoration: underline; }
+        .paragon-text { color: #f59e0b !important; font-weight: 950 !important; text-decoration: underline; }
         .drag-handle { cursor: grab; color: var(--muted); width: 25px; opacity: 0.3; }
 
         .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; background: var(--glass); color: white; text-decoration: none; text-transform: uppercase; transition: 0.2s; }
@@ -91,13 +97,13 @@
 </head>
 <body>
 
-<div id="loadingOverlay" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style></div>
+<div id="loadingOverlay"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style></div>
 
-<!-- ROW 1: HEADER (HUB, TITLE, ADMIN) -->
+<!-- ROW 1: HEADER (TITLE CENTERED) -->
 <div class="unified-container">
     <div class="header-top-row">
         <div class="nav-side-box">
-            <a href="index.html" class="home-link">← Kingdom Hub</a>
+            <a href="index.html" class="home-link">HOME PAGE</a>
         </div>
         <h1 class="page-title-main">Teams (Official)</h1>
         <div class="nav-side-box right">
@@ -111,7 +117,7 @@
     </div>
 </div>
 
-<!-- ROW 2: TOOLS (FILE, SEARCH) -->
+<!-- ROW 2: TOOLS (SEARCH CENTERED) -->
 <div class="unified-container">
     <div class="tools-glass-row">
         <div class="nav-side-box">
@@ -120,9 +126,7 @@
         <div class="search-center-box">
             <input type="text" id="teamSearch" class="search-input" placeholder="Search Team, Kingdom, or Alliance..." oninput="renderAll()">
         </div>
-        <div class="nav-side-box right">
-            <!-- Empty side to maintain grid centering -->
-        </div>
+        <div class="nav-side-box right"></div>
     </div>
 </div>
 
@@ -163,8 +167,8 @@
 <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000;">
     <div class="modal-content" style="background: #1e293b; padding: 40px; border-radius: 24px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center; width: 320px;">
         <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
-        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:10px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;">
-        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:15px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:10px; color:white;" onkeydown="if(event.key==='Enter') login()">
+        <input type="text" id="user" class="modal-input" placeholder="Username" style="width:100%; margin-bottom:10px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:8px; color:white;">
+        <input type="password" id="pass" class="modal-input" placeholder="Password" style="width:100%; margin-bottom:15px; background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:8px; color:white;" onkeydown="if(event.key==='Enter') login()">
         <div id="loginError" style="color: #ef4444; font-size: 0.7rem; font-weight: 800; margin-bottom: 15px; display: none;">INVALID CREDENTIALS</div>
         <button class="btn btn-blue" style="width: 100%; padding: 15px;" onclick="login()">AUTHORIZE</button>
         <button onclick="toggleModal(false)" class="btn" style="width:100%; margin-top:10px; background:transparent;">Cancel</button>
@@ -182,29 +186,35 @@
             const fResp = await fetch(`./Pull/files.json?cb=${Date.now()}`);
             const files = await fResp.json();
             const selector = document.getElementById('fileSelector'); selector.innerHTML = '';
-            files.reverse().forEach(file => { const opt = document.createElement('option'); opt.value = file; opt.textContent = file.replace('.csv','').toUpperCase(); selector.appendChild(opt); });
+            files.reverse().forEach(f => {
+                const opt = document.createElement('option'); opt.value = f;
+                opt.textContent = f.toUpperCase().replace('.CSV', ''); selector.appendChild(opt);
+            });
             await fetchTeamsFromCloud(); if (files.length > 0) await loadSelectedFile(files[0]);
         } catch (e) { console.error(e); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
     };
 
     function toggleTroops() {
-        const row = document.getElementById('troopRow');
-        const arrow = document.getElementById('arrowIcon');
-        row.classList.toggle('open');
-        arrow.style.transform = row.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+        document.getElementById('troopRow').classList.toggle('open');
+        document.getElementById('arrowIcon').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
     }
 
     async function loadSelectedFile(fileName) {
-        selectedFileName = fileName; const jsonName = fileName.replace('.csv', '.json');
+        selectedFileName = fileName; const jsonName = fileName.replace('.csv', '').replace('.CSV', '') + ".json";
+        const csvFile = fileName.toUpperCase().endsWith('.CSV') ? fileName : fileName + ".csv";
         try {
             const regResp = await fetch(`${RENDER_URL}/load-registration/${jsonName}?cb=${Date.now()}`);
             const regWrapper = regResp.ok ? await regResp.json() : { kingdoms: [], data: {} };
             currentRegistrations = regWrapper.data || {}; var registeredIDs = new Set(regWrapper.kingdoms || []);
-            const csvResp = await fetch(`./Pull/${fileName}?cb=${Date.now()}`);
+            const csvResp = await fetch(`./Pull/${csvFile}?cb=${Date.now()}`);
             const result = Papa.parse(await csvResp.text(), { header: true, skipEmptyLines: 'greedy' });
             masterData.clear(); let rankedPool = [];
             result.data.forEach(row => {
-                const kd = String(row.KD || row['KD#'] || "").trim(); const p = cleanNum(row['Top 300 Power'] || row.Power);
+                const rawKd = String(row.KD || row['KD#'] || "").trim();
+                if (!rawKd) return;
+                // NORMALIZE ID: handle "049" or "49.0" -> "49"
+                const kd = String(parseInt(parseFloat(rawKd)));
+                const p = cleanNum(row['Top 300 Power'] || row.Power);
                 if (kd && p > 0) {
                     const regInfo = currentRegistrations[kd];
                     const obj = { kd, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits), kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads), heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']), mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0, class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true, alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", raw: row };
@@ -213,15 +223,13 @@
             });
             rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
             rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
-            currentTeams = allTeamsData[fileName] || []; renderAll();
+            currentTeams = allTeamsData[selectedFileName.replace('.csv','').replace('.CSV','')] || [];
+            renderAll();
         } catch (e) { console.error(e); }
     }
 
     async function fetchTeamsFromCloud() { try { const resp = await fetch(`${RENDER_URL}/load-teams?cb=${Date.now()}`); if (resp.ok) allTeamsData = await resp.json(); } catch (e) { console.error(e); } }
-    async function saveToCloud() {
-        if (!isAdmin) return; const btn = document.getElementById('saveStatusBtn'); btn.textContent = "SAVING..."; allTeamsData[selectedFileName] = currentTeams;
-        try { const resp = await fetch(`${RENDER_URL}/save-teams`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allTeamsData) }); if (resp.ok) { btn.textContent = "SAVED!"; setTimeout(() => btn.textContent="SAVE CLOUD", 2000); } } catch (e) { btn.textContent="RETRY"; }
-    }
+    async function saveToCloud() { if (!isAdmin) return; allTeamsData[selectedFileName.replace('.csv','').replace('.CSV','')] = currentTeams; try { const resp = await fetch(`${RENDER_URL}/save-teams`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(allTeamsData) }); if (resp.ok) { document.getElementById('saveStatusBtn').textContent = "SAVED!"; setTimeout(() => document.getElementById('saveStatusBtn').textContent="SAVE CLOUD", 2000); } } catch (e) { alert("Save failed."); } }
 
     function renderAll() {
         const container = document.getElementById('teamsContainer'); const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); container.innerHTML = '';
@@ -233,25 +241,37 @@
         
         displayTeams.forEach(team => {
             const tIdx = team.originalIdx; const sums = team.stats; const card = document.createElement('div'); card.className = 'team-card';
-            const allTbd = team.ids.every(id => { const d = masterData.get(String(id).trim()); return !d || d.class === "TBD" || d.class === "-"; });
-            const dataColsSpan = 21 + (!allTbd ? 1 : 0); 
-            const deleteBtn = (rIdx) => isAdmin ? `<td><button class="btn-red" style="padding:2px 8px; border:none; cursor:pointer;" onclick="removeRow(${tIdx}, ${rIdx})">×</button></td>` : '';
-
+            const allTbd = team.ids.every(id => { const d = masterData.get(String(parseInt(parseFloat(id)))); return !d || d.class === "TBD" || d.class === "-"; });
+            const dataColsSpan = 21 + (!allTbd ? 1 : 0);
+            const delBtn = (r) => isAdmin ? `<td><button class="btn-red" style="padding:2px 8px; border:none; cursor:pointer;" onclick="removeRow(${tIdx}, ${r})">×</button></td>` : '';
+            
             let rowsHtml = team.ids.map((id, rowIdx) => {
-                const d = masterData.get(String(id).trim());
-                if (!d) return `<tr>${isAdmin ? '<td class="drag-handle">≡</td>' : ''}<td class="col-small">-</td><td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:40px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#3b82f6; text-align:center;">` : id}</td><td colspan="${dataColsSpan}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td>${deleteBtn(rowIdx)}</tr>`;
-                return `<tr>${isAdmin ? '<td class="drag-handle">≡</td>' : ''}<td>${d.powerRank || '-'}</td><td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:50px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#3b82f6; text-align:center;">` : id}</td>${!allTbd ? `<td>${d.class}</td>` : ''}<td style="text-align:center; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td><td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td><td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>${csvKeys.map((k, kIdx) => `<td class="${currentSort === displayKeys[kIdx] ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}${deleteBtn(rowIdx)}</tr>`;
+                const cleanId = String(parseInt(parseFloat(id)));
+                const d = masterData.get(cleanId);
+                if (!d) return `<tr>${isAdmin ? '<td class="drag-handle">≡</td>' : ''}<td class="col-small">-</td><td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:40px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#3b82f6; text-align:center;">` : id}</td><td colspan="${dataColsSpan}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td>${delBtn(rowIdx)}</tr>`;
+                return `<tr>${isAdmin ? '<td class="drag-handle">≡</td>' : ''}<td>${d.powerRank || '-'}</td><td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:50px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#3b82f6; text-align:center;">` : id}</td>${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}<td style="text-align:center; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td>
+                    <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
+                    <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
+                    <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
+                    <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td>
+                    <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
+                    <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
+                    <td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
+                    <td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
+                    <td class="${currentSort === '10M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['10M']))}</td><td class="${currentSort === '20M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['20M']))}</td><td class="${currentSort === '30M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['30M']))}</td><td class="${currentSort === '40M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['40M']))}</td><td class="${currentSort === '50M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['50M']))}</td><td class="${currentSort === '80M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['80M+']))}</td><td class="${currentSort === '100M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['100M+']))}</td><td class="${currentSort === '125M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['125M+']))}</td><td class="${currentSort === '150M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['150M+']))}</td><td class="${currentSort === '200M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['200M+']))}</td><td class="${currentSort === '250M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['250M+']))}</td><td class="${currentSort === '300M' ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw['300M+']))}</td>
+                    ${delBtn(rowIdx)}
+                </tr>`;
             }).join('');
 
             const labelColSpan = (isAdmin ? 4 : 3) + (allTbd ? 0 : 1);
-            card.innerHTML = `<div class="team-header"><div style="display:flex; flex-direction:column;"><input class="name-input" value="${team.name}" ${!isAdmin ? 'disabled' : ''} onchange="updateName(${tIdx}, this.value)">${!isAdmin && team.note ? `<div class="note-display">${team.note}</div>` : ''}${isAdmin ? `<input class="note-input" placeholder="Add note..." value="${team.note || ''}" onchange="updateNote(${tIdx}, this.value)">` : ''}</div><div style="display:flex; gap:10px;">${isAdmin ? `<button class="btn btn-green" onclick="addRow(${tIdx})">+ ROW</button><button class="btn btn-red" onclick="deleteTeam(${tIdx})">DEL</button>` : ''}</div></div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th>' : ''}<th>RANK</th><th>KD#</th>${!allTbd ? '<th>CLASS</th>' : ''}<th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>CH25</th><th>CH25 AVG</th>${displayKeys.map(k => `<th>${k}</th>`).join('')}${isAdmin ? '<th></th>' : ''}</tr></thead><tbody id="tbody-${tIdx}">${rowsHtml}</tbody><tr class="summary-row"><td colspan="${labelColSpan}" class="summary-label">TEAM TOTALS</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(sums.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(sums.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(sums.mp*100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(sums.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td><td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td><td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td>${displayKeys.map((k, kIdx) => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[csvKeys[kIdx]])}</td>`).join('')}${isAdmin ? '<td></td>' : ''}</tr></table></div>`;
+            card.innerHTML = `<div class="team-header"><div style="display:flex; flex-direction:column;"><input class="name-input" value="${team.name}" ${!isAdmin ? 'disabled' : ''} onchange="updateName(${tIdx}, this.value)">${!isAdmin && team.note ? `<div class="note-display">${team.note}</div>` : ''}${isAdmin ? `<input class="note-input" placeholder="Add note..." value="${team.note || ''}" onchange="updateNote(${tIdx}, this.value)">` : ''}</div><div style="display:flex; gap:10px;">${isAdmin ? `<button class="btn btn-green" onclick="addRow(${tIdx})">+ ROW</button><button class="btn btn-red" onclick="deleteTeam(${tIdx})">DEL</button>` : ''}</div></div><div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th>' : ''}<th>RANK</th><th>KD#</th>${!allTbd ? '<th>CLASS</th>' : ''}<th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>CH25</th><th>CH25 AVG</th><th>10M</th><th>20M</th><th>30M</th><th>40M</th><th>50M</th><th>80M</th><th>100M</th><th>125M</th><th>150M</th><th>200M</th><th>250M</th><th>300M</th>${isAdmin ? '<th></th>' : ''}</tr></thead><tbody id="tbody-${tIdx}">${rowsHtml}</tbody><tr class="summary-row"><td colspan="${labelColSpan}" class="summary-label">TEAM TOTALS</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(sums.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(sums.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(sums.mp*100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(sums.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td><td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td><td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td><td class="${currentSort === '10M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['10M'])}</td><td class="${currentSort === '20M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['20M'])}</td><td class="${currentSort === '30M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['30M'])}</td><td class="${currentSort === '40M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['40M'])}</td><td class="${currentSort === '50M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['50M'])}</td><td class="${currentSort === '80M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['80M'])}</td><td class="${currentSort === '100M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['100M'])}</td><td class="${currentSort === '125M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['125M'])}</td><td class="${currentSort === '150M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['150M'])}</td><td class="${currentSort === '200M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['200M'])}</td><td class="${currentSort === '250M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['250M'])}</td><td class="${currentSort === '300M' ? 'highlight-sort' : ''}">${formatValNoDec(sums.b['300M'])}</td>${isAdmin ? '<td></td>' : ''}</tr></table></div>`;
             container.appendChild(card); if(isAdmin) setupSortable(tIdx);
         });
     }
 
     function calculateTeamTotals(team) {
-        let s = { power:0, merits:0, kills:0, deads:0, totalCh25:0, ap:0, count:0, totalMpRank: 0, b: {} }; csvKeys.forEach(k => s.b[k] = 0);
-        team.ids.forEach(id => { const d = masterData.get(String(id).trim()); if (d) { s.power += d.power; s.merits += d.merits; s.kills += d.kills; s.deads += d.deads; s.totalCh25 += d.ch25; s.ap += d.ap; s.count++; if (typeof d.mpRank === 'number') s.totalMpRank += d.mpRank; csvKeys.forEach(k => s.b[k] += cleanNum(d.raw[k])); } });
+        let s = { power:0, merits:0, kills:0, deads:0, totalCh25:0, ap:0, count:0, totalMpRank: 0, b: {'10M':0,'20M':0,'30M':0,'40M':0,'50M':0,'80M':0,'100M':0,'125M':0,'150M':0,'200M':0,'250M':0,'300M':0} };
+        team.ids.forEach(id => { const d = masterData.get(String(parseInt(parseFloat(id)))); if (d) { s.power += d.power; s.merits += d.merits; s.kills += d.kills; s.deads += d.deads; s.totalCh25 += d.ch25; s.ap += d.ap; s.count++; if (typeof d.mpRank === 'number') s.totalMpRank += d.mpRank; s.b['10M'] += cleanNum(d.raw['10M']); s.b['20M'] += cleanNum(d.raw['20M']); s.b['30M'] += cleanNum(d.raw['30M']); s.b['40M'] += cleanNum(d.raw['40M']); s.b['50M'] += cleanNum(d.raw['50M']); s.b['80M'] += cleanNum(d.raw['80M+']); s.b['100M'] += cleanNum(d.raw['100M+']); s.b['125M'] += cleanNum(d.raw['125M+']); s.b['150M'] += cleanNum(d.raw['150M+']); s.b['200M'] += cleanNum(d.raw['200M+']); s.b['250M'] += cleanNum(d.raw['250M+']); s.b['300M'] += cleanNum(d.raw['300M+']); } });
         return { ...s, mp: s.power > 0 ? (s.merits / s.power) : 0, avgAp: s.count > 0 ? (s.ap / s.count) : 0 };
     }
 
@@ -260,8 +280,8 @@
     function formatValNoDec(n) { return n ? Math.floor(n).toLocaleString() : "-"; }
     function setSort(key, btn) { currentSort = key; document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); else if (key === 'teamName') document.getElementById('nameSort').classList.add('active'); renderAll(); }
     async function login() {
-        const u = document.getElementById('user').value; const p = document.getElementById('pass').value;
-        try { const resp = await fetch('Admin.json'); const data = await resp.json(); if (data.users.find(x => x.username === u && x.password === p)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); } else { document.getElementById('loginError').style.display = 'block'; } } catch (e) { alert("Admin.json not found."); }
+        const userTyped = document.getElementById('user').value; const passTyped = document.getElementById('pass').value;
+        try { const resp = await fetch('Admin.json'); const data = await resp.json(); if (data.users.find(x => x.username === userTyped && x.password === passTyped)) { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; toggleModal(false); renderAll(); } else { document.getElementById('loginError').style.display = 'block'; } } catch (e) { alert("Admin.json not found."); }
     }
     function updateId(tIdx, rIdx, val) { currentTeams[tIdx].ids[rIdx] = val; renderAll(); }
     function updateName(tIdx, val) { currentTeams[tIdx].name = val; }
@@ -269,7 +289,10 @@
     function addRow(tIdx) { currentTeams[tIdx].ids.push("000"); renderAll(); }
     function removeRow(tIdx, rIdx) { currentTeams[tIdx].ids.splice(rIdx, 1); renderAll(); }
     function deleteTeam(tIdx) { if(confirm("Delete Team?")) { currentTeams.splice(tIdx, 1); renderAll(); } }
-    function addNewTeam() { currentTeams.unshift({ name: "A New Group", ids: ["000"], note: "" }); renderAll(); }
+    function addNewTeam() {
+        currentTeams.unshift({ name: "A New Group", ids: ["000"], note: "" });
+        setSort('teamName', document.getElementById('nameSort'));
+    }
     function setupSortable(tIdx) { new Sortable(document.getElementById(`tbody-${tIdx}`), { handle: '.drag-handle', animation: 150, onEnd: (evt) => { const team = currentTeams[tIdx]; const moved = team.ids.splice(evt.oldIndex, 1)[0]; team.ids.splice(evt.newIndex, 0, moved); renderAll(); } }); }
     function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
     function logout() { location.reload(); }
