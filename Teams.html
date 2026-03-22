@@ -31,6 +31,24 @@
             overflow-x: hidden;
         }
 
+        /* --- CUSTOM SCROLLBAR --- */
+        .table-wrapper::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .table-wrapper::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            border: 2px solid rgba(15, 23, 42, 0.1);
+        }
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.5);
+        }
+
         /* --- STICKY NAV --- */
         .sticky-header { 
             position: sticky; top: 0; z-index: 1000; 
@@ -126,7 +144,7 @@
         <div class="top-nav">
             <div style="display:flex; align-items:center; gap:10px;">
                 <a href="index.html" class="home-link">← Kingdom Hub</a>
-                <select id="fileSelector" class="btn" style="background:transparent; border-color:var(--primary); color:var(--primary);" onchange="loadSelectedFile(this.value)">
+                <select id="fileSelector" onchange="loadSelectedFile(this.value)">
                     <option value="">Loading...</option>
                 </select>
             </div>
@@ -270,7 +288,7 @@
         if (currentSort !== 'teamName') {
             displayTeams.sort((a, b) => {
                 if (currentSort === 'mpRank') {
-                    return a.stats.totalMpRank - b.stats.totalMpRank; // Lower rank sum is better
+                    return a.stats.totalMpRank - b.stats.totalMpRank; 
                 }
                 let valA = a.stats[currentSort] || (a.stats.b && a.stats.b[currentSort]) || 0;
                 let valB = b.stats[currentSort] || (b.stats.b && b.stats.b[currentSort]) || 0;
@@ -355,8 +373,19 @@
                         <tbody id="tbody-${tIdx}">${rowsHtml}</tbody>
                         <tr class="summary-row">
                             <td colspan="${labelColSpan}" class="summary-label">TEAM TOTALS</td>
-                            <td class="col-stat">${formatVal(sums.power)}</td><td class="col-stat">${formatVal(sums.merits)}</td><td class="col-stat">${(sums.mp*100).toFixed(2)}%</td><td class="col-small ${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td><td class="col-stat">${formatVal(sums.kills)}</td><td class="col-stat">${formatVal(sums.deads)}</td><td class="col-stat">${formatVal(sums.heals)}</td><td class="col-stat">${formatValNoDec(sums.totalCh25)}</td><td class="col-stat">${formatVal(sums.avgAp)}</td>
-                            ${csvKeys.map(k => `<td class="col-breakdown">${formatValNoDec(sums.b[k])}</td>`).join('')}
+                            <td class="col-stat ${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(sums.power)}</td>
+                            <td class="col-stat ${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(sums.merits)}</td>
+                            <td class="col-stat ${currentSort === 'mp' ? 'highlight-sort' : ''}">${(sums.mp*100).toFixed(2)}%</td>
+                            <td class="col-small ${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td>
+                            <td class="col-stat ${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(sums.kills)}</td>
+                            <td class="col-stat ${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td>
+                            <td class="col-stat ${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(sums.heals)}</td>
+                            <td class="col-stat ${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td>
+                            <td class="col-stat">${formatVal(sums.avgAp)}</td>
+                            ${csvKeys.map((k, kIdx) => {
+                                const isSorted = currentSort === displayKeys[kIdx];
+                                return `<td class="col-breakdown ${isSorted ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>`
+                            }).join('')}
                             ${isAdmin ? '<td></td>' : ''}
                         </tr>
                     </table>
@@ -390,7 +419,10 @@
         currentSort = key;
         document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
-        else if (key === 'teamName') document.getElementById('nameSort').classList.add('active');
+        else if (key === 'teamName') {
+            const ns = document.getElementById('nameSort');
+            if (ns) ns.classList.add('active');
+        }
         renderAll();
     }
 
