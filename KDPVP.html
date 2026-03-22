@@ -6,7 +6,7 @@
     <title>Kingdom PVP Analytics</title>
     <link rel="stylesheet" href="global.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root { 
             --primary: #3b82f6; 
@@ -93,8 +93,58 @@
         .r-val { font-size: 0.85rem; font-weight: 900; color: var(--accent-purple); }
         .badge { font-size: 0.65rem; font-weight: 900; padding: 5px 12px; border-radius: 8px; text-transform: uppercase; background: rgba(255,255,255,0.1); }
 
+        /* --- STYLIZED ADMIN CONTROLS --- */
+        .admin-card-controls { 
+            display: flex; gap: 10px; border-top: 1px solid var(--glass-border); 
+            padding-top: 15px; justify-content: center; align-items: center; 
+        }
+        
+        .admin-card-controls select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            color: white;
+            font-size: 0.7rem;
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        /* --- CUSTOM PARAGON CHECKBOX --- */
+        .paragon-label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.7rem; font-weight: 800; cursor: pointer; color: var(--muted);
+            transition: color 0.2s;
+        }
+
+        .paragon-checkbox {
+            appearance: none;
+            width: 16px; height: 16px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .paragon-checkbox:checked {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .paragon-checkbox:checked::after {
+            content: '✔';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 10px;
+        }
+
+        .paragon-label:hover { color: white; }
+
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        .spinner { width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -268,7 +318,6 @@
         const sFilter = document.getElementById('regFilter').value; 
         const cFilter = document.getElementById('classFilter').value;
         
-        // Context Pool for dynamic ranking
         let rankingPool = [];
         if (sFilter === 'all') {
             rankingPool = [...allData];
@@ -276,7 +325,6 @@
             rankingPool = allData.filter(a => a.status === sFilter);
         }
 
-        // Rank Calculation within current context pool
         const sortedByPower = [...rankingPool].sort((a,b) => b.power - a.power);
         const sortedByMP = [...rankingPool].sort((a,b) => b.mp - a.mp);
 
@@ -291,7 +339,6 @@
             }
         });
 
-        // Final Display Filter (Class + Search)
         filteredData = rankingPool.filter(a => {
             const matchesQuery = a.name.toLowerCase().includes(query) || a.kd.includes(query);
             const matchesClass = (cFilter === 'all') || (a.class === cFilter);
@@ -356,7 +403,7 @@
                         ${Object.entries(a.roster).map(([label, val]) => `<div class="roster-item" style="${val === 0 ? 'opacity:0.2' : ''}"><div class="stat-label" style="font-size:0.5rem;">${label}</div><div class="r-val">${val}</div></div>`).join('')}
                     </div>
                 </div>
-                <div class="admin-card-controls" style="display: ${isAdmin ? 'flex' : 'none'}; gap:10px; border-top:1px solid var(--glass-border); padding-top:15px; justify-content:center;">
+                <div class="admin-card-controls" style="display: ${isAdmin ? 'flex' : 'none'};">
                     <select onchange="updateLocalReg('${a.kd}', 'status', this.value)">
                         <option value="Not Registered" ${a.status === 'Not Registered' ? 'selected' : ''}>Not Registered</option>
                         <option value="Registered" ${a.status === 'Registered' ? 'selected' : ''}>Registered</option>
@@ -368,7 +415,10 @@
                         <option value="C" ${a.class === 'C' ? 'selected' : ''}>C</option>
                         <option value="D" ${a.class === 'D' ? 'selected' : ''}>D</option>
                     </select>
-                    <label style="font-size: 0.7rem; font-weight: 800; cursor: pointer;"><input type="checkbox" ${a.isParagon ? 'checked' : ''} onchange="updateLocalReg('${a.kd}', 'isParagon', this.checked)"> PARAGON</label>
+                    <label class="paragon-label">
+                        <input type="checkbox" class="paragon-checkbox" ${a.isParagon ? 'checked' : ''} onchange="updateLocalReg('${a.kd}', 'isParagon', this.checked)"> 
+                        PARAGON
+                    </label>
                 </div>
             `;
             grid.appendChild(card);
