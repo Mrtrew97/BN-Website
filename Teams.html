@@ -126,7 +126,7 @@
         <div class="top-nav">
             <div style="display:flex; align-items:center; gap:10px;">
                 <a href="index.html" class="home-link">← Kingdom Hub</a>
-                <select id="fileSelector" onchange="loadSelectedFile(this.value)">
+                <select id="fileSelector" class="btn" style="background:transparent; border-color:var(--primary); color:var(--primary);" onchange="loadSelectedFile(this.value)">
                     <option value="">Loading...</option>
                 </select>
             </div>
@@ -148,6 +148,7 @@
             <button class="sort-btn" onclick="setSort('power', this)">Power</button>
             <button class="sort-btn" onclick="setSort('merits', this)">Merits</button>
             <button class="sort-btn" onclick="setSort('mp', this)">M/P %</button>
+            <button class="sort-btn" onclick="setSort('mpRank', this)">M/P R</button>
             <button class="sort-btn" onclick="setSort('kills', this)">Kills</button>
             <button class="sort-btn" onclick="setSort('deads', this)">Deads</button>
             <button class="sort-btn" onclick="setSort('totalCh25', this)">CH25</button>
@@ -206,36 +207,20 @@
     async function loadSelectedFile(fileName) {
         showOverlay();
         selectedFileName = fileName;
-        
         const jsonName = fileName.replace('.csv', '.json');
         try {
             const regResp = await fetch(`${RENDER_URL}/load-registration/${jsonName}?cb=${Date.now()}`);
-            if (regResp.ok) {
-                const regWrapper = await regResp.json();
-                currentRegistrations = regWrapper.data || {};
-                // Create a Set of IDs that are actually in the JSON file
-                var registeredIDs = new Set(regWrapper.kingdoms || []);
-            } else {
-                currentRegistrations = {};
-                var registeredIDs = new Set();
-            }
-        } catch (err) {
-            currentRegistrations = {};
-            var registeredIDs = new Set();
-        }
+            const regWrapper = regResp.ok ? await regResp.json() : { kingdoms: [], data: {} };
+            currentRegistrations = regWrapper.data || {};
+            var registeredIDs = new Set(regWrapper.kingdoms || []);
 
-        try {
             const csvResp = await fetch(`./Pull/${fileName}?cb=${Date.now()}`);
-            const text = await csvResp.text();
-            const result = Papa.parse(text, { header: true, skipEmptyLines: 'greedy' });
-            
+            const result = Papa.parse(await csvResp.text(), { header: true, skipEmptyLines: 'greedy' });
             masterData.clear();
-            let rankedPool = []; // This will only hold kingdoms found in the JSON
-
-            result.data.forEach((row) => {
+            let rankedPool = [];
+            result.data.forEach(row => {
                 const kd = String(row.KD || row['KD#'] || "").trim();
-                const p = cleanNum(row['Top 300 Power'] || row.T300P || row.Power);
-                
+                const p = cleanNum(row['Top 300 Power'] || row.Power);
                 if (kd && p > 0) {
                     const regInfo = currentRegistrations[kd];
                     const obj = {
@@ -243,29 +228,18 @@
                         kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads),
                         heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']),
                         mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0,
-                        class: regInfo ? (regInfo.class || "TBD") : "-",
-                        isParagon: regInfo ? (regInfo.isParagon === true) : false,
-                        alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-",
-                        isRegistered: registeredIDs.has(kd),
-                        raw: row
+                        class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true,
+                        alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", raw: row
                     };
-                    
                     masterData.set(kd, obj);
-                    
-                    // ONLY add to the ranking pool if they are in the JSON file
-                    if (registeredIDs.has(kd)) {
-                        rankedPool.push(obj);
-                    }
+                    if (registeredIDs.has(kd)) rankedPool.push(obj);
                 }
             });
-
-            // Calculate Ranks based ONLY on the registered pool
             rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
             rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
-
             currentTeams = allTeamsData[fileName] || [];
             renderAll();
-        } catch (e) { console.error("File load failed:", e); }
+        } catch (e) { console.error(e); }
         finally { hideOverlay(); }
     }
 
@@ -295,6 +269,9 @@
         
         if (currentSort !== 'teamName') {
             displayTeams.sort((a, b) => {
+                if (currentSort === 'mpRank') {
+                    return a.stats.totalMpRank - b.stats.totalMpRank; // Lower rank sum is better
+                }
                 let valA = a.stats[currentSort] || (a.stats.b && a.stats.b[currentSort]) || 0;
                 let valB = b.stats[currentSort] || (b.stats.b && b.stats.b[currentSort]) || 0;
                 if (displayKeys.includes(currentSort)) {
@@ -340,7 +317,7 @@
                         <td class="col-stat ${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
                         <td class="col-stat ${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
                         <td class="col-stat ${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
-                        <td class="col-small">${d.mpRank || '-'}</td>
+                        <td class="col-small ${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td>
                         <td class="col-stat ${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
                         <td class="col-stat ${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
                         <td class="col-stat ${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td>
@@ -378,7 +355,7 @@
                         <tbody id="tbody-${tIdx}">${rowsHtml}</tbody>
                         <tr class="summary-row">
                             <td colspan="${labelColSpan}" class="summary-label">TEAM TOTALS</td>
-                            <td class="col-stat">${formatVal(sums.power)}</td><td class="col-stat">${formatVal(sums.merits)}</td><td class="col-stat">${(sums.mp*100).toFixed(2)}%</td><td class="col-small">-</td><td class="col-stat">${formatVal(sums.kills)}</td><td class="col-stat">${formatVal(sums.deads)}</td><td class="col-stat">${formatVal(sums.heals)}</td><td class="col-stat">${formatValNoDec(sums.totalCh25)}</td><td class="col-stat">${formatVal(sums.avgAp)}</td>
+                            <td class="col-stat">${formatVal(sums.power)}</td><td class="col-stat">${formatVal(sums.merits)}</td><td class="col-stat">${(sums.mp*100).toFixed(2)}%</td><td class="col-small ${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td><td class="col-stat">${formatVal(sums.kills)}</td><td class="col-stat">${formatVal(sums.deads)}</td><td class="col-stat">${formatVal(sums.heals)}</td><td class="col-stat">${formatValNoDec(sums.totalCh25)}</td><td class="col-stat">${formatVal(sums.avgAp)}</td>
                             ${csvKeys.map(k => `<td class="col-breakdown">${formatValNoDec(sums.b[k])}</td>`).join('')}
                             ${isAdmin ? '<td></td>' : ''}
                         </tr>
@@ -391,13 +368,14 @@
     }
 
     function calculateTeamTotals(team) {
-        let s = { power:0, merits:0, kills:0, deads:0, heals:0, totalCh25:0, ap:0, count:0, b: {} };
+        let s = { power:0, merits:0, kills:0, deads:0, heals:0, totalCh25:0, ap:0, count:0, totalMpRank: 0, b: {} };
         csvKeys.forEach(k => s.b[k] = 0);
         team.ids.forEach(id => {
             const d = masterData.get(String(id).trim());
             if (d) {
                 s.power += d.power; s.merits += d.merits; s.kills += d.kills; s.deads += d.deads; s.heals += d.heals;
                 s.totalCh25 += d.ch25; s.ap += d.ap; s.count++;
+                if (typeof d.mpRank === 'number') s.totalMpRank += d.mpRank;
                 csvKeys.forEach(k => s.b[k] += cleanNum(d.raw[k]));
             }
         });
@@ -407,35 +385,22 @@
     function cleanNum(v) { return v ? parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0 : 0; }
     function formatVal(n) { if (!n) return "-"; if (n >= 1e9) return (n/1e9).toFixed(2) + 'B'; if (n >= 1e6) return (n/1e6).toFixed(2) + 'M'; return n.toLocaleString(); }
     function formatValNoDec(n) { return n ? Math.floor(n).toLocaleString() : "-"; }
+    
     function setSort(key, btn) {
         currentSort = key;
-        
-        // UNIFIED GLOW LOGIC:
         document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-        if (btn) {
-            btn.classList.add('active'); 
-        } else {
-            // This handles the default 'Team Name' button on load
-            const defaultBtn = document.getElementById('nameSort');
-            if (defaultBtn) defaultBtn.classList.add('active');
-        }
-
+        if (btn) btn.classList.add('active');
+        else if (key === 'teamName') document.getElementById('nameSort').classList.add('active');
         renderAll();
     }
 
     async function login() {
         const userTyped = document.getElementById('user').value;
         const passTyped = document.getElementById('pass').value;
-        const errorMsg = document.getElementById('loginError');
-
         try {
-            // Fetch the actual credentials from your Admin.json file
             const resp = await fetch('Admin.json');
             const data = await resp.json();
-            
-            // Find if the typed username and password match any user in Admin.json
             const authorized = data.users.find(u => u.username === userTyped && u.password === passTyped);
-
             if (authorized) {
                 isAdmin = true;
                 if(document.getElementById('adminArea')) document.getElementById('adminArea').style.display = 'flex';
@@ -443,20 +408,11 @@
                 if(document.getElementById('logoutBtn')) document.getElementById('logoutBtn').style.display = 'inline-block';
                 document.getElementById('loginBtn').style.display = 'none';
                 toggleModal(false);
-                
-                // Refresh the view now that we are admin
-                if (typeof renderAll === "function") renderAll();
-                if (typeof handleSearch === "function") handleSearch();
-                
-            } else {
-                if(errorMsg) errorMsg.style.display = 'block';
-                else alert("Invalid Credentials");
-            }
-        } catch (e) {
-            console.error("Login Error:", e);
-            alert("Could not load Admin settings.");
-        }
+                renderAll();
+            } else { document.getElementById('loginError').style.display = 'block'; }
+        } catch (e) { alert("Could not load Admin settings."); }
     }
+    
     function updateId(tIdx, rIdx, val) { currentTeams[tIdx].ids[rIdx] = val; renderAll(); }
     function updateName(tIdx, val) { currentTeams[tIdx].name = val; }
     function updateNote(tIdx, val) { currentTeams[tIdx].note = val; }
@@ -472,11 +428,8 @@
             renderAll();
         }});
     }
-    function toggleModal(v) { 
-    document.getElementById('authModal').style.display = v ? 'flex' : 'none'; 
-    }
-    function logout() { location.reload(); }
     function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
+    function logout() { location.reload(); }
     function showOverlay() { document.getElementById('loadingOverlay').style.display = 'flex'; document.getElementById('loadingOverlay').style.opacity = '1'; }
     function hideOverlay() { document.getElementById('loadingOverlay').style.opacity = '0'; setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 500); }
 </script>
