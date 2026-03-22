@@ -101,7 +101,6 @@
     <div style="font-weight: 900; letter-spacing: 2px;">SYNCING DATABASE</div>
 </div>
 
-<!-- UNIFIED ADMIN MODAL -->
 <div id="authModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 style="margin-top:0; font-weight:900; letter-spacing:-1px;">ADMIN ACCESS</h2>
@@ -127,6 +126,7 @@
     <div class="main-controls">
         <select id="fileSelector" onchange="processFile(this.value)" style="flex:1;"></select>
         <select id="regFilter" onchange="handleSearch()">
+            <option value="all">All Status</option>
             <option value="Registered" selected>Registered</option>
             <option value="Not Registered">Not Registered</option>
         </select>
@@ -261,30 +261,38 @@
 
     function handleSearch() {
         const query = document.getElementById('searchInput').value.toLowerCase();
-        const sFilter = document.getElementById('regFilter').value; // 'Registered' or 'Not Registered'
+        const sFilter = document.getElementById('regFilter').value; 
         const cFilter = document.getElementById('classFilter').value;
         
-        filteredData = allData.filter(a => {
-            const matchesQuery = a.name.toLowerCase().includes(query) || a.kd.includes(query);
-            const matchesStatus = a.status === sFilter;
-            const matchesClass = cFilter === 'all' || a.class === cFilter;
-            return matchesQuery && matchesStatus && matchesClass;
-        });
+        // 1. Define the Context Pool for Rankings based strictly on the Status Dropdown
+        let rankingPool = [];
+        if (sFilter === 'all') {
+            rankingPool = [...allData];
+        } else {
+            rankingPool = allData.filter(a => a.status === sFilter);
+        }
 
-        // Calculate Ranks strictly against the pool of currently Registered kingdoms in the entire data set
-        const registeredOnlyPool = allData.filter(x => x.status === "Registered");
-        const sortedByPower = [...registeredOnlyPool].sort((a,b) => b.power - a.power);
-        const sortedByMP = [...registeredOnlyPool].sort((a,b) => b.mp - a.mp);
+        // 2. Perform Ranking Calculations within that Context Pool
+        const sortedByPower = [...rankingPool].sort((a,b) => b.power - a.power);
+        const sortedByMP = [...rankingPool].sort((a,b) => b.mp - a.mp);
 
-        // Apply ranks to filteredData (Only registered kingdoms get a rank number)
+        // Assign ranks to the entire dataset (those not in pool get "-")
         allData.forEach(a => {
-            if (a.status === "Registered") {
+            const poolMatch = rankingPool.find(x => x.kd === a.kd);
+            if (poolMatch) {
                 a.powerRank = sortedByPower.findIndex(x => x.kd === a.kd) + 1;
                 a.mpRank = sortedByMP.findIndex(x => x.kd === a.kd) + 1;
             } else {
                 a.powerRank = "-";
                 a.mpRank = "-";
             }
+        });
+
+        // 3. Filter for Display (Pool + Query + Class)
+        filteredData = rankingPool.filter(a => {
+            const matchesQuery = a.name.toLowerCase().includes(query) || a.kd.includes(query);
+            const matchesClass = (cFilter === 'all') || (a.class === cFilter);
+            return matchesQuery && matchesClass;
         });
 
         applySort();
@@ -302,6 +310,11 @@
     function applySort() {
         filteredData.sort((a, b) => {
             let valA = a[currentSort.field], valB = b[currentSort.field];
+            // Handle ranking strings if sorting by rank
+            if(currentSort.field === 'powerRank' || currentSort.field === 'mpRank') {
+                valA = (valA === "-") ? 999999 : valA;
+                valB = (valB === "-") ? 999999 : valB;
+            }
             return currentSort.direction === 'desc' ? (valB - valA) : (valA - valB);
         });
     }
