@@ -260,8 +260,24 @@
     }
 
     async function fetchCSVFull(filename) {
-        const res = await fetch(`${RENDER_URL}/api/data/Players/${filename}?cb=${Date.now()}`);
+        const url = `${RENDER_URL}/api/data/Players/${filename}?cb=${Date.now()}`;
+        const res = await fetch(url);
+        
+        if (!res.ok) {
+            console.error(`Fetch failed for ${filename}: ${res.status}`);
+            return new Map();
+        }
+        
         const text = await res.text();
+        
+        // DEBUG: Log the first 100 characters of what we got
+        console.log(`Data received for ${filename} (${text.length} bytes):`, text.substring(0, 100));
+    
+        if (!text || text.trim() === "") {
+            console.warn(`Empty data received for ${filename}`);
+            return new Map();
+        }
+    
         const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
         if (rows.length < 2) return new Map();
         
