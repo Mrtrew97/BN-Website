@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="global.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+
+        .progress-wrapper { width: 100%; max-width: 500px; margin: 20px auto; display: none; flex-direction: column; align-items: center; gap: 10px; }
+        .progress-bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease; box-shadow: 0 0 10px var(--primary); }
+        #status-text-main { font-weight: 800; color: var(--text); font-size: 0.9rem; }
+
         /* --- 1. SCROLLBARS --- */
         html { scrollbar-width: none; -ms-overflow-style: none; }
         html::-webkit-scrollbar { display: none; }
@@ -260,14 +266,10 @@
         try {
             const rangeMaps = [];
             for (let i = 0; i < rangeFiles.length; i++) {
-                // Calculate percentage
                 const percent = Math.round(((i + 1) / rangeFiles.length) * 100);
                 statusSub.innerText = `Snapshot ${i + 1} of ${rangeFiles.length} (${percent}%)`;
-                
                 rangeMaps.push(await fetchCSVFull(rangeFiles[i]));
             }
-            
-            // Clear status after processing
             statusSub.innerText = "Processing Data...";
 
             const validMaps = rangeMaps.filter(m => m.size > 0);
@@ -317,14 +319,9 @@
             });
             migrationData = Object.entries(stats).map(([kd, s]) => ({ kd, count: s.count.in - s.count.out, pwr: s.pwr.in - s.pwr.out, kills: s.kills.in - s.kills.out, deads: s.deads.in - s.deads.out, heals: s.heals.in - s.heals.out, raw: s })).filter(x => Math.abs(x.count) > 0 || Math.abs(x.pwr) > 0);
             applySort(); 
-            
             statusMain.innerText = `${migrationData.length} Kingdoms with Activity`;
             statusSub.innerText = "";
-        } catch (err) { 
-            console.error(err); 
-            statusMain.innerText = "Failed to process files."; 
-            statusSub.innerText = "";
-        }
+        } catch (err) { console.error(err); statusMain.innerText = "Failed to process files."; statusSub.innerText = ""; }
     }
 
     function generatePlayerChip(data, type) {
