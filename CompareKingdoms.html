@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         .brand-logo { position: fixed; bottom: 30px; z-index: 2000; opacity: 0.6; width: 200px; pointer-events: none; user-select: none; transition: 0.4s ease; }
-        .logo-right { right: -9px; } .logo-left { left: 00px; }
+        .logo-right { right: -9px; } .logo-left { left: 0px; }
         @media (max-width: 650px) { .brand-logo { width: 100px; bottom: 15px; } .logo-right { right: 15px; } .logo-left { left: 15px; } }
         body { font-family: 'Inter', sans-serif; background: var(--bg-gradient); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
         .unified-container { max-width: 1600px; margin: 0 auto; width: 100%; padding: 0 25px; box-sizing: border-box; }
@@ -128,7 +128,6 @@
             
             fileList = (await resp.json()).sort();
             
-            // Populate Charts ONLY once we have the fileList
             ['A', 'B'].forEach(group => {
                 const container = document.getElementById(`charts${group}`);
                 metrics.forEach(m => {
@@ -139,10 +138,8 @@
                     setupChart(group, m);
                 });
             });
-            document.getElementById('status').textContent = `LOADED ${fileList.length} SNAPSHOTS`;
         } catch(e) { 
             console.error("Init Error:", e);
-            document.getElementById('status').textContent = "ERROR LOADING SNAPSHOTS";
         } finally {
             document.getElementById('loadingOverlay').style.display = 'none';
         }
@@ -181,82 +178,75 @@
         });
     }
 
-        async function runComparison(group) {
-            // 1. Rename 'input' to 'groupInput' to avoid the identifier conflict
-            const groupInput = document.getElementById(`input${group}`).value;
-            const targetIds = groupInput.split(',').map(s => s.trim()).filter(s => s !== "");
-            
-            if (fileList.length === 0) {
-                alert("Files not loaded yet. Please wait...");
-                return;
-            }
-            if (!targetIds.length) return;
+    async function runComparison(group) {
+        const groupInput = document.getElementById(`input${group}`).value;
+        const targetIds = groupInput.split(',').map(s => s.trim()).filter(s => s !== "");
         
-            const lastFile = fileList[fileList.length - 1];
-            const history = {}; targetIds.forEach(id => history[id] = []);
-            const latestNameMap = {};
-            
-            try {
-                const lastResp = await fetch(`${RENDER_URL}/api/data/Pull/${lastFile}`);
-                const lastText = await lastResp.text();
-                const lastCsv = Papa.parse(lastText, {skipEmptyLines: true}).data;
-                
-                targetIds.forEach(id => { 
-                    const row = lastCsv.find(r => String(r[0]).trim() === id); 
-                    latestNameMap[id] = row ? row[1] : `ID ${id}`; 
-                });
+        if (fileList.length === 0) { alert("Files not loaded yet. Please wait..."); return; }
+        if (!targetIds.length) return;
+    
+        const lastFile = fileList[fileList.length - 1];
+        const history = {}; targetIds.forEach(id => history[id] = []);
+        const latestNameMap = {};
         
-                await Promise.all(fileList.map(async (f) => {
-                    try {
-                        const r = await fetch(`${RENDER_URL}/api/data/Pull/${f}`);
-                        const csvText = await r.text();
-                        const csv = Papa.parse(csvText, {skipEmptyLines: true}).data;
-                        targetIds.forEach(id => {
-                            const row = csv.find(r => String(r[0]).trim() === id);
-                            if(row) {
-                                let mData = {};
-                                metrics.forEach(m => { 
-                                    let v = row[m.index]; 
-                                    if(typeof v === 'string') v = v.replace(/,/g,'').replace('%',''); 
-                                    v = parseFloat(v); 
-                                    if(m.isPercent && v > 1) v = v/100; 
-                                    mData[m.id] = isNaN(v) ? null : v; 
-                                });
-                                history[id].push({ date: f.replace('.csv',''), data: mData, historicalName: row[1] || '---' });
-                            }
-                        });
-                    } catch(e) { console.error("Error fetching file:", f, e); }
-                }));
-                
-                // ... proceed with chart update ...
-            } catch(err) {
-                console.error("Comparison Error:", err);
-            }
-        }
-
-        const dateKeys = fileList.map(f => f.replace('.csv', ''));
-        const displayLabels = dateKeys.map(d => sosMap[d] ? `${sosMap[d]} (${d})` : d);
-
-        const legendDiv = document.getElementById(`legend${group}`);
-        const sticky = document.getElementById(`sticky${group}`);
-        legendDiv.innerHTML = ''; sticky.style.display = 'block';
-
-        metrics.forEach(m => {
-            const chart = charts[group][m.id];
-            chart.data.labels = displayLabels;
-            chart.data.datasets = targetIds.map((id, i) => {
-                const color = palette[i % palette.length];
-                const latestAllianceName = latestNameMap[id];
-                if(m.id === metrics[0].id) {
-                    const item = document.createElement('div'); item.className = 'legend-item';
-                    item.innerHTML = `<div class="color-dot" style="background:${color}"></div> <span>${latestAllianceName}</span>`;
-                    legendDiv.appendChild(item);
-                }
-                const points = dateKeys.map(d => history[id].find(pt => pt.date === d));
-                return { label: latestAllianceName, data: points.map(p => p ? p.data[m.id] : null), historicalAlliances: points.map(p => p ? p.historicalName : '---'), borderColor: color, backgroundColor: color, fill: false, tension: 0.2, pointRadius: 4, borderWidth: 3 };
+        try {
+            const lastResp = await fetch(`${RENDER_URL}/api/data/Pull/${lastFile}`);
+            const lastText = await lastResp.text();
+            const lastCsv = Papa.parse(lastText, {skipEmptyLines: true}).data;
+            
+            targetIds.forEach(id => { 
+                const row = lastCsv.find(r => String(r[0]).trim() === id); 
+                latestNameMap[id] = row ? row[1] : `ID ${id}`; 
             });
-            chart.update();
-        });
+    
+            await Promise.all(fileList.map(async (f) => {
+                try {
+                    const r = await fetch(`${RENDER_URL}/api/data/Pull/${f}`);
+                    const csvText = await r.text();
+                    const csv = Papa.parse(csvText, {skipEmptyLines: true}).data;
+                    targetIds.forEach(id => {
+                        const row = csv.find(r => String(r[0]).trim() === id);
+                        if(row) {
+                            let mData = {};
+                            metrics.forEach(m => { 
+                                let v = row[m.index]; 
+                                if(typeof v === 'string') v = v.replace(/,/g,'').replace('%',''); 
+                                v = parseFloat(v); 
+                                if(m.isPercent && v > 1) v = v/100; 
+                                mData[m.id] = isNaN(v) ? null : v; 
+                            });
+                            history[id].push({ date: f.replace('.csv',''), data: mData, historicalName: row[1] || '---' });
+                        }
+                    });
+                } catch(e) { console.error("Error fetching file:", f, e); }
+            }));
+    
+            const dateKeys = fileList.map(f => f.replace('.csv', ''));
+            const displayLabels = dateKeys.map(d => sosMap[d] ? `${sosMap[d]} (${d})` : d);
+    
+            const legendDiv = document.getElementById(`legend${group}`);
+            const sticky = document.getElementById(`sticky${group}`);
+            legendDiv.innerHTML = ''; sticky.style.display = 'block';
+    
+            metrics.forEach(m => {
+                const chart = charts[group][m.id];
+                chart.data.labels = displayLabels;
+                chart.data.datasets = targetIds.map((id, i) => {
+                    const color = palette[i % palette.length];
+                    const latestAllianceName = latestNameMap[id];
+                    if(m.id === metrics[0].id) {
+                        const item = document.createElement('div'); item.className = 'legend-item';
+                        item.innerHTML = `<div class="color-dot" style="background:${color}"></div> <span>${latestAllianceName}</span>`;
+                        legendDiv.appendChild(item);
+                    }
+                    const points = dateKeys.map(d => history[id].find(pt => pt.date === d));
+                    return { label: latestAllianceName, data: points.map(p => p ? p.data[m.id] : null), historicalAlliances: points.map(p => p ? p.historicalName : '---'), borderColor: color, backgroundColor: color, fill: false, tension: 0.2, pointRadius: 4, borderWidth: 3 };
+                });
+                chart.update();
+            });
+        } catch(err) {
+            console.error("Comparison Error:", err);
+        }
     }
     window.onload = init;
 </script>
