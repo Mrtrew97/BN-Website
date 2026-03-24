@@ -223,7 +223,7 @@
     let migrationData = [];
     let filteredData = []; 
     let allFiles = []; 
-    let latestAllianceMap = {};
+    let latestAllianceMap = new Map();
     let sosMap = {};
     let currentSort = { key: 'count', direction: 'desc' };
     let searchType = 'kd';
@@ -243,28 +243,31 @@
 
     async function init() {
         try {
-            // Updated to fetch through backend proxy
             const [fRes, sRes] = await Promise.all([
-                fetch(`${RENDER_URL}/api/data/Players/files.json`), 
-                fetch(`${RENDER_URL}/api/data/Players/SosNames.json`)
+                fetch(`${RENDER_URL}/api/data/Players/files.json?cb=${Date.now()}`), 
+                fetch(`${RENDER_URL}/api/data/Players/SosNames.json?cb=${Date.now()}`)
             ]);
-            allFiles = await fRes.json(); sosMap = await sRes.json();
+            allFiles = await fRes.json(); 
+            sosMap = await sRes.json();
             const startSelect = document.getElementById('startSelect'), endSelect = document.getElementById('endSelect');
             [...allFiles].reverse().forEach(file => {
                 const date = file.replace('.csv',''), name = sosMap[date] ? `${sosMap[date]} (${date})` : date;
-                startSelect.add(new Option(name, file)); endSelect.add(new Option(name, file));
+                startSelect.add(new Option(name, file)); 
+                endSelect.add(new Option(name, file));
             });
             if(endSelect.options.length > 1) { endSelect.selectedIndex = 0; startSelect.selectedIndex = 1; }
-        } catch (err) { console.error(err); }
+        } catch (err) { console.error("Init Error:", err); }
     }
 
     async function fetchCSVFull(filename) {
-        // Updated to fetch through backend proxy
-        const res = await fetch(`${RENDER_URL}/api/data/Players/${filename}`);
+        const res = await fetch(`${RENDER_URL}/api/data/Players/${filename}?cb=${Date.now()}`);
         const text = await res.text();
         const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+        if (rows.length < 2) return new Map();
+        
         const h = rows[0].map(item => item.trim().replace(/["']/g, ""));
         const idx = { id: h.indexOf('Lord ID'), kd: h.indexOf('KD'), name: h.indexOf('Name'), ally: h.indexOf('Ally'), pwr: h.indexOf('H - Power'), merits: h.indexOf('Merits'), kills: h.indexOf('Kills'), deads: h.indexOf('Deads'), heals: h.indexOf('Heals') };
+        
         const dataMap = new Map();
         for(let i=1; i<rows.length; i++){
             const r = rows[i]; if(r.length < 5) continue;
@@ -282,14 +285,17 @@
         if(startIdx > endIdx) [startIdx, endIdx] = [endIdx, startIdx];
         const rangeFiles = allFiles.slice(startIdx, endIdx + 1);
 
-        latestAllianceMap = {}; const stats = {};
+        latestAllianceMap = new Map(); const stats = {};
         const ensureKD = (kd) => { if(!stats[kd]) stats[kd] = { kd, count:{in:0, out:0}, pwr:{in:0, out:0}, kills:{in:0, out:0}, deads:{in:0, out:0}, heals:{in:0, out:0}, arrivalsList: [], departuresList: [] }; };
 
         try {
             const rangeMaps = await Promise.all(rangeFiles.map(f => fetchCSVFull(f)));
-            const startMap = rangeMaps[0], endMap = rangeMaps[rangeMaps.length-1];
+            const validMaps = rangeMaps.filter(m => m.size > 0);
+            if (validMaps.length < 2) { status.innerText = "Error: Not enough data in selected range."; return; }
+
+            const startMap = validMaps[0], endMap = validMaps[validMaps.length-1];
             const latestFileMap = await fetchCSVFull(allFiles[allFiles.length - 1]);
-            latestFileMap.forEach(p => { if(!latestAllianceMap[p.kd]) latestAllianceMap[p.kd] = p.ally; });
+            latestFileMap.forEach(p => { if(!latestAllianceMap.has(p.kd)) latestAllianceMap.set(p.kd, p.ally); });
 
             const allIDs = new Set([...startMap.keys(), ...endMap.keys()]);
             allIDs.forEach(id => {
@@ -316,7 +322,6 @@
                         }
                     }
                 }
-
                 if (pE && (!pS || pE.kd !== pS.kd)) {
                     ensureKD(pE.kd); stats[pE.kd].count.in++; stats[pE.kd].pwr.in += pE.pwr;
                     stats[pE.kd].kills.in += segmentSummary.inGrowth.kills; stats[pE.kd].deads.in += segmentSummary.inGrowth.deads; stats[pE.kd].heals.in += segmentSummary.inGrowth.heals;
@@ -339,12 +344,10 @@
         const p = data.p, g = data.growth;
         const info = type === 'in' ? (data.old ? `from KD ${data.old.kd} | ${data.old.ally}` : 'Appeared in rankings') : (data.next ? `moved to KD ${data.next.kd} | ${data.next.ally}` : 'Dropped from rankings');
         const endPwr = type === 'in' ? p.pwr : (data.next ? data.next.pwr : p.pwr);
-        
         let whaleClass = 'whale-purple';
         if (endPwr >= 200000000) whaleClass = 'whale-gold';
         else if (endPwr >= 100000000) whaleClass = 'whale-silver';
         else if (endPwr >= 70000000) whaleClass = 'whale-copper';
-
         const historyHTML = data.swaps.map(s => `<div class="swap-item"><span class="swap-header">${s.from} ➔ ${s.to}</span><span class="swap-path">KD ${s.kdStart} ➔ KD ${s.kdEnd}</span></div>`).join('');
         return `<div class="player-chip ${whaleClass}" onclick="this.classList.toggle('active')"><div class="chip-main"><div><b>${p.id}</b> | ${p.name} ${info}</div><span class="arrow">⌄</span></div><div class="chip-details"><div class="detail-grid"><div class="det-box"><span class="det-label">Highest Power</span><span class="det-val">${formatShorthand(endPwr)}</span></div><div class="det-box"><span class="det-label">Growth Kills</span><span class="det-val">${formatShorthand(g.kills)}</span></div><div class="det-box"><span class="det-label">Growth Deads</span><span class="det-val">${formatShorthand(g.deads)}</span></div><div class="det-box"><span class="det-label">Growth Heals</span><span class="det-val">${formatShorthand(g.heals)}</span></div></div><div class="swap-history">${historyHTML}</div></div></div>`;
     }
@@ -355,7 +358,7 @@
     function handleSearch() { 
         const q = document.getElementById('kdSearch').value.toLowerCase();
         if (searchType === 'kd') {
-            filteredData = migrationData.filter(d => d.kd.toLowerCase().includes(q) || (latestAllianceMap[d.kd] && latestAllianceMap[d.kd].toLowerCase().includes(q)));
+            filteredData = migrationData.filter(d => d.kd.toLowerCase().includes(q) || (latestAllianceMap.get(d.kd) && latestAllianceMap.get(d.kd).toLowerCase().includes(q)));
         } else {
             filteredData = migrationData.filter(d => 
                 d.raw.arrivalsList.some(entry => entry.p.id.includes(q) || entry.p.name.toLowerCase().includes(q)) ||
@@ -370,14 +373,14 @@
         filteredData.slice(0, itemsShown).forEach(item => {
             const card = document.createElement('div'); card.className = 'kd-card'; card.onclick = () => openModal(item);
             const sig = (n) => (n > 0 ? '+' : '');
-            card.innerHTML = `<div class="card-header"><div class="kd-id">KD ${item.kd}</div><div class="kd-ally">${latestAllianceMap[item.kd]||"N/A"}</div></div><div class="stat-grid"><div class="stat-box box-players"><span class="stat-label">Players</span><div class="stat-value ${item.count >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.count)}${item.count}</div></div><div class="stat-box box-pwr"><span class="stat-label">Power</span><div class="stat-value ${item.pwr >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.pwr)}${formatShorthand(item.pwr)}</div></div><div class="stat-box box-kills"><span class="stat-label">Kills</span><div class="stat-value ${item.kills >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.kills)}${formatShorthand(item.kills)}</div></div><div class="stat-box box-deads"><span class="stat-label">Deads</span><div class="stat-value ${item.deads >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.deads)}${formatShorthand(item.deads)}</div></div><div class="stat-box box-heals"><span class="stat-label">Heals</span><div class="stat-value ${item.heals >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.heals)}${formatShorthand(item.heals)}</div></div></div><div class="card-hint">Click card for detailed list</div>`;
+            card.innerHTML = `<div class="card-header"><div class="kd-id">KD ${item.kd}</div><div class="kd-ally">${latestAllianceMap.get(item.kd)||"N/A"}</div></div><div class="stat-grid"><div class="stat-box box-players"><span class="stat-label">Players</span><div class="stat-value ${item.count >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.count)}${item.count}</div></div><div class="stat-box box-pwr"><span class="stat-label">Power</span><div class="stat-value ${item.pwr >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.pwr)}${formatShorthand(item.pwr)}</div></div><div class="stat-box box-kills"><span class="stat-label">Kills</span><div class="stat-value ${item.kills >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.kills)}${formatShorthand(item.kills)}</div></div><div class="stat-box box-deads"><span class="stat-label">Deads</span><div class="stat-value ${item.deads >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.deads)}${formatShorthand(item.deads)}</div></div><div class="stat-box box-heals"><span class="stat-label">Heals</span><div class="stat-value ${item.heals >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.heals)}${formatShorthand(item.heals)}</div></div></div><div class="card-hint">Click card for detailed list</div>`;
             grid.appendChild(card);
         });
         document.getElementById('loadMoreBtn').style.display = itemsShown < filteredData.length ? 'inline-block' : 'none';
     }
 
     function openModal(item) {
-        const s = item.raw; document.getElementById('modalTitle').innerText = `KD ${item.kd}`; document.getElementById('modalAlly').innerText = latestAllianceMap[item.kd] || "Unknown Alliance";
+        const s = item.raw; document.getElementById('modalTitle').innerText = `KD ${item.kd}`; document.getElementById('modalAlly').innerText = latestAllianceMap.get(item.kd) || "Unknown Alliance";
         const body = document.getElementById('modalMetricsBody'); body.innerHTML = '';
         const metrics = [ { l: 'Player Count', k: 'count' }, { l: 'Power', k: 'pwr' }, { l: 'Kills', k: 'kills' }, { l: 'Deads', k: 'deads' }, { l: 'Heals', k: 'heals' } ];
 
