@@ -9,100 +9,40 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        .brand-logo { position: fixed; bottom: 30px; z-index: 2000; opacity: 0.6; width: 200px; pointer-events: none; user-select: none; transition: 0.4s ease; }
+        .logo-right { right: -9px; } .logo-left { left: 00px; }
+        @media (max-width: 650px) { .brand-logo { width: 100px; bottom: 15px; } .logo-right { right: 15px; } .logo-left { left: 15px; } }
         body { font-family: 'Inter', sans-serif; background: var(--bg-gradient); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
-        
-        /* --- UNIFIED CONTAINER SYSTEM --- */
         .unified-container { max-width: 1600px; margin: 0 auto; width: 100%; padding: 0 25px; box-sizing: border-box; }
-
-        /* --- ROW 1: NAVIGATION --- */
-        .header-top-row { 
-            margin-top: 25px; 
-            margin-bottom: 20px; 
-            display: grid; 
-            grid-template-columns: 1fr auto 1fr; 
-            align-items: center; 
-            width: 100%;
-        }
+        .header-top-row { margin-top: 25px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; }
         .nav-side-box { display: flex; align-items: center; }
-        .nav-side-box.right { min-width: 150px; } /* Symmetry spacer */
+        .nav-side-box.right { min-width: 150px; }
         .header-top-row .home-link { position: static; margin: 0; backdrop-filter: none; }
-
-        /* --- LAYOUT GRID --- */
-        .comparison-wrapper { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 25px; 
-            align-items: start; 
-            padding-bottom: 50px;
-        }
-        
+        .comparison-wrapper { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; align-items: start; padding-bottom: 50px; }
         .group-column { display: flex; flex-direction: column; gap: 15px; min-width: 0; }
-
-        /* --- UI COMPONENTS --- */
-        .control-panel { 
-            background: var(--glass); 
-            backdrop-filter: blur(15px);
-            padding: 25px; 
-            border-radius: 24px; 
-            border: 1px solid var(--glass-border);
-        }
-        
-        .sticky-box {
-            position: sticky; 
-            top: 15px; 
-            z-index: 100;
-            background: rgba(15, 23, 42, 0.95); 
-            backdrop-filter: blur(15px);
-            padding: 15px; 
-            border-radius: 20px;
-            border: 1px solid var(--glass-border);
-            border-top: 5px solid var(--primary);
-            margin-bottom: 10px; 
-            display: none; 
-            text-align: center;
-        }
+        .control-panel { background: var(--glass); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid var(--glass-border); }
+        .sticky-box { position: sticky; top: 15px; z-index: 100; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); padding: 15px; border-radius: 20px; border: 1px solid var(--glass-border); border-top: 5px solid var(--primary); margin-bottom: 10px; display: none; text-align: center; }
         .group-b .sticky-box { border-top-color: #ef4444; }
-
         .legend-title { font-size: 0.65rem; text-transform: uppercase; color: var(--muted); font-weight: 800; letter-spacing: 0.1em; margin-bottom: 12px; }
         .group-label { font-size: 1.4rem; font-weight: 900; text-align: center; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
-
-        /* --- INPUTS & BUTTONS --- */
         .search-input-row { display: flex; gap: 12px; }
         input { flex: 1; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 12px; color: white; font-size: 1rem; outline: none; font-weight: 600; }
         input:focus { border-color: var(--primary); }
-        
         button { padding: 12px 24px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: 800; font-size: 0.8rem; text-transform: uppercase; transition: 0.2s; }
         button:hover { transform: translateY(-2px); filter: brightness(1.1); }
         .btn-a { background: var(--primary); }
         .btn-b { background: #ef4444; }
-
         .legend-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; }
         .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: white; }
         .color-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-
-        /* --- CHART STYLES --- */
-        .chart-card { 
-            background: var(--glass); 
-            backdrop-filter: blur(10px);
-            padding: 20px; 
-            border-radius: 24px; 
-            border: 1px solid var(--glass-border);
-            height: 380px; 
-            margin-bottom: 25px; 
-        }
-
-        @media (max-width: 1200px) { 
-            .comparison-wrapper { grid-template-columns: 1fr; } 
-            .header-top-row { grid-template-columns: 1fr auto; }
-            .nav-side-box.right { display: none; }
-        }
+        .chart-card { background: var(--glass); backdrop-filter: blur(10px); padding: 20px; border-radius: 24px; border: 1px solid var(--glass-border); height: 380px; margin-bottom: 25px; }
+        @media (max-width: 1200px) { .comparison-wrapper { grid-template-columns: 1fr; } .header-top-row { grid-template-columns: 1fr auto; } .nav-side-box.right { display: none; } }
     </style>
 </head>
 <body>
 
 <div id="loadingOverlay" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style></div>
 
-<!-- ROW 1: HEADER -->
 <div class="unified-container">
     <div class="header-top-row">
         <div class="nav-side-box">
@@ -148,8 +88,10 @@
 </div>
 
 <script>
+    const RENDER_URL = "https://kd-backend-icbu.onrender.com";
     let fileList = [];
     let charts = { A: {}, B: {} };
+    let sosMap = {};
     const palette = ['#3b82f6', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#f43f5e', '#84cc16', '#ec4899', '#6366f1', '#14b8a6'];
 
     const metrics = [
@@ -178,7 +120,10 @@
 
     async function init() {
         try {
-            const resp = await fetch('Pull/files.json');
+            const sResp = await fetch(`${RENDER_URL}/api/data/Pull/SosNames.json?cb=${Date.now()}`);
+            sosMap = sResp.ok ? await sResp.ok.json() : {};
+
+            const resp = await fetch(`${RENDER_URL}/api/data/Pull/files.json`);
             fileList = (await resp.json()).sort();
             ['A', 'B'].forEach(group => {
                 const container = document.getElementById(`charts${group}`);
@@ -190,7 +135,7 @@
                     setupChart(group, m);
                 });
             });
-        } catch(e) { console.error("Error loading files.json"); }
+        } catch(e) { console.error(e); }
         finally { document.getElementById('loadingOverlay').style.display = 'none'; }
     }
 
@@ -234,33 +179,39 @@
         const history = {}; targetIds.forEach(id => history[id] = []);
         const latestNameMap = {};
         const lastFile = fileList[fileList.length-1];
-        const lastResp = await fetch(`Pull/${lastFile}`);
+        
+        const lastResp = await fetch(`${RENDER_URL}/api/data/Pull/${lastFile}`);
         const lastCsv = Papa.parse(await lastResp.text(), {skipEmptyLines: true}).data;
-        targetIds.forEach(id => { const row = lastCsv.find(r => String(r[0]).trim() === id); latestNameMap[id] = row ? row[1] : `ID ${id}`; });
+        targetIds.forEach(id => { 
+            const row = lastCsv.find(r => String(r[0]).trim() === id); 
+            latestNameMap[id] = row ? row[1] : `ID ${id}`; 
+        });
 
         await Promise.all(fileList.map(async (f) => {
             try {
-                const r = await fetch(`Pull/${f}`);
+                const r = await fetch(`${RENDER_URL}/api/data/Pull/${f}`);
                 const csv = Papa.parse(await r.text(), {skipEmptyLines: true}).data;
                 targetIds.forEach(id => {
                     const row = csv.find(r => String(r[0]).trim() === id);
                     if(row) {
                         let mData = {};
-                        metrics.forEach(m => { let v = row[m.index]; if(typeof v === 'string') v = v.replace(/,/g,'').replace('%',''); v = parseFloat(v); if(m.isPercent) v = v/100; mData[m.id] = isNaN(v) ? null : v; });
+                        metrics.forEach(m => { let v = row[m.index]; if(typeof v === 'string') v = v.replace(/,/g,'').replace('%',''); v = parseFloat(v); if(m.isPercent && v > 1) v = v/100; mData[m.id] = isNaN(v) ? null : v; });
                         history[id].push({ date: f.replace('.csv',''), data: mData, historicalName: row[1] || '---' });
                     }
                 });
             } catch(e) {}
         }));
 
-        const labels = fileList.map(f => f.replace('.csv',''));
+        const dateKeys = fileList.map(f => f.replace('.csv', ''));
+        const displayLabels = dateKeys.map(d => sosMap[d] ? `${sosMap[d]} (${d})` : d);
+
         const legendDiv = document.getElementById(`legend${group}`);
         const sticky = document.getElementById(`sticky${group}`);
         legendDiv.innerHTML = ''; sticky.style.display = 'block';
 
         metrics.forEach(m => {
             const chart = charts[group][m.id];
-            chart.data.labels = labels;
+            chart.data.labels = displayLabels;
             chart.data.datasets = targetIds.map((id, i) => {
                 const color = palette[i % palette.length];
                 const latestAllianceName = latestNameMap[id];
@@ -269,7 +220,7 @@
                     item.innerHTML = `<div class="color-dot" style="background:${color}"></div> <span>${latestAllianceName}</span>`;
                     legendDiv.appendChild(item);
                 }
-                const points = labels.map(l => history[id].find(pt => pt.date === l));
+                const points = dateKeys.map(d => history[id].find(pt => pt.date === d));
                 return { label: latestAllianceName, data: points.map(p => p ? p.data[m.id] : null), historicalAlliances: points.map(p => p ? p.historicalName : '---'), borderColor: color, backgroundColor: color, fill: false, tension: 0.2, pointRadius: 4, borderWidth: 3 };
             });
             chart.update();
@@ -277,5 +228,7 @@
     }
     window.onload = init;
 </script>
+<img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/dadrew%20logo.png" alt="Dadrew Logo" class="brand-logo logo-right">
+<img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/BE%20NASTi%20Guy.png" alt="BE NASTi Logo" class="brand-logo logo-left">
 </body>
 </html>
