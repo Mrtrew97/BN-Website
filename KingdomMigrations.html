@@ -260,43 +260,27 @@
     }
 
     async function fetchCSVFull(filename) {
-        const url = `${RENDER_URL}/api/data/Players/${filename}?cb=${Date.now()}`;
-        const res = await fetch(url);
-        
-        if (!res.ok) {
-            console.error(`Fetch failed for ${filename}: ${res.status}`);
-            return new Map();
+            // Removed console logs for a clean console
+            const res = await fetch(`${RENDER_URL}/api/data/Players/${filename}?cb=${Date.now()}`);
+            const text = await res.text();
+            const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+            if (rows.length < 2) return new Map();
+            
+            const h = rows[0].map(item => item.trim().replace(/["']/g, ""));
+            const idx = { id: h.indexOf('Lord ID'), kd: h.indexOf('KD'), name: h.indexOf('Name'), ally: h.indexOf('Ally'), pwr: h.indexOf('H - Power'), merits: h.indexOf('Merits'), kills: h.indexOf('Kills'), deads: h.indexOf('Deads'), heals: h.indexOf('Heals') };
+            
+            const dataMap = new Map();
+            for(let i=1; i<rows.length; i++){
+                const r = rows[i]; if(r.length < 5) continue;
+                const id = r[idx.id]?.trim().replace(/"/g, '');
+                if(!id) continue;
+                dataMap.set(id, { id, kd: r[idx.kd]?.trim().replace(/"/g, ''), name: r[idx.name]?.trim().replace(/"/g, ''), ally: r[idx.ally]?.trim().replace(/"/g, ''), pwr: cleanNum(r[idx.pwr]), merits: cleanNum(r[idx.merits]), kills: cleanNum(r[idx.kills]), deads: cleanNum(r[idx.deads]), heals: cleanNum(r[idx.heals]) });
+            }
+            return dataMap;
         }
-        
-        const text = await res.text();
-        
-        // DEBUG: Log the first 100 characters of what we got
-        console.log(`Data received for ${filename} (${text.length} bytes):`, text.substring(0, 100));
-    
-        if (!text || text.trim() === "") {
-            console.warn(`Empty data received for ${filename}`);
-            return new Map();
-        }
-    
-        const rows = text.split('\n').map(r => r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
-        if (rows.length < 2) return new Map();
-        
-        const h = rows[0].map(item => item.trim().replace(/["']/g, ""));
-        const idx = { id: h.indexOf('Lord ID'), kd: h.indexOf('KD'), name: h.indexOf('Name'), ally: h.indexOf('Ally'), pwr: h.indexOf('H - Power'), merits: h.indexOf('Merits'), kills: h.indexOf('Kills'), deads: h.indexOf('Deads'), heals: h.indexOf('Heals') };
-        
-        const dataMap = new Map();
-        for(let i=1; i<rows.length; i++){
-            const r = rows[i]; if(r.length < 5) continue;
-            const id = r[idx.id]?.trim().replace(/"/g, '');
-            if(!id) continue;
-            dataMap.set(id, { id, kd: r[idx.kd]?.trim().replace(/"/g, ''), name: r[idx.name]?.trim().replace(/"/g, ''), ally: r[idx.ally]?.trim().replace(/"/g, ''), pwr: cleanNum(r[idx.pwr]), merits: cleanNum(r[idx.merits]), kills: cleanNum(r[idx.kills]), deads: cleanNum(r[idx.deads]), heals: cleanNum(r[idx.heals]) });
-        }
-        return dataMap;
-    }
 
     async function runComparison() {
         const startFile = document.getElementById('startSelect').value, endFile = document.getElementById('endSelect').value, status = document.getElementById('status-msg');
-        status.innerText = "Analyzing performance snapshots...";
         let startIdx = allFiles.indexOf(startFile), endIdx = allFiles.indexOf(endFile);
         if(startIdx > endIdx) [startIdx, endIdx] = [endIdx, startIdx];
         const rangeFiles = allFiles.slice(startIdx, endIdx + 1);
@@ -305,7 +289,13 @@
         const ensureKD = (kd) => { if(!stats[kd]) stats[kd] = { kd, count:{in:0, out:0}, pwr:{in:0, out:0}, kills:{in:0, out:0}, deads:{in:0, out:0}, heals:{in:0, out:0}, arrivalsList: [], departuresList: [] }; };
 
         try {
-            const rangeMaps = await Promise.all(rangeFiles.map(f => fetchCSVFull(f)));
+            // Sequential loading to show progress
+            const rangeMaps = [];
+            for (let i = 0; i < rangeFiles.length; i++) {
+                status.innerText = `Analyzing performance snapshots... Snapshot ${i + 1} of ${rangeFiles.length}`;
+                rangeMaps.push(await fetchCSVFull(rangeFiles[i]));
+            }
+
             const validMaps = rangeMaps.filter(m => m.size > 0);
             if (validMaps.length < 2) { status.innerText = "Error: Not enough data in selected range."; return; }
 
@@ -355,7 +345,7 @@
             applySort(); status.innerText = `${migrationData.length} Kingdoms with Activity`;
         } catch (err) { console.error(err); status.innerText = "Failed to process files."; }
     }
-
+    
     function generatePlayerChip(data, type) {
         const p = data.p, g = data.growth;
         const info = type === 'in' ? (data.old ? `from KD ${data.old.kd} | ${data.old.ally}` : 'Appeared in rankings') : (data.next ? `moved to KD ${data.next.kd} | ${data.next.ally}` : 'Dropped from rankings');
