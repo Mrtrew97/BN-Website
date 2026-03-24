@@ -172,20 +172,31 @@
         });
     }
 
-    async function runComparison(group) {
-        const input = document.getElementById(`input${group}`).value;
-        const targetIds = input.split(',').map(s => s.trim()).filter(s => s !== "");
-        if (!targetIds.length) return;
-        const history = {}; targetIds.forEach(id => history[id] = []);
-        const latestNameMap = {};
-        const lastFile = fileList[fileList.length-1];
+        async function runComparison(group) {
+            const input = document.getElementById(`input${group}`).value;
+            const targetIds = input.split(',').map(s => s.trim()).filter(s => s !== "");
+            if (!targetIds.length) return;
+            
+            // DEBUG: Log the path being fetched
+            console.log("Fetching snapshot:", `${RENDER_URL}/api/data/Pull/${fileList[fileList.length-1]}`);
         
-        const lastResp = await fetch(`${RENDER_URL}/api/data/Pull/${lastFile}`);
-        const lastCsv = Papa.parse(await lastResp.text(), {skipEmptyLines: true}).data;
-        targetIds.forEach(id => { 
-            const row = lastCsv.find(r => String(r[0]).trim() === id); 
-            latestNameMap[id] = row ? row[1] : `ID ${id}`; 
-        });
+            const history = {}; targetIds.forEach(id => history[id] = []);
+            const latestNameMap = {};
+            const lastFile = fileList[fileList.length-1];
+            
+            const lastResp = await fetch(`${RENDER_URL}/api/data/Pull/${lastFile}`);
+            const lastText = await lastResp.text();
+            
+            if (!lastText || lastText.includes("error")) {
+                console.error("Failed to fetch CSV data from backend");
+                return;
+            }
+        
+            const lastCsv = Papa.parse(lastText, {skipEmptyLines: true}).data;
+            targetIds.forEach(id => { 
+                const row = lastCsv.find(r => String(r[0]).trim() === id); 
+                latestNameMap[id] = row ? row[1] : `ID ${id}`; 
+            });
 
         await Promise.all(fileList.map(async (f) => {
             try {
