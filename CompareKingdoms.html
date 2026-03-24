@@ -120,22 +120,33 @@
 
     async function init() {
         try {
+            // Fix: Use .ok as a condition, call .json() on the response
             const sResp = await fetch(`${RENDER_URL}/api/data/Pull/SosNames.json?cb=${Date.now()}`);
-            sosMap = sResp.ok ? await sResp.ok.json() : {};
-
+            sosMap = sResp.ok ? await sResp.json() : {};
+    
             const resp = await fetch(`${RENDER_URL}/api/data/Pull/files.json`);
+            if (!resp.ok) throw new Error("Could not fetch files.json");
+            
             fileList = (await resp.json()).sort();
-            ['A', 'B'].forEach(group => {
-                const container = document.getElementById(`charts${group}`);
-                metrics.forEach(m => {
-                    const card = document.createElement('div');
-                    card.className = 'chart-card';
-                    card.innerHTML = `<canvas id="chart-${group}-${m.id}"></canvas>`;
-                    container.appendChild(card);
-                    setupChart(group, m);
+            
+            // Populate the UI only after fileList is confirmed
+            if (fileList.length > 0) {
+                ['A', 'B'].forEach(group => {
+                    const container = document.getElementById(`charts${group}`);
+                    metrics.forEach(m => {
+                        const card = document.createElement('div');
+                        card.className = 'chart-card';
+                        card.innerHTML = `<canvas id="chart-${group}-${m.id}"></canvas>`;
+                        container.appendChild(card);
+                        setupChart(group, m);
+                    });
                 });
-            });
-        } catch(e) { console.error(e); }
+            }
+            document.getElementById('status').textContent = `LOADED ${fileList.length} SNAPSHOTS`;
+        } catch(e) { 
+            console.error("Init Error:", e);
+            document.getElementById('status').textContent = "ERROR LOADING SNAPSHOTS";
+        }
         finally { document.getElementById('loadingOverlay').style.display = 'none'; }
     }
 
@@ -176,6 +187,10 @@
             const input = document.getElementById(`input${group}`).value;
             const targetIds = input.split(',').map(s => s.trim()).filter(s => s !== "");
             if (!targetIds.length) return;
+            if (fileList.length === 0) {
+                alert("Files not loaded yet. Please wait...");
+                return;
+            }
             
             // DEBUG: Log the path being fetched
             console.log("Fetching snapshot:", `${RENDER_URL}/api/data/Pull/${fileList[fileList.length-1]}`);
@@ -183,6 +198,7 @@
             const history = {}; targetIds.forEach(id => history[id] = []);
             const latestNameMap = {};
             const lastFile = fileList[fileList.length-1];
+            const input = document.getElementById(`input${group}`).value;
             
             const lastResp = await fetch(`${RENDER_URL}/api/data/Pull/${lastFile}`);
             const lastText = await lastResp.text();
