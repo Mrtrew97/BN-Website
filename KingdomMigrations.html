@@ -377,39 +377,47 @@
     }
 
     function openModal(item) {
-        const s = item.raw; document.getElementById('modalTitle').innerText = `KD ${item.kd}`; document.getElementById('modalAlly').innerText = latestAllianceMap.get(item.kd) || "Unknown Alliance";
-        const body = document.getElementById('modalMetricsBody'); body.innerHTML = '';
-        const metrics = [ { l: 'Player Count', k: 'count' }, { l: 'Power', k: 'pwr' }, { l: 'Kills', k: 'kills' }, { l: 'Deads', k: 'deads' }, { l: 'Heals', k: 'heals' } ];
-
-        metrics.forEach(m => {
-            const delta = s[m.k].in - s[m.k].out, sign = (delta > 0 ? '+' : '');
-            body.innerHTML += `
-                <div class="metric-card-row metric-grid-base">
-                    <div class="m-in">
-                        +${formatShorthand(s[m.k].in)}
-                    </div>
-                    <div class="m-center-stack">
-                        <span class="m-name">${m.l}</span>
-                        <div class="m-delta ${delta >= 0 ? 'pos-text' : 'neg-text'}">${sign}${formatShorthand(delta)}</div>
-                    </div>
-                    <div class="m-out">
-                        -${formatShorthand(s[m.k].out)}
-                    </div>
-                </div>`;
-        });
-
-        s.arrivalsList.sort((a,b) => b.p.pwr - a.p.pwr);
-        s.departuresList.sort((a,b) => {
-            const pwrA = a.p ? a.p.pwr : (a.new ? a.new.pwr : 0);
-            const pwrB = b.p ? b.p.pwr : (b.new ? b.new.pwr : 0);
-            return pwrB - pwrA;
-        });
-
-        document.getElementById('arrivalCount').innerText = s.arrivalsList.length; document.getElementById('departureCount').innerText = s.departuresList.length;
-        document.getElementById('arrivalsList').innerHTML = s.arrivalsList.map(x => generatePlayerChip(x, 'in')).join('');
-        document.getElementById('departuresList').innerHTML = s.departuresList.map(x => generatePlayerChip(x, 'out')).join('');
-        document.getElementById('soloModal').style.display = 'block'; document.body.style.overflow = 'hidden';
-    }
+            const s = item.raw; 
+            document.getElementById('modalTitle').innerText = `KD ${item.kd}`; 
+            document.getElementById('modalAlly').innerText = latestAllianceMap.get(item.kd) || "Unknown Alliance";
+            
+            const body = document.getElementById('modalMetricsBody'); 
+            body.innerHTML = '';
+            
+            const metrics = [ { l: 'Player Count', k: 'count' }, { l: 'Power', k: 'pwr' }, { l: 'Kills', k: 'kills' }, { l: 'Deads', k: 'deads' }, { l: 'Heals', k: 'heals' } ];
+    
+            metrics.forEach(m => {
+                const delta = s[m.k].in - s[m.k].out, sign = (delta > 0 ? '+' : '');
+                body.innerHTML += `
+                    <div class="metric-card-row metric-grid-base">
+                        <div class="m-in">+${formatShorthand(s[m.k].in)}</div>
+                        <div class="m-center-stack">
+                            <span class="m-name">${m.l}</span>
+                            <div class="m-delta ${delta >= 0 ? 'pos-text' : 'neg-text'}">${sign}${formatShorthand(delta)}</div>
+                        </div>
+                        <div class="m-out">-${formatShorthand(s[m.k].out)}</div>
+                    </div>`;
+            });
+    
+            // SORTING ARRIVALS: Highest Power first
+            s.arrivalsList.sort((a,b) => b.p.pwr - a.p.pwr);
+            
+            // SORTING DEPARTURES: Highest Power first (Added this fix)
+            s.departuresList.sort((a,b) => {
+                const pwrA = a.p ? a.p.pwr : 0;
+                const pwrB = b.p ? b.p.pwr : 0;
+                return pwrB - pwrA;
+            });
+    
+            document.getElementById('arrivalCount').innerText = s.arrivalsList.length; 
+            document.getElementById('departureCount').innerText = s.departuresList.length;
+            
+            document.getElementById('arrivalsList').innerHTML = s.arrivalsList.map(x => generatePlayerChip(x, 'in')).join('');
+            document.getElementById('departuresList').innerHTML = s.departuresList.map(x => generatePlayerChip(x, 'out')).join('');
+            
+            document.getElementById('soloModal').style.display = 'block'; 
+            document.body.style.overflow = 'hidden';
+        }
 
     function closeModal() { document.getElementById('soloModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
     function loadMore() { itemsShown += pageSize; renderGrid(); }
