@@ -4,13 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BN Analytics | Official Teams Dashboard</title>
+    
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="mobile.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
+        /* --- ROTATE HINT OVERLAY --- */
         #rotate-hint {
             display: none;
             position: fixed;
@@ -27,7 +32,9 @@
         }
 
         @media (max-width: 900px) and (orientation: portrait) {
-            #rotate-hint { display: flex; }
+            #rotate-hint { 
+                display: flex; 
+            }
         }
 
         .rotate-content p {
@@ -79,45 +86,312 @@
             40%, 60% { transform: rotate(90deg); }
             80%, 100% { transform: rotate(0deg); }
         }
-        .brand-logo { position: fixed; bottom: 30px; z-index: 2000; opacity: 0.6; width: 200px; pointer-events: none; user-select: none; transition: 0.4s ease; }
-        .logo-right { right: -9px; } .logo-left { left: 0px; }
-        @media (max-width: 650px) { .brand-logo { width: 100px; bottom: 15px; } .logo-right { right: 15px; } .logo-left { left: 15px; } }
-        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
-        .unified-container { max-width: 1600px; margin: 0 auto; padding: 0 25px; box-sizing: border-box; width: 100%; }
-        .header-top-row { margin-top: 25px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; }
-        .nav-side-box { display: flex; align-items: center; }
-        .nav-side-box.right { justify-content: flex-end; gap: 10px; }
-        .header-top-row .home-link { position: static; margin: 0; backdrop-filter: none; }
-        .tools-glass-row { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 12px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 20px; margin-bottom: 20px; }
-        .search-center-box { width: 500px; display: flex; justify-content: center; }
-        .search-input { width: 100%; padding: 10px 18px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; outline: none; }
-        .sticky-wrapper { position: sticky; top: 15px; z-index: 1000; width: 100%; display: flex; justify-content: center; margin-bottom: 50px; padding: 0 25px; box-sizing: border-box; }
-        .metrics-island { width: 100%; max-width: 1350px; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 28px; padding: 12px 0; box-shadow: 0 20px 40px rgba(0,0,0,0.4); display: flex; flex-direction: column; align-items: center; }
-        .metric-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 4px 15px; width: 100%; }
-        .metric-btn { padding: 10px 18px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 20px; font-size: 0.65rem; font-weight: 800; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase; }
-        .metric-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
-        .expand-rows { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; width: 100%; }
-        .expand-rows.open { max-height: 250px; margin-top: 10px; border-top: 1px solid var(--glass-border); padding-top: 10px; }
-        .toggle-trigger { width: 100%; display: flex; justify-content: center; cursor: pointer; color: var(--muted); padding-top: 8px; transition: 0.3s; }
-        #teamsContainer { display: flex; flex-direction: column; gap: 40px; width: 100%; max-width: 1600px; margin: 0 auto; padding: 0 25px 60px 25px; box-sizing: border-box; }
-        .team-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; }
-        .team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .name-input { font-size: 1.2rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 350px; outline: none; }
-        .note-display { font-size: 0.85rem; color: var(--muted); font-style: italic; margin-bottom: 10px; padding-left: 8px; }
-        .note-input { width: 100%; margin-bottom: 10px; padding: 8px 12px; border: 1px solid var(--glass-border); border-radius: 10px; font-size: 0.8rem; background: rgba(0,0,0,0.2); color: var(--muted); outline: none; }
+
+        /* --- BASE STYLING --- */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
+            background-attachment: fixed; 
+            color: var(--text); 
+            margin: 0; 
+            padding: 0; 
+            overflow-x: hidden; 
+        }
+
+        .unified-container { 
+            max-width: 1600px; 
+            margin: 0 auto; 
+            padding: 0 25px; 
+            box-sizing: border-box; 
+            width: 100%; 
+        }
+
+        .header-top-row { 
+            margin-top: 25px; 
+            margin-bottom: 20px; 
+            display: grid; 
+            grid-template-columns: 1fr auto 1fr; 
+            align-items: center; 
+            width: 100%; 
+        }
+
+        .nav-side-box { 
+            display: flex; 
+            align-items: center; 
+        }
+
+        .nav-side-box.right { 
+            justify-content: flex-end; 
+            gap: 10px; 
+        }
+
+        .header-top-row .home-link { 
+            position: static; 
+            margin: 0; 
+            backdrop-filter: none; 
+        }
+        
+        .tools-glass-row { 
+            background: var(--glass); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 24px; 
+            padding: 12px 20px; 
+            display: grid; 
+            grid-template-columns: 1fr auto 1fr; 
+            align-items: center; 
+            gap: 20px; 
+            margin-bottom: 20px; 
+        }
+
+        .search-center-box { 
+            width: 500px; 
+            display: flex; 
+            justify-content: center; 
+        }
+
+        .search-input { 
+            width: 100%; 
+            padding: 10px 18px; 
+            border-radius: 12px; 
+            border: 1px solid var(--glass-border); 
+            background: rgba(0,0,0,0.3); 
+            color: white; 
+            outline: none; 
+        }
+        
+        .sticky-wrapper { 
+            position: sticky; 
+            top: 15px; 
+            z-index: 1000; 
+            width: 100%; 
+            display: flex; 
+            justify-content: center; 
+            margin-bottom: 50px; 
+            padding: 0 25px; 
+            box-sizing: border-box; 
+        }
+
+        .metrics-island { 
+            width: 100%; 
+            max-width: 1350px; 
+            background: var(--glass); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 28px; 
+            padding: 12px 0; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        
+        .metric-row { 
+            display: flex; 
+            gap: 8px; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+            padding: 4px 15px; 
+            width: 100%; 
+        }
+
+        .metric-btn { 
+            padding: 10px 18px; 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 20px; 
+            font-size: 0.65rem; 
+            font-weight: 800; 
+            cursor: pointer; 
+            color: var(--muted); 
+            transition: 0.2s; 
+            text-transform: uppercase; 
+        }
+
+        .metric-btn.active { 
+            background: var(--primary); 
+            color: white; 
+            border-color: var(--primary); 
+            box-shadow: 0 0 15px var(--primary-glow); 
+        }
+        
+        .expand-rows { 
+            max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.4s ease-out; 
+            width: 100%; 
+        }
+
+        .expand-rows.open { 
+            max-height: 250px; 
+            margin-top: 10px; 
+            border-top: 1px solid var(--glass-border); 
+            padding-top: 10px; 
+        }
+
+        .toggle-trigger { 
+            width: 100%; 
+            display: flex; 
+            justify-content: center; 
+            cursor: pointer; 
+            color: var(--muted); 
+            padding-top: 8px; 
+            transition: 0.3s; 
+        }
+
+        /* --- CARDS & TABLES --- */
+        #teamsContainer { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 40px; 
+            width: 100%; 
+            max-width: 1600px; 
+            margin: 0 auto; 
+            padding: 0 25px 60px 25px; 
+            box-sizing: border-box; 
+        }
+
+        .team-card { 
+            background: var(--glass); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 24px; 
+            padding: 25px; 
+        }
+
+        .team-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 10px; 
+        }
+
+        .name-input { 
+            font-size: 1.3rem; 
+            font-weight: 950; 
+            border: 1px solid transparent; 
+            background: transparent; 
+            color: var(--primary); 
+            padding: 0px 8px; 
+            border-radius: 6px; 
+            width: 100%; 
+            outline: none; 
+            box-sizing: border-box;
+            word-wrap: break-word; 
+        }
+
+        input.name-input { 
+            text-overflow: ellipsis; 
+        }
+
+        .note-display { 
+            font-size: 0.85rem; 
+            color: var(--muted); 
+            font-style: italic; 
+            margin-bottom: 10px; 
+            padding-left: 8px; 
+        }
+
+        .note-input { 
+            width: 100%; 
+            margin-bottom: 10px; 
+            padding: 8px 12px; 
+            border: 1px solid var(--glass-border); 
+            border-radius: 10px; 
+            font-size: 0.8rem; 
+            background: rgba(0,0,0,0.2); 
+            color: var(--muted); 
+            outline: none; 
+        }
+
         .table-wrapper { width: 100%; overflow-x: auto; border-radius: 15px; } 
-        table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1850px; }
-        th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
-        td { padding: 12px 2px; text-align: center; font-size: 0.85rem; background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); }
-        .summary-row td { background: rgba(168, 85, 247, 0.1); color: var(--accent); font-weight: 950 !important; border-color: rgba(168, 85, 247, 0.2); }
-        .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 950 !important; }
-        .paragon-text { color: rgb(245, 158, 11) !important; font-weight: 900 !important; text-decoration: none !important; }
+
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0 4px; 
+            table-layout: fixed; 
+            min-width: 1850px; 
+        }
+
+        th { 
+            text-align: center; 
+            padding: 12px 2px; 
+            color: var(--muted); 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            border-bottom: 1px solid var(--glass-border); 
+        }
+
+        td { 
+            padding: 12px 2px; 
+            text-align: center; 
+            font-size: 0.85rem; 
+            background: rgba(255,255,255,0.02); 
+            border-top: 1px solid var(--glass-border); 
+            border-bottom: 1px solid var(--glass-border); 
+        }
+
+        .summary-row td { 
+            background: rgba(168, 85, 247, 0.1); 
+            color: var(--accent); 
+            font-weight: 950 !important; 
+            border-color: rgba(168, 85, 247, 0.2); 
+        }
+
+        .highlight-sort { 
+            background: rgba(59, 130, 246, 0.15) !important; 
+            color: white !important; 
+            font-weight: 950 !important; 
+        }
+
+        .paragon-text { 
+            color: rgb(245, 158, 11) !important; 
+            font-weight: 900 !important; 
+            text-decoration: none !important; 
+        }
+
         .drag-handle { cursor: grab; color: var(--muted); width: 25px; opacity: 0.3; }
-        .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; display: inline-flex; align-items: center; gap: 6px; background: var(--glass); color: white; text-transform: uppercase; transition: 0.2s; }
-        .btn:hover { background: var(--primary); transform: translateY(-2px); }
+
+        /* --- BUTTONS --- */
+        .btn { 
+            padding: 8px 14px; 
+            border-radius: 10px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            border: 1px solid var(--glass-border); 
+            font-size: 0.75rem; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            background: var(--glass); 
+            color: white; 
+            text-transform: uppercase; 
+            transition: 0.2s; 
+        }
+
+        .btn:hover { 
+            background: var(--primary); 
+            transform: translateY(-2px); 
+        }
+
         .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: white; }
         .btn-green { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: white; }
-        #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s; }
+
+        #loadingOverlay { 
+            position: fixed; 
+            inset: 0; 
+            background: #000; 
+            z-index: 9999; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            transition: opacity 0.3s; 
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -130,7 +404,9 @@
     </div>
 </div>
 
-<div id="loadingOverlay"><div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style></div>
+<div id="loadingOverlay">
+    <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+</div>
 
 <div class="unified-container">
     <div class="header-top-row">
@@ -149,8 +425,12 @@
 
 <div class="unified-container">
     <div class="tools-glass-row">
-        <div class="nav-side-box"><select id="fileSelector" onchange="loadSelectedFile(this.value)" style="min-width: 150px;"></select></div>
-        <div class="search-center-box"><input type="text" id="teamSearch" class="search-input" placeholder="Search Team, Kingdom, or Alliance..." oninput="renderAll()"></div>
+        <div class="nav-side-box">
+            <select id="fileSelector" onchange="loadSelectedFile(this.value)" style="min-width: 150px;"></select>
+        </div>
+        <div class="search-center-box">
+            <input type="text" id="teamSearch" class="search-input" placeholder="Search Team, Kingdom, or Alliance..." oninput="renderAll()">
+        </div>
         <div class="nav-side-box right"></div>
     </div>
 </div>
@@ -168,19 +448,23 @@
             <button class="metric-btn" onclick="setSort('totalCh25', this)">CH25</button>
             <button class="metric-btn" onclick="setSort('avgAp', this)">CH25 AVG</button>
         </div>
-        <div id="troopRow" class="expand-rows"><div class="metric-row"></div></div>
-        <div class="toggle-trigger" onclick="toggleTroops()"><svg id="arrowIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="transition:0.3s;"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+        <div id="troopRow" class="expand-rows">
+            <div class="metric-row"></div>
+        </div>
+        <div class="toggle-trigger" onclick="toggleTroops()">
+            <svg id="arrowIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="transition:0.3s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
     </div>
 </div>
 
 <div id="teamsContainer"></div>
 
 <!-- Supabase Auth Modal -->
-<div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter: blur(10px); align-items:center; justify-content:center; z-index:2000;">
-    <div class="modal-content" style="background: #1e293b; padding: 40px; border-radius: 24px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
+<div id="authModal">
+    <div class="modal-content">
         <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
-        <input type="email" id="email" class="modal-input" style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none;" placeholder="Admin Email">
-        <input type="password" id="pass" class="modal-input" style="width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 8px; border: none;" placeholder="Password" onkeydown="if(event.key==='Enter') login()">
+        <input type="email" id="email" class="modal-input" placeholder="Admin Email">
+        <input type="password" id="pass" class="modal-input" placeholder="Password" onkeydown="if(event.key==='Enter') login()">
         <div id="loginError" style="color: #ef4444; font-size: 0.7rem; font-weight: 800; margin-bottom: 15px; display: none;"></div>
         <button id="loginActionBtn" class="btn btn-blue" style="width: 100%; padding: 15px;" onclick="login()">AUTHORIZE</button>
         <button onclick="toggleModal(false)" class="btn" style="width:100%; margin-top:10px; background:transparent;">Cancel</button>
@@ -188,19 +472,86 @@
 </div>
 
 <script>
+    // --- SUPABASE CONFIG ---
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
     const BUCKET_DATA = "kvk-data";
     const BUCKET_CONFIGS = "configs";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let isAdmin = false, masterData = new Map(), allTeamsData = {}, currentTeams = [], selectedFileName = "", currentSort = 'teamName', currentRegistrations = {}, activeTroopKeys = [], sosMap = {};
-    const possibleTroopHeaders = ["10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+","10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200M+"];
+    // --- STATE ---
+    let isAdmin = false;
+    let masterData = new Map();
+    let allTeamsData = {};
+    let currentTeams = [];
+    let selectedFileName = "";
+    let currentSort = 'teamName';
+    let currentRegistrations = {};
+    let activeTroopKeys = [];
+    let sosMap = {};
+    
+    const possibleTroopHeaders = [
+        "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
+        "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200M+"
+    ];
 
-    // KD Cleaning Helper
     function kdClean(val) {
         if (!val) return "";
         return String(parseInt(parseFloat(String(val).trim())));
+    }
+
+    function updateProgress(pct, text) {
+        const bar = document.getElementById('progressBar');
+        const container = document.getElementById('progressContainer');
+        const status = document.getElementById('status-msg');
+        if (container) container.style.display = 'block';
+        if (bar) bar.style.width = pct + '%';
+        if (status && text) status.innerText = text;
+    }
+
+    function hideLoading() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.style.opacity = '0';
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+            }, 300);
+        }
+    }
+
+    function enableAdminMode() {
+        isAdmin = true;
+        document.getElementById('adminArea').style.display = 'flex';
+        document.getElementById('loginBtn').style.display = 'none';
+        renderAll();
+    }
+
+    async function login() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('pass').value;
+        const errorDiv = document.getElementById('loginError');
+        const btn = document.getElementById('loginActionBtn');
+        
+        errorDiv.style.display = 'none';
+        btn.textContent = "AUTHORIZING...";
+        btn.disabled = true;
+        
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        
+        if (error) { 
+            errorDiv.textContent = error.message; 
+            errorDiv.style.display = 'block'; 
+            btn.disabled = false;
+            btn.textContent = "AUTHORIZE";
+        } else { 
+            enableAdminMode(); 
+            toggleModal(false); 
+        }
+    }
+
+    function logout() { 
+        supabaseClient.auth.signOut(); 
+        location.reload(); 
     }
 
     window.onload = async () => {
@@ -213,25 +564,34 @@
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp)
             ]);
-            if (sRes.error) throw sRes.error; if (fRes.error) throw fRes.error;
+            
+            if (sRes.error) throw sRes.error;
+            if (fRes.error) throw fRes.error;
+            
             sosMap = JSON.parse(await sRes.data.text());
             const files = JSON.parse(await fRes.data.text());
             
-            const selector = document.getElementById('fileSelector'); selector.innerHTML = '';
+            const selector = document.getElementById('fileSelector'); 
+            selector.innerHTML = '';
+            
             files.reverse().forEach(file => {
-                const opt = document.createElement('option'); opt.value = file;
+                const opt = document.createElement('option'); 
+                opt.value = file;
                 const dateKey = file.replace('.csv', '').replace('.CSV', '');
                 opt.textContent = sosMap[dateKey] ? `${sosMap[dateKey]} (${dateKey})` : dateKey.toUpperCase();
                 selector.appendChild(opt);
             });
+            
             await fetchTeamsFromCloud(); 
-            if (files.length > 0) await loadSelectedFile(files[0]);
+            
+            if (files.length > 0) {
+                await loadSelectedFile(files[0]);
+            }
 
-        } catch (e) { console.error(e); } 
-        finally { 
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.style.opacity = '0';
-            setTimeout(() => overlay.style.display = 'none', 300);
+        } catch (e) { 
+            console.error(e); 
+        } finally { 
+            hideLoading();
         }
     };
 
@@ -239,6 +599,7 @@
         selectedFileName = fileName; 
         const jsonName = fileName.replace(/\.csv/i, '.json');
         const timestamp = `?t=${Date.now()}`;
+        
         try {
             const [regRes, csvRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}${timestamp}`),
@@ -259,8 +620,11 @@
             if (csvRes.error) throw csvRes.error;
             const result = Papa.parse(await csvRes.data.text(), { header: true, skipEmptyLines: 'greedy' });
             
-            const headers = result.meta.fields; activeTroopKeys = headers.filter(h => possibleTroopHeaders.includes(h));
-            updateSortBar(); masterData.clear(); let rankedPool = [];
+            const headers = result.meta.fields; 
+            activeTroopKeys = headers.filter(h => possibleTroopHeaders.includes(h));
+            updateSortBar(); 
+            masterData.clear(); 
+            let rankedPool = [];
 
             result.data.forEach(row => {
                 const cleanId = kdClean(row.KD || row['KD#']);
@@ -268,12 +632,14 @@
                 if (cleanId && p > 0) {
                     const regInfo = currentRegistrations[cleanId];
                     const obj = { 
-                        kd: cleanId, power: p, 
+                        kd: cleanId, 
+                        power: p, 
                         merits: cleanNum(row['Top 300 Merits'] || row.Merits), 
                         kills: cleanNum(row['Top 300 Kills'] || row.Kills), 
                         deads: cleanNum(row['Top 300 Deads'] || row.Deads), 
                         heals: cleanNum(row['Top 300 Heals'] || row.Heals), 
-                        ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']), 
+                        ch25: cleanNum(row['CH25']), 
+                        ap: cleanNum(row['CH25 AP']), 
                         mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0, 
                         class: regInfo ? (regInfo.class || "TBD") : "-", 
                         isParagon: regInfo?.isParagon === true, 
@@ -284,89 +650,169 @@
                     if (registeredKDs.has(cleanId)) rankedPool.push(obj);
                 }
             });
+            
             rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
             rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
-            currentTeams = allTeamsData[fileName] || []; renderAll();
-        } catch (e) { console.error(e); }
+            
+            currentTeams = allTeamsData[fileName] || []; 
+            renderAll();
+            
+        } catch (e) { 
+            console.error(e); 
+        }
     }
 
     async function fetchTeamsFromCloud() {
         const timestamp = `?t=${Date.now()}`;
         try {
             const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('TeamsConfig.json' + timestamp);
-            if (error) { allTeamsData = {}; return; }
+            if (error) { 
+                allTeamsData = {}; 
+                return; 
+            }
             allTeamsData = JSON.parse(await data.text());
-        } catch (e) { allTeamsData = {}; }
+        } catch (e) { 
+            allTeamsData = {}; 
+        }
     }
 
     async function saveToCloud() {
         if (!isAdmin) return;
+        
         const btn = document.getElementById('saveStatusBtn');
-        btn.textContent = "SAVING..."; btn.disabled = true;
+        btn.textContent = "SAVING..."; 
+        btn.disabled = true;
+        
         allTeamsData[selectedFileName] = currentTeams;
+        
         try {
             const { error } = await supabaseClient.storage.from(BUCKET_CONFIGS)
                 .upload('TeamsConfig.json', JSON.stringify(allTeamsData, null, 2), { upsert: true, contentType: 'application/json' });
+            
             if (error) throw error;
-            btn.textContent = "SAVED!"; setTimeout(() => btn.textContent="SAVE CLOUD", 2000);
-        } catch (e) { btn.textContent="RETRY"; } finally { btn.disabled = false; }
+            btn.textContent = "SAVED!"; 
+            setTimeout(() => btn.textContent="SAVE CLOUD", 2000);
+        } catch (e) { 
+            btn.textContent="RETRY"; 
+        } finally { 
+            btn.disabled = false; 
+        }
     }
 
     function renderAll() {
-        const container = document.getElementById('teamsContainer'), sT = document.getElementById('teamSearch').value.toLowerCase().trim(); container.innerHTML = '';
-        let displayTeams = currentTeams.map((t, idx) => ({ ...t, originalIdx: idx, stats: calculateTeamTotals(t) }));
+        const container = document.getElementById('teamsContainer');
+        const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); 
+        container.innerHTML = '';
+        
+        let displayTeams = currentTeams.map((t, idx) => ({ 
+            ...t, 
+            originalIdx: idx, 
+            stats: calculateTeamTotals(t) 
+        }));
         
         if (currentSort !== 'teamName') { 
-            displayTeams.sort((a, b) => { if (currentSort === 'mpRank') return (a.stats.totalMpRank || 0) - (b.stats.totalMpRank || 0); let valA = a.stats[currentSort] || (a.stats.b && a.stats.b[currentSort]) || 0, valB = b.stats[currentSort] || (b.stats.b && b.stats.b[currentSort]) || 0; return valB - valA; }); 
+            displayTeams.sort((a, b) => { 
+                if (currentSort === 'mpRank') {
+                    return (a.stats.totalMpRank || 0) - (b.stats.totalMpRank || 0); 
+                }
+                let valA = a.stats[currentSort] || (a.stats.b && a.stats.b[currentSort]) || 0;
+                let valB = b.stats[currentSort] || (b.stats.b && b.stats.b[currentSort]) || 0; 
+                return valB - valA; 
+            }); 
         }
         
-        if (sT) { displayTeams = displayTeams.filter(t => t.name.toLowerCase().includes(sT) || t.ids.some(id => masterData.get(kdClean(id))?.alliance.toLowerCase().includes(sT) || kdClean(id).includes(sT))); }
+        if (sT) { 
+            displayTeams = displayTeams.filter(t => 
+                t.name.toLowerCase().includes(sT) || 
+                t.ids.some(id => {
+                    const d = masterData.get(kdClean(id));
+                    return (d && d.alliance.toLowerCase().includes(sT)) || kdClean(id).includes(sT);
+                })
+            ); 
+        }
         
         displayTeams.forEach(team => {
-            const tIdx = team.originalIdx, sums = team.stats, card = document.createElement('div'); card.className = 'team-card';
+            const tIdx = team.originalIdx;
+            const sums = team.stats;
+            const card = document.createElement('div'); 
+            card.className = 'team-card';
             
             const showRankCols = team.ids.some(id => {
                 const d = masterData.get(kdClean(id));
                 return d && d.powerRank !== undefined;
             });
 
-            const allTbd = team.ids.every(id => { const d = masterData.get(kdClean(id)); return !d || d.class === "TBD" || d.class === "-"; });
+            const allTbd = team.ids.every(id => { 
+                const d = masterData.get(kdClean(id)); 
+                return !d || d.class === "TBD" || d.class === "-"; 
+            });
+            
             const dataColsSpan = 7 + activeTroopKeys.length + (showRankCols ? 2 : 0) + (!allTbd ? 1 : 0);
             
             let rowsHtml = team.ids.map((id, rowIdx) => {
                 const cleanId = kdClean(id);
                 const d = masterData.get(cleanId);
-                if (!d) return `<tr>${isAdmin ? `<td class="col-del" onclick="removeRow(${tIdx}, ${rowIdx})">×</td><td class="drag-handle">≡</td>` : ''}${showRankCols ? '<td>-</td>' : ''}<td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:40px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#3b82f6; text-align:center;">` : id}</td><td colspan="${dataColsSpan}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td></tr>`;
                 
-                return `<tr>
-                    ${isAdmin ? `<td class="col-del" onclick="removeRow(${tIdx}, ${rowIdx})">×</td><td class="drag-handle">≡</td>` : ''}
-                    ${showRankCols ? `<td>${d.powerRank || '-'}</td>` : ''}
-                    <td class="col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:50px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#3b82f6; text-align:center;">` : id}</td>
-                    ${!allTbd ? `<td>${d.class}</td>` : ''}
-                    <td style="text-align:center; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td>
-                    <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
-                    <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
-                    <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
-                    ${showRankCols ? `<td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td>` : ''}
-                    <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
-                    <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
-                    <td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
-                    <td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
-                    ${activeTroopKeys.map(k => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}
-                </tr>`;
+                if (!d) {
+                    return `
+                        <tr>
+                            ${isAdmin ? `<td class="col-del" onclick="removeRow(${tIdx}, ${rowIdx})">×</td><td class="drag-handle">≡</td>` : ''}
+                            ${showRankCols ? '<td>-</td>' : ''}
+                            <td class="col-kd">
+                                ${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:40px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#3b82f6; text-align:center;">` : id}
+                            </td>
+                            <td colspan="${dataColsSpan}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td>
+                        </tr>
+                    `;
+                }
+                
+                return `
+                    <tr>
+                        ${isAdmin ? `<td class="col-del" onclick="removeRow(${tIdx}, ${rowIdx})">×</td><td class="drag-handle">≡</td>` : ''}
+                        ${showRankCols ? `<td>${d.powerRank || '-'}</td>` : ''}
+                        <td class="col-kd">
+                            ${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" style="width:50px; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#3b82f6; text-align:center;">` : id}
+                        </td>
+                        ${!allTbd ? `<td>${d.class}</td>` : ''}
+                        <td style="text-align:center; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td>
+                        <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
+                        <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
+                        <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
+                        ${showRankCols ? `<td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td>` : ''}
+                        <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
+                        <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
+                        <td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
+                        <td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
+                        ${activeTroopKeys.map(k => `
+                            <td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>
+                        `).join('')}
+                    </tr>
+                `;
             }).join('');
 
             const labelColSpan = (isAdmin ? 2 : 0) + (showRankCols ? 1 : 0) + 2 + (allTbd ? 0 : 1);
             
             card.innerHTML = `
-                <div class="team-header">
-                    <div>
-                        <input class="name-input" value="${team.name}" ${!isAdmin ? 'disabled' : ''} onchange="updateName(${tIdx}, this.value)">
-                        ${!isAdmin && team.note ? `<div class="note-display">${team.note}</div>` : ''}
-                        ${isAdmin ? `<input class="note-input" placeholder="Add note..." value="${team.note || ''}" onchange="updateNote(${tIdx}, this.value)">` : ''}
+                <div class="team-header" style="align-items: flex-start; gap: 20px;">
+                    <div style="flex: 1; min-width: 0;">
+                        ${isAdmin ? 
+                            `<input class="name-input" value="${team.name}" onchange="updateName(${tIdx}, this.value)">` : 
+                            `<div class="name-input" style="word-wrap: break-word;">${team.name}</div>`
+                        }
+                        ${!isAdmin && team.note ? 
+                            `<div class="note-display" style="margin-top: 8px;">${team.note}</div>` : 
+                            ''
+                        }
+                        ${isAdmin ? 
+                            `<input class="note-input" style="margin-top: 8px;" placeholder="Add note..." value="${team.note || ''}" onchange="updateNote(${tIdx}, this.value)">` : 
+                            ''
+                        }
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        ${isAdmin ? `<button class="btn btn-green" onclick="addRow(${tIdx})">+ ROW</button><button class="btn btn-red" onclick="deleteTeam(${tIdx})">DEL TEAM</button>` : ''}
+                    <div style="display:flex; gap:10px; flex-shrink: 0; margin-top: 4px;">
+                        ${isAdmin ? `
+                            <button class="btn btn-green" onclick="addRow(${tIdx})">+ ROW</button>
+                            <button class="btn btn-red" onclick="deleteTeam(${tIdx})">DEL TEAM</button>
+                        ` : ''}
                     </div>
                 </div>
                 <div class="table-wrapper">
@@ -389,7 +835,9 @@
                                 ${activeTroopKeys.map(k => `<th>${k.replace('+', '')}</th>`).join('')}
                             </tr>
                         </thead>
-                        <tbody id="tbody-${tIdx}">${rowsHtml}</tbody>
+                        <tbody id="tbody-${tIdx}">
+                            ${rowsHtml}
+                        </tbody>
                         <tr class="summary-row">
                             <td colspan="${labelColSpan}" class="summary-label">TEAM TOTALS</td>
                             <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(sums.power)}</td>
@@ -400,53 +848,140 @@
                             <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td>
                             <td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td>
                             <td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td>
-                            ${activeTroopKeys.map(k => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>`).join('')}
+                            ${activeTroopKeys.map(k => `
+                                <td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>
+                            `).join('')}
                         </tr>
                     </table>
-                </div>`;
-            container.appendChild(card); if(isAdmin) setupSortable(tIdx);
+                </div>
+            `;
+            container.appendChild(card); 
+            if(isAdmin) setupSortable(tIdx);
         });
     }
 
     function calculateTeamTotals(team) {
-        let s = { power:0, merits:0, kills:0, deads:0, totalCh25:0, ap:0, count:0, totalMpRank: 0, b: {} }; activeTroopKeys.forEach(k => s.b[k] = 0);
+        let s = { power:0, merits:0, kills:0, deads:0, totalCh25:0, ap:0, count:0, totalMpRank: 0, b: {} }; 
+        activeTroopKeys.forEach(k => s.b[k] = 0);
+        
         team.ids.forEach(id => { 
             const cleanId = kdClean(id);
             const d = masterData.get(cleanId); 
             if (d) { 
-                s.power += d.power; s.merits += d.merits; s.kills += d.kills; s.deads += d.deads; s.totalCh25 += d.ch25; s.ap += d.ap; s.count++; 
+                s.power += d.power; 
+                s.merits += d.merits; 
+                s.kills += d.kills; 
+                s.deads += d.deads; 
+                s.totalCh25 += d.ch25; 
+                s.ap += d.ap; 
+                s.count++; 
                 if (typeof d.mpRank === 'number') s.totalMpRank += d.mpRank; 
                 activeTroopKeys.forEach(k => s.b[k] += cleanNum(d.raw[k])); 
             } 
         });
-        return { ...s, mp: s.power > 0 ? (s.merits / s.power) : 0, avgAp: s.count > 0 ? (s.ap / s.count) : 0 };
-    }
-    
-    async function login() {
-        const email = document.getElementById('email').value, password = document.getElementById('pass').value, errorDiv = document.getElementById('loginError'), btn = document.getElementById('loginActionBtn');
-        errorDiv.style.display = 'none'; btn.textContent = "AUTHORIZING..."; btn.disabled = true;
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { errorDiv.textContent = error.message; errorDiv.style.display = 'block'; } else { enableAdminMode(); toggleModal(false); }
-        btn.textContent = "AUTHORIZE"; btn.disabled = false;
+        
+        return { 
+            ...s, 
+            mp: s.power > 0 ? (s.merits / s.power) : 0, 
+            avgAp: s.count > 0 ? (s.ap / s.count) : 0 
+        };
     }
 
-    function logout() { supabaseClient.auth.signOut(); location.reload(); }
-    function enableAdminMode() { isAdmin = true; document.getElementById('adminArea').style.display = 'flex'; document.getElementById('loginBtn').style.display = 'none'; renderAll(); }
-    function toggleTroops() { const row = document.getElementById('troopRow'); const arrow = document.getElementById('arrowIcon'); row.classList.toggle('open'); arrow.style.transform = row.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; }
-    function updateSortBar() { const container = document.querySelector('#troopRow .metric-row'); if (!container) return; container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); }
-    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
-    function formatVal(n) { if (!n) return "-"; if (n >= 1e9) return (n/1e9).toFixed(2) + 'B'; if (n >= 1e6) return (n/1e6).toFixed(2) + 'M'; return n.toLocaleString(); }
-    function formatValNoDec(n) { return n ? Math.floor(n).toLocaleString() : "-"; }
-    function setSort(key, btn) { currentSort = key; document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); else if (key === 'teamName') document.getElementById('nameSort').classList.add('active'); renderAll(); }
-    function updateId(tIdx, rIdx, val) { currentTeams[tIdx].ids[rIdx] = val; renderAll(); }
-    function updateName(tIdx, val) { currentTeams[tIdx].name = val; }
-    function updateNote(tIdx, val) { currentTeams[tIdx].note = val; }
-    function addRow(tIdx) { currentTeams[tIdx].ids.push("000"); renderAll(); }
-    function removeRow(tIdx, rIdx) { currentTeams[tIdx].ids.splice(rIdx, 1); renderAll(); }
-    function deleteTeam(tIdx) { if(confirm("Delete Team?")) { currentTeams.splice(tIdx, 1); renderAll(); } }
-    function addNewTeam() { currentTeams.unshift({ name: "A New Group", ids: ["000"], note: "" }); renderAll(); }
-    function setupSortable(tIdx) { new Sortable(document.getElementById(`tbody-${tIdx}`), { handle: '.drag-handle', animation: 150, onEnd: (evt) => { const team = currentTeams[tIdx]; const moved = team.ids.splice(evt.oldIndex, 1)[0]; team.ids.splice(evt.newIndex, 0, moved); renderAll(); } }); }
-    function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
+    function toggleTroops() { 
+        const row = document.getElementById('troopRow'); 
+        const arrow = document.getElementById('arrowIcon'); 
+        row.classList.toggle('open'); 
+        arrow.style.transform = row.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; 
+    }
+
+    function updateSortBar() { 
+        const container = document.querySelector('#troopRow .metric-row'); 
+        if (!container) return; 
+        
+        container.innerHTML = activeTroopKeys.map(k => `
+            <button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>
+        `).join(''); 
+    }
+
+    function cleanNum(v) { 
+        if (!v) return 0; 
+        return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; 
+    }
+
+    function formatVal(n) { 
+        if (!n) return "-"; 
+        if (n >= 1e9) return (n/1e9).toFixed(2) + 'B'; 
+        if (n >= 1e6) return (n/1e6).toFixed(2) + 'M'; 
+        return n.toLocaleString(); 
+    }
+
+    function formatValNoDec(n) { 
+        return n ? Math.floor(n).toLocaleString() : "-"; 
+    }
+
+    function setSort(key, btn) { 
+        currentSort = key; 
+        document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active')); 
+        
+        if (btn) {
+            btn.classList.add('active'); 
+        } else if (key === 'teamName') {
+            document.getElementById('nameSort').classList.add('active'); 
+        }
+        renderAll(); 
+    }
+
+    function updateId(tIdx, rIdx, val) { 
+        currentTeams[tIdx].ids[rIdx] = val; 
+        renderAll(); 
+    }
+
+    function updateName(tIdx, val) { 
+        currentTeams[tIdx].name = val; 
+    }
+
+    function updateNote(tIdx, val) { 
+        currentTeams[tIdx].note = val; 
+    }
+
+    function addRow(tIdx) { 
+        currentTeams[tIdx].ids.push("000"); 
+        renderAll(); 
+    }
+
+    function removeRow(tIdx, rIdx) { 
+        currentTeams[tIdx].ids.splice(rIdx, 1); 
+        renderAll(); 
+    }
+
+    function deleteTeam(tIdx) { 
+        if(confirm("Delete Team?")) { 
+            currentTeams.splice(tIdx, 1); 
+            renderAll(); 
+        } 
+    }
+
+    function addNewTeam() { 
+        currentTeams.unshift({ name: "A New Group", ids: ["000"], note: "" }); 
+        renderAll(); 
+    }
+
+    function setupSortable(tIdx) { 
+        new Sortable(document.getElementById(`tbody-${tIdx}`), { 
+            handle: '.drag-handle', 
+            animation: 150, 
+            onEnd: (evt) => { 
+                const team = currentTeams[tIdx]; 
+                const moved = team.ids.splice(evt.oldIndex, 1)[0]; 
+                team.ids.splice(evt.newIndex, 0, moved); 
+                renderAll(); 
+            } 
+        }); 
+    }
+
+    function toggleModal(v) { 
+        document.getElementById('authModal').style.display = v ? 'flex' : 'none'; 
+    }
 </script>
 </body>
 </html>

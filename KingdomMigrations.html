@@ -4,18 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BN Analytics | Kingdom Migrations</title>
+    
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="mobile.css">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
     <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         /* --- 1. SCROLLBARS: HIDDEN ON MAIN, VISIBLE IN MODAL --- */
         html {
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
-        html::-webkit-scrollbar { display: none; }
+        html::-webkit-scrollbar { 
+            display: none; 
+        }
 
         /* Custom scrollbars for internal areas */
         .scroll-area::-webkit-scrollbar, 
@@ -23,23 +29,167 @@
             display: block; 
             width: 8px !important; 
         }
+        
         .scroll-area::-webkit-scrollbar-track, 
-        #soloModal::-webkit-scrollbar-track { background: rgba(0,0,0,0.3) !important; border-radius: 10px; }
+        #soloModal::-webkit-scrollbar-track { 
+            background: rgba(0,0,0,0.3) !important; 
+            border-radius: 10px; 
+        }
+        
         .scroll-area::-webkit-scrollbar-thumb, 
-        #soloModal::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15) !important; border-radius: 10px; }
+        #soloModal::-webkit-scrollbar-thumb { 
+            background: rgba(255, 255, 255, 0.15) !important; 
+            border-radius: 10px; 
+        }
+        
         .scroll-area::-webkit-scrollbar-thumb:hover, 
-        #soloModal::-webkit-scrollbar-thumb:hover { background: var(--primary) !important; }
+        #soloModal::-webkit-scrollbar-thumb:hover { 
+            background: var(--primary) !important; 
+        }
 
         /* --- CORE STYLING --- */
-        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 20px; line-height: 1.5; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
-        .header-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; padding-top: 40px; }
-        .page-title-main { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -2px; margin: 0; }
-        .disclaimer-bar { text-align: center; margin: 15px auto 25px auto; font-weight: 900; color: var(--muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 2px; background: rgba(255,255,255,0.05); width: fit-content; padding: 8px 30px; border-radius: 50px; border: 1px solid var(--glass-border); }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
+            background-attachment: fixed; 
+            color: var(--text); 
+            margin: 0; 
+            padding: 20px; 
+            line-height: 1.5; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            overflow-x: hidden; 
+        }
+        
+        .header-container { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 20px; 
+            padding-top: 40px; 
+        }
+        
+        .page-title-main { 
+            font-size: 3.5rem; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            letter-spacing: -2px; 
+            margin: 0; 
+        }
+        
+        .disclaimer-bar { 
+            text-align: center; 
+            margin: 15px auto 25px auto; 
+            font-weight: 900; 
+            color: var(--muted); 
+            text-transform: uppercase; 
+            font-size: 0.75rem; 
+            letter-spacing: 2px; 
+            background: rgba(255,255,255,0.05); 
+            width: fit-content; 
+            padding: 8px 30px; 
+            border-radius: 50px; 
+            border: 1px solid var(--glass-border); 
+        }
 
         /* Navigation */
-        .nav-btn { position: fixed; top: 20px; z-index: 1000; background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); color: white; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
-        .nav-btn:hover { background: var(--primary); border-color: var(--primary); transform: translateY(-2px); }
-        .home-btn { left: 20px; } .top-btn { right: 20px; }
+        .nav-btn { 
+            position: fixed; 
+            top: 20px; 
+            z-index: 1000; 
+            background: var(--glass); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); 
+            color: white; 
+            padding: 10px 20px; 
+            border-radius: 12px; 
+            text-decoration: none; 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        
+        .nav-btn:hover { 
+            background: var(--primary); 
+            border-color: var(--primary); 
+            transform: translateY(-2px); 
+        }
+        
+        .home-btn { left: 20px; } 
+        .top-btn { right: 20px; }
+
+        /* --- ROTATE HINT OVERLAY --- */
+        #rotate-hint {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 900px) and (orientation: portrait) {
+            #rotate-hint { display: flex; }
+        }
+
+        .rotate-content p {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            margin: 20px 0;
+            color: var(--primary);
+        }
+
+        .rotate-content button {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--muted);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .phone-icon {
+            width: 50px;
+            height: 80px;
+            border: 3px solid white;
+            border-radius: 6px;
+            position: relative;
+            margin: 0 auto;
+            animation: rotatePhone 3s ease-in-out infinite;
+        }
+
+        .phone-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        @keyframes rotatePhone {
+            0%, 20% { transform: rotate(0deg); }
+            40%, 60% { transform: rotate(90deg); }
+            80%, 100% { transform: rotate(0deg); }
+        }
 
         /* --- FIXED CENTERED LOADING MODAL --- */
         #loadingOverlay { 
@@ -53,14 +203,17 @@
             justify-content: center; 
             transition: opacity 0.4s ease;
         }
+        
         .spinner {
-            width: 50px; height: 50px; 
+            width: 50px; 
+            height: 50px; 
             border: 5px solid rgba(255,255,255,0.1); 
             border-top-color: #3b82f6; 
             border-radius: 50%; 
             animation: spin 1s linear infinite;
             margin-bottom: 30px;
         }
+        
         #progressContainer { 
             width: 100%; 
             max-width: 400px; 
@@ -71,7 +224,15 @@
             border: 1px solid var(--glass-border);
             margin-bottom: 15px;
         }
-        #progressBar { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s ease; box-shadow: 0 0 15px var(--primary); }
+        
+        #progressBar { 
+            width: 0%; 
+            height: 100%; 
+            background: var(--primary); 
+            transition: width 0.1s ease; 
+            box-shadow: 0 0 15px var(--primary); 
+        }
+        
         #status-msg-loading { 
             text-align: center; 
             font-weight: 800; 
@@ -80,81 +241,373 @@
             font-size: 0.75rem; 
             letter-spacing: 2px;
         }
+        
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         /* Selector */
-        .selector-island { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; display: flex; gap: 20px; align-items: flex-end; margin-bottom: 30px; justify-content: center; flex-wrap: wrap; }
+        .selector-island { 
+            background: var(--glass); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 24px; 
+            padding: 25px; 
+            display: flex; 
+            gap: 20px; 
+            align-items: flex-end; 
+            margin-bottom: 30px; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+        }
+        
         .select-group { display: flex; flex-direction: column; gap: 8px; }
-        .select-group label { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); font-weight: 800; }
-        select { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: white; padding: 12px 20px; border-radius: 12px; font-family: 'Inter', sans-serif; font-weight: 600; outline: none; min-width: 220px; }
-        .compare-btn { background: var(--primary); color: white; border: none; padding: 0 30px; border-radius: 12px; font-weight: 900; cursor: pointer; text-transform: uppercase; transition: 0.3s; height: 46px; }
+        .select-group label { 
+            font-size: 0.7rem; 
+            text-transform: uppercase; 
+            color: var(--muted); 
+            font-weight: 800; 
+        }
+        
+        select { 
+            background: rgba(0,0,0,0.3); 
+            border: 1px solid var(--glass-border); 
+            color: white; 
+            padding: 12px 20px; 
+            border-radius: 12px; 
+            font-family: 'Inter', sans-serif; 
+            font-weight: 600; 
+            outline: none; 
+            min-width: 220px; 
+        }
+        
+        .compare-btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 0 30px; 
+            border-radius: 12px; 
+            font-weight: 900; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            transition: 0.3s; 
+            height: 46px; 
+        }
 
         /* Search & Sort */
-        .search-type-toggle { display: flex; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 50px; border: 1px solid var(--glass-border); margin-bottom: 15px; gap: 5px; }
-        .st-btn { background: transparent; border: none; color: var(--muted); padding: 8px 20px; border-radius: 40px; cursor: pointer; font-weight: 800; font-size: 0.65rem; text-transform: uppercase; transition: 0.3s; }
-        .st-btn.active { background: var(--primary); color: white; }
-        .search-box { padding: 16px; border-radius: 16px; border: 1px solid var(--glass-border); width: 100%; max-width: 500px; background: rgba(0,0,0,0.3); color: white; outline: none; font-weight: 600; text-align: center; font-size: 1rem; margin-bottom: 20px; }
-        .sort-bar { display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
-        .sort-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--muted); padding: 10px 20px; border-radius: 30px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
-        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .search-type-toggle { 
+            display: flex; 
+            background: rgba(0,0,0,0.4); 
+            padding: 5px; 
+            border-radius: 50px; 
+            border: 1px solid var(--glass-border); 
+            margin-bottom: 15px; 
+            gap: 5px; 
+        }
+        
+        .st-btn { 
+            background: transparent; 
+            border: none; 
+            color: var(--muted); 
+            padding: 8px 20px; 
+            border-radius: 40px; 
+            cursor: pointer; 
+            font-weight: 800; 
+            font-size: 0.65rem; 
+            text-transform: uppercase; 
+            transition: 0.3s; 
+        }
+        
+        .st-btn.active { 
+            background: var(--primary); 
+            color: white; 
+        }
+        
+        .search-box { 
+            padding: 16px; 
+            border-radius: 16px; 
+            border: 1px solid var(--glass-border); 
+            width: 100%; 
+            max-width: 500px; 
+            background: rgba(0,0,0,0.3); 
+            color: white; 
+            outline: none; 
+            font-weight: 600; 
+            text-align: center; 
+            font-size: 1rem; 
+            margin-bottom: 20px; 
+        }
+        
+        .sort-bar { 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+            margin-bottom: 30px; 
+            flex-wrap: wrap; 
+        }
+        
+        .sort-btn { 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid var(--glass-border); 
+            color: var(--muted); 
+            padding: 10px 20px; 
+            border-radius: 30px; 
+            font-size: 0.75rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        
+        .sort-btn.active { 
+            background: var(--primary); 
+            color: white; 
+            border-color: var(--primary); 
+        }
 
         /* Cards */
-        #cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 25px; width: 100%; max-width: 1400px; }
-        .kd-card { background: var(--glass); backdrop-filter: blur(10px); border-radius: 24px; padding: 24px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 16px; transition: 0.3s; cursor: pointer; }
-        .kd-card:hover { transform: translateY(-5px); border-color: var(--primary); background: rgba(255,255,255,0.06); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
+        #cardGrid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); 
+            gap: 25px; 
+            width: 100%; 
+            max-width: 1400px; 
+        }
+        
+        .kd-card { 
+            background: var(--glass); 
+            backdrop-filter: blur(10px); 
+            border-radius: 24px; 
+            padding: 24px; 
+            border: 1px solid var(--glass-border); 
+            display: flex; 
+            flex-direction: column; 
+            gap: 16px; 
+            transition: 0.3s; 
+            cursor: pointer; 
+        }
+        
+        .kd-card:hover { 
+            transform: translateY(-5px); 
+            border-color: var(--primary); 
+            background: rgba(255,255,255,0.06); 
+        }
+        
+        .card-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid var(--glass-border); 
+            padding-bottom: 15px; 
+        }
+        
         .kd-id { font-size: 1.3rem; font-weight: 900; color: var(--primary); text-transform: uppercase; }
         .kd-ally { font-weight: 800; color: white; font-size: 1rem; text-align: right; text-transform: uppercase; }
+        
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .stat-box { padding: 16px; border-radius: 20px; border: 1px solid var(--glass-border); border-left-width: 6px; display: flex; flex-direction: column; min-height: 80px; justify-content: center; background: rgba(255,255,255,0.02); }
-        .stat-label { font-size: 0.65rem; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-box { 
+            padding: 16px; 
+            border-radius: 20px; 
+            border: 1px solid var(--glass-border); 
+            border-left-width: 6px; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 80px; 
+            justify-content: center; 
+            background: rgba(255,255,255,0.02); 
+        }
+        
+        .stat-label { 
+            font-size: 0.65rem; 
+            font-weight: 900; 
+            color: var(--muted); 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+        }
+        
         .stat-value { font-size: 1.35rem; font-weight: 950; color: white; margin-top: 4px; }
-        .box-players { border-left-color: #3b82f6; } .box-pwr { border-left-color: #06b6d4; } .box-kills { border-left-color: #f59e0b; } .box-deads { border-left-color: #ef4444; } .box-heals { border-left-color: #10b981; }
-        .card-hint { text-align: center; font-size: 0.7rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 10px; opacity: 0.6; }
+        
+        .box-players { border-left-color: #3b82f6; } 
+        .box-pwr { border-left-color: #06b6d4; } 
+        .box-kills { border-left-color: #f59e0b; } 
+        .box-deads { border-left-color: #ef4444; } 
+        .box-heals { border-left-color: #10b981; }
+        
+        .card-hint { 
+            text-align: center; 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            color: var(--muted); 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            margin-top: 10px; 
+            opacity: 0.6; 
+        }
 
         /* --- MODERN MODAL --- */
-        #soloModal { display: none; position: fixed; inset: 0; background: radial-gradient(circle at center, rgba(15, 23, 42, 0.98), #000); z-index: 3000; backdrop-filter: blur(25px); overflow-y: auto; padding: 40px 20px; }
-        .modal-container { width: 95%; max-width: 1400px; margin: 0 auto; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 40px; padding: 60px; position: relative; box-shadow: 0 0 100px rgba(0,0,0,0.5); }
-        .modal-header { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 50px; border-bottom: 1px solid var(--glass-border); padding-bottom: 30px; }
-        .solo-main-title { font-size: 5rem; font-weight: 950; text-transform: uppercase; letter-spacing: -4px; color: var(--primary); margin: 0; line-height: 1; }
-        .solo-sub-title { font-size: 1.3rem; font-weight: 800; color: white; opacity: 0.8; text-transform: uppercase; letter-spacing: 5px; margin-top: 15px; }
-        .close-view-btn { position: absolute; top: 30px; right: 30px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 12px 25px; border-radius: 15px; font-weight: 900; cursor: pointer; transition: 0.3s; }
+        #soloModal { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: radial-gradient(circle at center, rgba(15, 23, 42, 0.98), #000); 
+            z-index: 3000; 
+            backdrop-filter: blur(25px); 
+            overflow-y: auto; 
+            padding: 40px 20px; 
+        }
+        
+        .modal-container { 
+            width: 95%; 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: var(--glass); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 40px; 
+            padding: 60px; 
+            position: relative; 
+            box-shadow: 0 0 100px rgba(0,0,0,0.5); 
+        }
+        
+        .modal-header { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            text-align: center; 
+            margin-bottom: 50px; 
+            border-bottom: 1px solid var(--glass-border); 
+            padding-bottom: 30px; 
+        }
+        
+        .solo-main-title { 
+            font-size: 5rem; 
+            font-weight: 950; 
+            text-transform: uppercase; 
+            letter-spacing: -4px; 
+            color: var(--primary); 
+            margin: 0; 
+            line-height: 1; 
+        }
+        
+        .solo-sub-title { 
+            font-size: 1.3rem; 
+            font-weight: 800; 
+            color: white; 
+            opacity: 0.8; 
+            text-transform: uppercase; 
+            letter-spacing: 5px; 
+            margin-top: 15px; 
+        }
+        
+        .close-view-btn { 
+            position: absolute; 
+            top: 30px; 
+            right: 30px; 
+            background: rgba(239, 68, 68, 0.2); 
+            border: 1px solid rgba(239, 68, 68, 0.4); 
+            color: #ef4444; 
+            padding: 12px 25px; 
+            border-radius: 15px; 
+            font-weight: 900; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
 
-        /* --- MODAL METRICS ALIGNMENT (REBUILT FOR PRECISION) --- */
-        .modal-metrics-list { display: flex; flex-direction: column; gap: 0; margin-bottom: 50px; border-top: 1px solid rgba(255,255,255,0.1); }
+        /* --- MODAL METRICS ALIGNMENT --- */
+        .modal-metrics-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 0; 
+            margin-bottom: 50px; 
+            border-top: 1px solid rgba(255,255,255,0.1); 
+        }
         
         .metric-grid-base {
             display: grid; 
-            grid-template-columns: 1fr 1.5fr 1fr; /* Aligned with boxes below */
-            align-items: end; /* Numbers sit on same baseline */
+            grid-template-columns: 1fr 1.5fr 1fr; 
+            align-items: end; 
             text-align: center;
         }
 
-        .metric-header-row { padding: 25px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .metric-header-row span { font-size: 0.8rem; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: 3px; }
+        .metric-header-row { 
+            padding: 25px 0; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+        }
+        
+        .metric-header-row span { 
+            font-size: 0.8rem; 
+            font-weight: 900; 
+            color: var(--muted); 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+        }
 
-        .metric-card-row { padding: 30px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .metric-card-row { 
+            padding: 30px 0; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+        }
 
         .m-in { color: #10b981; font-weight: 900; font-size: 1.6rem; }
         .m-out { color: #ef4444; font-weight: 900; font-size: 1.6rem; }
 
         .m-center-stack { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-        .m-name { font-size: 0.75rem; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: 2.5px; margin-bottom: 8px; }
+        .m-name { 
+            font-size: 0.75rem; 
+            font-weight: 900; 
+            color: var(--muted); 
+            text-transform: uppercase; 
+            letter-spacing: 2.5px; 
+            margin-bottom: 8px; 
+        }
         .m-delta { font-weight: 950; letter-spacing: -1px; font-size: 2.2rem; color: white; line-height: 1; }
 
         /* --- PLAYER ZONES --- */
         .migration-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        .zone-box { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 32px; padding: 30px; height: 750px; display: flex; flex-direction: column; }
-        .zone-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .zone-title { font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
+        .zone-box { 
+            background: rgba(0,0,0,0.3); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 32px; 
+            padding: 30px; 
+            height: 750px; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        .zone-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            padding-bottom: 15px; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+        }
+        
+        .zone-title { 
+            font-size: 1.1rem; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+        }
+        
         .scroll-area { overflow-y: auto; flex-grow: 1; padding: 0 10px; scrollbar-gutter: stable; }
         
         .departure-zone .zone-header { flex-direction: row-reverse; }
         .departure-zone .scroll-area { direction: rtl; }
         .departure-zone .scroll-area > * { direction: ltr; text-align: right; }
 
-        .player-chip { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; margin-bottom: 10px; font-size: 0.85rem; cursor: pointer; transition: 0.2s; text-align: left; }
-        .player-chip:hover { background: rgba(255,255,255,0.08); border-color: var(--primary); }
+        .player-chip { 
+            background: rgba(255,255,255,0.03); 
+            border: 1px solid rgba(255,255,255,0.05); 
+            padding: 15px; 
+            border-radius: 16px; 
+            margin-bottom: 10px; 
+            font-size: 0.85rem; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            text-align: left; 
+        }
+        
+        .player-chip:hover { 
+            background: rgba(255,255,255,0.08); 
+            border-color: var(--primary); 
+        }
         
         .whale-gold { border-color: #ffd700 !important; box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
         .whale-gold b { color: #ffd700 !important; }
@@ -169,30 +622,50 @@
         .departure-zone .chip-main { flex-direction: row-reverse; }
         .arrow { font-size: 1.2rem; color: var(--primary); transition: 0.3s; }
         .player-chip.active .arrow { transform: rotate(180deg); }
-        .chip-details { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        
+        .chip-details { 
+            display: none; 
+            margin-top: 15px; 
+            padding-top: 15px; 
+            border-top: 1px solid rgba(255,255,255,0.1); 
+            text-align: center; 
+        }
+        
         .player-chip.active .chip-details { display: block; }
         .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
         .det-box { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; }
         .det-label { font-size: 0.55rem; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 2px; }
         .det-val { font-size: 0.85rem; font-weight: 800; color: white; }
-        .swap-history { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        
+        .swap-history { 
+            background: rgba(255,255,255,0.02); 
+            padding: 15px; 
+            border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.05); 
+        }
+        
         .swap-item { margin-bottom: 12px; }
-        .swap-header { font-size: 0.6rem; color: var(--primary); font-weight: 900; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+        .swap-header { 
+            font-size: 0.6rem; 
+            color: var(--primary); 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            display: block; 
+            margin-bottom: 4px; 
+        }
         .swap-path { font-size: 0.85rem; font-weight: 700; color: white; display: block; }
 
-        /* Logos */
-        .brand-logo { position: fixed; bottom: 30px; z-index: 2000; opacity: 0.6; width: 200px; pointer-events: none; user-select: none; transition: 0.4s ease; }
-        .logo-right { right: 30px; } .logo-left { left: 30px; }
-        .pos-text { color: #10b981; } .neg-text { color: #ef4444; } .neu-text { color: var(--muted); }
+        .pos-text { color: #10b981; } 
+        .neg-text { color: #ef4444; } 
+        .neu-text { color: var(--muted); }
         
         /* --- UPDATED MOBILE MODAL VIEW --- */
         @media (max-width: 1000px) {
-            /* Stack the Arrival and Departure lists vertically */
             .migration-zones { 
                 grid-template-columns: 1fr !important; 
             }
 
-            /* KEEP the 3-column layout for metrics but make them fit */
             .metric-grid-base {
                 grid-template-columns: 1fr 1.2fr 1fr !important; 
                 gap: 5px !important;
@@ -200,7 +673,6 @@
                 align-items: center !important;
             }
 
-            /* Ensure headers stay visible but tiny so user knows the columns */
             .metric-header-row { 
                 display: grid !important; 
             }
@@ -210,7 +682,6 @@
                 letter-spacing: 1px !important;
             }
 
-            /* Shrink the metric numbers so they don't overlap */
             .m-in, .m-out { 
                 font-size: 1rem !important; 
             }
@@ -225,7 +696,6 @@
                 margin-bottom: 4px !important;
             }
 
-            /* Adjust Modal Container Padding */
             .modal-container {
                 padding: 40px 15px !important;
                 width: 98% !important;
@@ -242,7 +712,6 @@
                 font-size: 0.7rem;
             }
 
-            /* Departure chips should align normally on mobile for better reading */
             .departure-zone .scroll-area { direction: ltr; }
             .departure-zone .scroll-area > * { text-align: left; }
             .departure-zone .chip-main { flex-direction: row; }
@@ -250,6 +719,14 @@
 </style>
 </head>
 <body>
+
+<div id="rotate-hint">
+    <div class="rotate-content">
+        <div class="phone-icon"></div>
+        <p>Landscape view recommended</p>
+        <button onclick="document.getElementById('rotate-hint').style.setProperty('display', 'none', 'important')">Dismiss</button>
+    </div>
+</div>
 
 <div id="loadingOverlay">
     <div class="spinner"></div>
@@ -260,12 +737,21 @@
 <a href="index.html" class="nav-btn home-btn">HOME PAGE</a>
 <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="nav-btn top-btn">TO THE TOP</button>
 
-<div class="header-container"><h1 class="page-title-main">Kingdom Migrations</h1></div>
+<div class="header-container">
+    <h1 class="page-title-main">Kingdom Migrations</h1>
+</div>
+
 <div class="disclaimer-bar">⚠️ This data is based on the top 50,000 players of each G2 KvK ⚠️</div>
 
 <div class="selector-island">
-    <div class="select-group"><label>Start Snapshot</label><select id="startSelect"></select></div>
-    <div class="select-group"><label>End Snapshot</label><select id="endSelect"></select></div>
+    <div class="select-group">
+        <label>Start Snapshot</label>
+        <select id="startSelect"></select>
+    </div>
+    <div class="select-group">
+        <label>End Snapshot</label>
+        <select id="endSelect"></select>
+    </div>
     <button class="compare-btn" id="analyzeBtn" onclick="runComparison()">Analyze Range</button>
 </div>
 
@@ -285,7 +771,7 @@
     <button id="btn-heals" class="sort-btn" onclick="handleSort('heals')">Heals</button>
 </div>
 
-<div id="status-msg" style="margin-bottom: 20px; font-weight: 800; color: var(--muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 2px;"></div>
+<div id="status-msg" style="margin-bottom: 20px; font-weight: 800; color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px;"></div>
 <div id="cardGrid"></div>
 <div style="text-align: center;"><button id="loadMoreBtn" class="sort-btn" style="width: 250px; margin: 40px auto; display: none;" onclick="loadMore()">Load More Profiles</button></div>
 
@@ -325,6 +811,7 @@
         </div>
     </div>
 </div>
+
 <script>
     // --- SUPABASE CONFIGURATION ---
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
@@ -332,9 +819,15 @@
     const BUCKET_DATA = "kvk-data";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let migrationData = [], filteredData = [], allFiles = [], latestAllianceMap = {}, sosMap = {};
+    let migrationData = [];
+    let filteredData = [];
+    let allFiles = [];
+    let latestAllianceMap = {};
+    let sosMap = {};
     let currentSort = { key: 'count', direction: 'desc' };
-    let searchType = 'kd', itemsShown = 30, pageSize = 30;
+    let searchType = 'kd';
+    let itemsShown = 30;
+    let pageSize = 30;
 
     // --- CACHE BUSTING FETCH HELPER ---
     async function fetchLatest(path) {
@@ -351,8 +844,21 @@
         return response;
     }
 
-    function cleanNum(val) { if (!val) return 0; return parseFloat(String(val).replace(/["',]/g, '')) || 0; }
-    function formatShorthand(v) { if (v === 0) return "0"; const absV = Math.abs(v); let res = ""; if (absV >= 1e9) res = (absV / 1e9).toFixed(2) + 'B'; else if (absV >= 1e6) res = (absV / 1e6).toFixed(2) + 'M'; else if (absV >= 1e3) res = (absV / 1e3).toFixed(1) + 'K'; else res = Math.round(absV).toLocaleString(); return (v < 0 ? "-" : "") + res; }
+    function cleanNum(val) { 
+        if (!val) return 0; 
+        return parseFloat(String(val).replace(/["',]/g, '')) || 0; 
+    }
+
+    function formatShorthand(v) { 
+        if (v === 0) return "0"; 
+        const absV = Math.abs(v); 
+        let res = ""; 
+        if (absV >= 1e9) res = (absV / 1e9).toFixed(2) + 'B'; 
+        else if (absV >= 1e6) res = (absV / 1e6).toFixed(2) + 'M'; 
+        else if (absV >= 1e3) res = (absV / 1e3).toFixed(1) + 'K'; 
+        else res = Math.round(absV).toLocaleString(); 
+        return (v < 0 ? "-" : "") + res; 
+    }
 
     function updateProgress(pct, text) {
         const bar = document.getElementById('progressBar');
@@ -365,11 +871,15 @@
 
     function hideLoading() {
         const overlay = document.getElementById('loadingOverlay');
-        if (overlay) { overlay.style.opacity = '0'; setTimeout(() => { overlay.style.display = 'none'; }, 400); }
+        if (overlay) { 
+            overlay.style.opacity = '0'; 
+            setTimeout(() => { 
+                overlay.style.display = 'none'; 
+            }, 400); 
+        }
     }
 
     async function init() {
-        const status = document.getElementById('status-msg');
         try {
             updateProgress(10, "Fetching Metadata...");
             const [sRes, fRes] = await Promise.all([
@@ -380,11 +890,14 @@
             sosMap = await sRes.json();
             allFiles = await fRes.json();
             
-            const startSelect = document.getElementById('startSelect'), endSelect = document.getElementById('endSelect');
-            startSelect.innerHTML = ''; endSelect.innerHTML = '';
+            const startSelect = document.getElementById('startSelect');
+            const endSelect = document.getElementById('endSelect');
+            startSelect.innerHTML = ''; 
+            endSelect.innerHTML = '';
 
             [...allFiles].reverse().forEach(file => {
-                const date = file.replace('.csv',''), name = sosMap[date] ? `${sosMap[date]} (${date})` : date;
+                const date = file.replace('.csv','');
+                const name = sosMap[date] ? `${sosMap[date]} (${date})` : date;
                 startSelect.add(new Option(name, file)); 
                 endSelect.add(new Option(name, file));
             });
@@ -394,7 +907,10 @@
                 startSelect.selectedIndex = 1; 
             }
             hideLoading();
-        } catch (err) { console.error(err); document.getElementById('status-msg-loading').innerText = "Sync Failed."; }
+        } catch (err) { 
+            console.error(err); 
+            document.getElementById('status-msg-loading').innerText = "Sync Failed."; 
+        }
     }
 
     async function fetchCSVFull(filename, progressOffset, progressScale) {
@@ -408,9 +924,23 @@
     function parseCSVChunked(text, onProgress) {
         const lines = text.split('\n');
         const header = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(item => item.trim().replace(/["']/g, ""));
-        const idx = { id: header.indexOf('Lord ID'), kd: header.indexOf('KD'), name: header.indexOf('Name'), ally: header.indexOf('Ally'), pwr: header.indexOf('H - Power'), merits: header.indexOf('Merits'), kills: header.indexOf('Kills'), deads: header.indexOf('Deads'), heals: header.indexOf('Heals') };
+        
+        const idx = { 
+            id: header.indexOf('Lord ID'), 
+            kd: header.indexOf('KD'), 
+            name: header.indexOf('Name'), 
+            ally: header.indexOf('Ally'), 
+            pwr: header.indexOf('H - Power'), 
+            merits: header.indexOf('Merits'), 
+            kills: header.indexOf('Kills'), 
+            deads: header.indexOf('Deads'), 
+            heals: header.indexOf('Heals') 
+        };
+        
         const dataMap = new Map();
-        const total = lines.length, chunkSize = 2500;
+        const total = lines.length;
+        const chunkSize = 2500;
+        
         return new Promise((resolve) => {
             let cur = 1;
             function process() {
@@ -420,7 +950,17 @@
                     if (r.length < 5) continue;
                     const id = r[idx.id]?.trim().replace(/"/g, '');
                     if (!id) continue;
-                    dataMap.set(id, { id, kd: r[idx.kd]?.trim().replace(/"/g, ''), name: r[idx.name]?.trim().replace(/"/g, ''), ally: r[idx.ally]?.trim().replace(/"/g, ''), pwr: cleanNum(r[idx.pwr]), merits: cleanNum(r[idx.merits]), kills: cleanNum(r[idx.kills]), deads: cleanNum(r[idx.deads]), heals: cleanNum(r[idx.heals]) });
+                    dataMap.set(id, { 
+                        id, 
+                        kd: r[idx.kd]?.trim().replace(/"/g, ''), 
+                        name: r[idx.name]?.trim().replace(/"/g, ''), 
+                        ally: r[idx.ally]?.trim().replace(/"/g, ''), 
+                        pwr: cleanNum(r[idx.pwr]), 
+                        merits: cleanNum(r[idx.merits]), 
+                        kills: cleanNum(r[idx.kills]), 
+                        deads: cleanNum(r[idx.deads]), 
+                        heals: cleanNum(r[idx.heals]) 
+                    });
                 }
                 cur = end;
                 if (onProgress) onProgress(Math.floor((cur / total) * 100));
@@ -431,70 +971,208 @@
     }
 
     async function runComparison() {
-        const startFile = document.getElementById('startSelect').value, endFile = document.getElementById('endSelect').value;
-        const btn = document.getElementById('analyzeBtn'); btn.disabled = true;
+        const startFile = document.getElementById('startSelect').value;
+        const endFile = document.getElementById('endSelect').value;
+        const btn = document.getElementById('analyzeBtn'); 
+        
+        btn.disabled = true;
         updateProgress(5, "Analyzing performance snapshots...");
 
-        let startIdx = allFiles.indexOf(startFile), endIdx = allFiles.indexOf(endFile);
+        let startIdx = allFiles.indexOf(startFile);
+        let endIdx = allFiles.indexOf(endFile);
+        
         if(startIdx > endIdx) [startIdx, endIdx] = [endIdx, startIdx];
         const rangeFiles = allFiles.slice(startIdx, endIdx + 1);
 
-        latestAllianceMap = {}; const stats = {};
-        const ensureKD = (kd) => { if(!stats[kd]) stats[kd] = { kd, count:{in:0, out:0}, pwr:{in:0, out:0}, kills:{in:0, out:0}, deads:{in:0, out:0}, heals:{in:0, out:0}, arrivalsList: [], departuresList: [] }; };
+        latestAllianceMap = {}; 
+        const stats = {};
+        
+        const ensureKD = (kd) => { 
+            if(!stats[kd]) {
+                stats[kd] = { 
+                    kd, 
+                    count:{in:0, out:0}, 
+                    pwr:{in:0, out:0}, 
+                    kills:{in:0, out:0}, 
+                    deads:{in:0, out:0}, 
+                    heals:{in:0, out:0}, 
+                    arrivalsList: [], 
+                    departuresList: [] 
+                }; 
+            }
+        };
 
         try {
-            const rangeMaps = []; const scale = 0.9 / rangeFiles.length;
+            const rangeMaps = []; 
+            const scale = 0.9 / rangeFiles.length;
+            
             for(let i=0; i<rangeFiles.length; i++) {
                 const map = await fetchCSVFull(rangeFiles[i], (i * scale * 100), scale);
                 rangeMaps.push(map);
             }
 
             updateProgress(95, "Calculating flows...");
-            const startMap = rangeMaps[0], endMap = rangeMaps[rangeMaps.length-1];
-            const latestFileMap = rangeMaps[rangeMaps.length - 1];
-            latestFileMap.forEach(p => { if(!latestAllianceMap[p.kd]) latestAllianceMap[p.kd] = p.ally; });
+            const startMap = rangeMaps[0];
+            const endMap = rangeMaps[rangeMaps.length-1];
+            
+            endMap.forEach(p => { 
+                if(!latestAllianceMap[p.kd]) latestAllianceMap[p.kd] = p.ally; 
+            });
 
             const allIDs = new Set([...startMap.keys(), ...endMap.keys()]);
+            
             allIDs.forEach(id => {
-                const pS = startMap.get(id), pE = endMap.get(id);
-                let segmentSummary = { inGrowth: {kills:0, deads:0, heals:0}, outGrowth: {kills:0, deads:0, heals:0}, swaps: [] };
+                const pS = startMap.get(id);
+                const pE = endMap.get(id);
+                
+                let segmentSummary = { 
+                    inGrowth: {kills:0, deads:0, heals:0}, 
+                    outGrowth: {kills:0, deads:0, heals:0}, 
+                    swaps: [] 
+                };
+                
                 for(let i=0; i < rangeFiles.length - 1; i++){
-                    const curP = rangeMaps[i].get(id), nextP = rangeMaps[i+1].get(id);
+                    const curP = rangeMaps[i].get(id);
+                    const nextP = rangeMaps[i+1].get(id);
+                    
                     if(curP || nextP) {
-                        const growth = { kills: (nextP?.kills||0) - (curP?.kills||0), deads: (nextP?.deads||0) - (curP?.deads||0), heals: (nextP?.heals||0) - (curP?.heals||0) };
+                        const growth = { 
+                            kills: (nextP?.kills||0) - (curP?.kills||0), 
+                            deads: (nextP?.deads||0) - (curP?.deads||0), 
+                            heals: (nextP?.heals||0) - (curP?.heals||0) 
+                        };
+                        
                         if ((curP && nextP && curP.kd !== nextP.kd) || (!curP && nextP) || (curP && !nextP)) {
-                            const curDate = rangeFiles[i].replace('.csv',''), nextDate = rangeFiles[i+1].replace('.csv','');
-                            segmentSummary.swaps.push({ from: sosMap[curDate]||curDate, to: sosMap[nextDate]||nextDate, kdStart: curP ? curP.kd : 'N/A', kdEnd: nextP ? nextP.kd : 'N/A' });
-                            if(nextP && nextP.kd === pE?.kd) { segmentSummary.inGrowth.kills += Math.max(0, growth.kills); segmentSummary.inGrowth.deads += Math.max(0, growth.deads); segmentSummary.inGrowth.heals += Math.max(0, growth.heals); }
-                            if(curP && curP.kd === pS?.kd) { segmentSummary.outGrowth.kills += Math.max(0, growth.kills); segmentSummary.outGrowth.deads += Math.max(0, growth.deads); segmentSummary.outGrowth.heals += Math.max(0, growth.heals); }
+                            const curDate = rangeFiles[i].replace('.csv','');
+                            const nextDate = rangeFiles[i+1].replace('.csv','');
+                            
+                            segmentSummary.swaps.push({ 
+                                from: sosMap[curDate]||curDate, 
+                                to: sosMap[nextDate]||nextDate, 
+                                kdStart: curP ? curP.kd : 'N/A', 
+                                kdEnd: nextP ? nextP.kd : 'N/A' 
+                            });
+                            
+                            if(nextP && nextP.kd === pE?.kd) { 
+                                segmentSummary.inGrowth.kills += Math.max(0, growth.kills); 
+                                segmentSummary.inGrowth.deads += Math.max(0, growth.deads); 
+                                segmentSummary.inGrowth.heals += Math.max(0, growth.heals); 
+                            }
+                            if(curP && curP.kd === pS?.kd) { 
+                                segmentSummary.outGrowth.kills += Math.max(0, growth.kills); 
+                                segmentSummary.outGrowth.deads += Math.max(0, growth.deads); 
+                                segmentSummary.outGrowth.heals += Math.max(0, growth.heals); 
+                            }
                         }
                     }
                 }
+                
                 if (pE && (!pS || pE.kd !== pS.kd)) {
-                    ensureKD(pE.kd); stats[pE.kd].count.in++; stats[pE.kd].pwr.in += pE.pwr;
-                    stats[pE.kd].kills.in += segmentSummary.inGrowth.kills; stats[pE.kd].deads.in += segmentSummary.inGrowth.deads; stats[pE.kd].heals.in += segmentSummary.inGrowth.heals;
-                    stats[pE.kd].arrivalsList.push({ p: pE, old: pS, growth: segmentSummary.inGrowth, swaps: segmentSummary.swaps });
+                    ensureKD(pE.kd); 
+                    stats[pE.kd].count.in++; 
+                    stats[pE.kd].pwr.in += pE.pwr;
+                    stats[pE.kd].kills.in += segmentSummary.inGrowth.kills; 
+                    stats[pE.kd].deads.in += segmentSummary.inGrowth.deads; 
+                    stats[pE.kd].heals.in += segmentSummary.inGrowth.heals;
+                    stats[pE.kd].arrivalsList.push({ 
+                        p: pE, 
+                        old: pS, 
+                        growth: segmentSummary.inGrowth, 
+                        swaps: segmentSummary.swaps 
+                    });
                 }
+                
                 if (pS && (!pE || pS.kd !== pE.kd)) {
-                    ensureKD(pS.kd); stats[pS.kd].count.out++;
+                    ensureKD(pS.kd); 
+                    stats[pS.kd].count.out++;
                     stats[pS.kd].pwr.out += pE ? pE.pwr : pS.pwr;
-                    stats[pS.kd].kills.out += segmentSummary.outGrowth.kills; stats[pS.kd].deads.out += segmentSummary.outGrowth.deads; stats[pS.kd].heals.out += segmentSummary.outGrowth.heals;
-                    stats[pS.kd].departuresList.push({ p: pS, next: pE, growth: segmentSummary.outGrowth, swaps: segmentSummary.swaps });
+                    stats[pS.kd].kills.out += segmentSummary.outGrowth.kills; 
+                    stats[pS.kd].deads.out += segmentSummary.outGrowth.deads; 
+                    stats[pS.kd].heals.out += segmentSummary.outGrowth.heals;
+                    stats[pS.kd].departuresList.push({ 
+                        p: pS, 
+                        next: pE, 
+                        growth: segmentSummary.outGrowth, 
+                        swaps: segmentSummary.swaps 
+                    });
                 }
             });
-            migrationData = Object.entries(stats).map(([kd, s]) => ({ kd, count: s.count.in - s.count.out, pwr: s.pwr.in - s.pwr.out, kills: s.kills.in - s.kills.out, deads: s.deads.in - s.deads.out, heals: s.heals.in - s.heals.out, raw: s })).filter(x => Math.abs(x.count) > 0 || Math.abs(x.pwr) > 0);
-            applySort(); hideLoading();
-        } catch (err) { console.error(err); document.getElementById('status-msg-loading').innerText = "Analysis Failed."; }
-        finally { btn.disabled = false; }
+            
+            migrationData = Object.entries(stats).map(([kd, s]) => {
+                return { 
+                    kd, 
+                    count: s.count.in - s.count.out, 
+                    pwr: s.pwr.in - s.pwr.out, 
+                    kills: s.kills.in - s.kills.out, 
+                    deads: s.deads.in - s.deads.out, 
+                    heals: s.heals.in - s.heals.out, 
+                    raw: s 
+                };
+            }).filter(x => Math.abs(x.count) > 0 || Math.abs(x.pwr) > 0);
+            
+            applySort(); 
+            hideLoading();
+        } catch (err) { 
+            console.error(err); 
+            document.getElementById('status-msg-loading').innerText = "Analysis Failed."; 
+        } finally { 
+            btn.disabled = false; 
+        }
     }
 
-    function setSearchType(type) { searchType = type; document.querySelectorAll('.st-btn').forEach(b => b.classList.remove('active')); document.getElementById(`st-${type}`).classList.add('active'); document.getElementById('kdSearch').placeholder = type === 'kd' ? "Search Kingdom# or Alliance Name..." : "Search Lord ID or Player Name..."; handleSearch(); }
-    function handleSort(k, btn) { if(currentSort.key === k) currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc'; else { currentSort.key = k; currentSort.direction = 'desc'; } document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); applySort(); }
-    function applySort() { migrationData.sort((a,b) => { let vA = a[currentSort.key], vB = b[currentSort.key]; if(currentSort.key === 'kd') { vA = parseInt(vA); vB = parseInt(vB); } return currentSort.direction === 'asc' ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1); }); handleSearch(); }
-    function handleSearch() { const q = document.getElementById('kdSearch').value.toLowerCase(); if (searchType === 'kd') { filteredData = migrationData.filter(d => d.kd.toLowerCase().includes(q) || (latestAllianceMap[d.kd] && latestAllianceMap[d.kd].toLowerCase().includes(q))); } else { filteredData = migrationData.filter(d => d.raw.arrivalsList.some(entry => entry.p.id.includes(q) || entry.p.name.toLowerCase().includes(q)) || d.raw.departuresList.some(entry => entry.p.id.includes(q) || entry.p.name.toLowerCase().includes(q))); } itemsShown = pageSize; renderGrid(); }
+    function setSearchType(type) { 
+        searchType = type; 
+        document.querySelectorAll('.st-btn').forEach(b => b.classList.remove('active')); 
+        document.getElementById(`st-${type}`).classList.add('active'); 
+        document.getElementById('kdSearch').placeholder = type === 'kd' ? "Search Kingdom# or Alliance Name..." : "Search Lord ID or Player Name..."; 
+        handleSearch(); 
+    }
+    
+    function handleSort(k, btn) { 
+        if(currentSort.key === k) {
+            currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc'; 
+        } else { 
+            currentSort.key = k; 
+            currentSort.direction = 'desc'; 
+        } 
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); 
+        btn.classList.add('active'); 
+        applySort(); 
+    }
+    
+    function applySort() { 
+        migrationData.sort((a,b) => { 
+            let vA = a[currentSort.key];
+            let vB = b[currentSort.key]; 
+            if(currentSort.key === 'kd') { 
+                vA = parseInt(vA); 
+                vB = parseInt(vB); 
+            } 
+            return currentSort.direction === 'asc' ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1); 
+        }); 
+        handleSearch(); 
+    }
+    
+    function handleSearch() { 
+        const q = document.getElementById('kdSearch').value.toLowerCase(); 
+        if (searchType === 'kd') { 
+            filteredData = migrationData.filter(d => 
+                d.kd.toLowerCase().includes(q) || 
+                (latestAllianceMap[d.kd] && latestAllianceMap[d.kd].toLowerCase().includes(q))
+            ); 
+        } else { 
+            filteredData = migrationData.filter(d => 
+                d.raw.arrivalsList.some(entry => entry.p.id.includes(q) || entry.p.name.toLowerCase().includes(q)) || 
+                d.raw.departuresList.some(entry => entry.p.id.includes(q) || entry.p.name.toLowerCase().includes(q))
+            ); 
+        } 
+        itemsShown = pageSize; 
+        renderGrid(); 
+    }
     
     function renderGrid() {
-        const grid = document.getElementById('cardGrid'); grid.innerHTML = '';
+        const grid = document.getElementById('cardGrid'); 
+        grid.innerHTML = '';
         filteredData.slice(0, itemsShown).forEach(item => {
             const card = document.createElement('div');
             card.className = 'kd-card';
@@ -540,10 +1218,17 @@
         document.getElementById('modalAlly').innerText = latestAllianceMap[item.kd] || "Unknown Alliance";
         const body = document.getElementById('modalMetricsBody');
         body.innerHTML = '';
-        const metrics = [ { l: 'Player Count', k: 'count' }, { l: 'Power', k: 'pwr' }, { l: 'Kills', k: 'kills' }, { l: 'Deads', k: 'deads' }, { l: 'Heals', k: 'heals' } ];
+        const metrics = [ 
+            { l: 'Player Count', k: 'count' }, 
+            { l: 'Power', k: 'pwr' }, 
+            { l: 'Kills', k: 'kills' }, 
+            { l: 'Deads', k: 'deads' }, 
+            { l: 'Heals', k: 'heals' } 
+        ];
 
         metrics.forEach(m => {
-            const delta = s[m.k].in - s[m.k].out, sign = (delta > 0 ? '+' : '');
+            const delta = s[m.k].in - s[m.k].out;
+            const sign = (delta > 0 ? '+' : '');
             body.innerHTML += `
                 <div class="metric-card-row metric-grid-base">
                     <div class="m-in">+${formatShorthand(s[m.k].in)}</div>
@@ -567,16 +1252,68 @@
     }
 
     function generatePlayerChip(data, type) {
-        const p = data.p, g = data.growth;
+        const p = data.p;
+        const g = data.growth;
         const info = type === 'in' ? (data.old ? `from KD ${data.old.kd}` : 'New to Rankings') : (data.next ? `to KD ${data.next.kd}` : 'Exit Rankings');
         const endPwr = type === 'in' ? p.pwr : (data.next ? data.next.pwr : p.pwr);
-        let whaleClass = 'whale-purple'; if (endPwr >= 200000000) whaleClass = 'whale-gold'; else if (endPwr >= 100000000) whaleClass = 'whale-silver'; else if (endPwr >= 70000000) whaleClass = 'whale-copper';
-        const historyHTML = data.swaps.map(s => `<div class="swap-item"><span class="swap-header">${s.from} ➔ ${s.to}</span><span class="swap-path">KD ${s.kdStart} ➔ KD ${s.kdEnd}</span></div>`).join('');
-        return `<div class="player-chip ${whaleClass}" onclick="this.classList.toggle('active')"><div class="chip-main"><div><b>${p.id}</b> | ${p.name} <span style="opacity:0.6; font-size:0.7rem;">${info}</span></div><span class="arrow">⌄</span></div><div class="chip-details"><div class="detail-grid"><div class="det-box"><span class="det-label">Snapshot Power</span><span class="det-val">${formatShorthand(endPwr)}</span></div><div class="det-box"><span class="det-label">Kills Growth</span><span class="det-val">${formatShorthand(g.kills)}</span></div><div class="det-box"><span class="det-label">Deads Growth</span><span class="det-val">${formatShorthand(g.deads)}</span></div><div class="det-box"><span class="det-label">Heals Growth</span><span class="det-val">${formatShorthand(g.heals)}</span></div></div><div class="swap-history">${historyHTML}</div></div></div>`;
+        
+        let whaleClass = 'whale-purple'; 
+        if (endPwr >= 200000000) whaleClass = 'whale-gold'; 
+        else if (endPwr >= 100000000) whaleClass = 'whale-silver'; 
+        else if (endPwr >= 70000000) whaleClass = 'whale-copper';
+        
+        const historyHTML = data.swaps.map(s => `
+            <div class="swap-item">
+                <span class="swap-header">${s.from} ➔ ${s.to}</span>
+                <span class="swap-path">KD ${s.kdStart} ➔ KD ${s.kdEnd}</span>
+            </div>
+        `).join('');
+        
+        return `
+            <div class="player-chip ${whaleClass}" onclick="this.classList.toggle('active')">
+                <div class="chip-main">
+                    <div>
+                        <b>${p.id}</b> | ${p.name} 
+                        <span style="opacity:0.6; font-size:0.7rem;">${info}</span>
+                    </div>
+                    <span class="arrow">⌄</span>
+                </div>
+                <div class="chip-details">
+                    <div class="detail-grid">
+                        <div class="det-box">
+                            <span class="det-label">Snapshot Power</span>
+                            <span class="det-val">${formatShorthand(endPwr)}</span>
+                        </div>
+                        <div class="det-box">
+                            <span class="det-label">Kills Growth</span>
+                            <span class="det-val">${formatShorthand(g.kills)}</span>
+                        </div>
+                        <div class="det-box">
+                            <span class="det-label">Deads Growth</span>
+                            <span class="det-val">${formatShorthand(g.deads)}</span>
+                        </div>
+                        <div class="det-box">
+                            <span class="det-label">Heals Growth</span>
+                            <span class="det-val">${formatShorthand(g.heals)}</span>
+                        </div>
+                    </div>
+                    <div class="swap-history">
+                        ${historyHTML}
+                    </div>
+                </div>
+            </div>`;
     }
 
-    function closeModal() { document.getElementById('soloModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
-    function loadMore() { itemsShown += pageSize; renderGrid(); }
+    function closeModal() { 
+        document.getElementById('soloModal').style.display = 'none'; 
+        document.body.style.overflow = 'auto'; 
+    }
+    
+    function loadMore() { 
+        itemsShown += pageSize; 
+        renderGrid(); 
+    }
+    
     window.onload = init;
 </script>
 </body>

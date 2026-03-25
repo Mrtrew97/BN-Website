@@ -32,7 +32,9 @@
         }
 
         @media (max-width: 900px) and (orientation: portrait) {
-            #rotate-hint { display: flex; }
+            #rotate-hint { 
+                display: flex; 
+            }
         }
 
         .rotate-content p {
@@ -270,7 +272,7 @@
 </div>
 
 <script>
-    // --- SUPABASE CONFIG ---
+    // --- SUPABASE CONFIGURATION ---
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
     const BUCKET_DATA = "kvk-data";
@@ -368,11 +370,10 @@
             if (session) enableAdminMode();
 
             updateProgress(20, "Fetching metadata...");
-            const timestamp = `?t=${Date.now()}`;
             
             const [fRes, sRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp)
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json?t=' + Date.now()),
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json?t=' + Date.now())
             ]);
             
             if (fRes.error) throw fRes.error;
@@ -410,12 +411,11 @@
         selectedFileName = fileName; 
         const cleanName = fileName.replace(/\.csv/i, ''); 
         const jsonName = cleanName + ".json";
-        const timestamp = `?t=${Date.now()}`;
         
         try {
             const [regRes, csvRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}${timestamp}`),
-                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}${timestamp}`)
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}?t=${Date.now()}`),
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}?t=${Date.now()}`)
             ]);
             
             if (regRes.data) {
@@ -476,9 +476,8 @@
     }
 
     async function fetchMatchupsFromCloud() { 
-        const timestamp = `?t=${Date.now()}`;
         try { 
-            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('MatchupsConfig.json' + timestamp); 
+            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('MatchupsConfig.json?t=' + Date.now()); 
             if (data) allCloudData = JSON.parse(await data.text()); 
         } catch (e) { 
             allCloudData = {}; 
@@ -486,9 +485,8 @@
     }
 
     async function fetchTeamsFromCloud() {
-        const timestamp = `?t=${Date.now()}`;
         try { 
-            const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('TeamsConfig.json' + timestamp); 
+            const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('TeamsConfig.json?t=' + Date.now()); 
             if (error) {
                 allTeamsData = {};
                 return;
@@ -500,9 +498,8 @@
     }
 
     async function fetchWinnersFromCloud() {
-        const timestamp = `?t=${Date.now()}`;
         try { 
-            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('kvkwinners.json' + timestamp); 
+            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('kvkwinners.json?t=' + Date.now()); 
             if (data) kvkWinners = JSON.parse(await data.text()); 
         } catch (e) { 
             kvkWinners = {}; 
@@ -691,10 +688,7 @@
                             ${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}
                         </td>
                         ${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}
-                        
-                        <!-- NEW PARAGON GLOW LOGIC APPLIED TO ALLIANCE COLUMN -->
                         <td class="sticky-col-ally ${d.isParagon ? 'paragon-text' : ''}" style="text-align:center; font-weight:700;">${d.alliance}</td>
-                        
                         <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
                         <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
                         <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
@@ -888,19 +882,25 @@
     }
 
     function cleanNum(v) { 
-        if (!v) return 0; 
+        if (!v) {
+            return 0;
+        }
         return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; 
     }
 
     function formatVal(n) { 
-        if (!n && n !== 0) return "0.00"; 
+        if (!n && n !== 0) {
+            return "0.00";
+        }
         const abs = Math.abs(n); 
         let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
         return n < 0 ? "-" + s : s; 
     }
 
     function formatValNoDec(n) { 
-        if (!n && n !== 0) return "0"; 
+        if (!n && n !== 0) {
+            return "0";
+        }
         const abs = Math.floor(Math.abs(n)); 
         let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
         return n < 0 ? "-" + s : s; 
@@ -908,7 +908,9 @@
 
     function setSort(key, btn) { 
         currentSort = key; 
-        document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active')); 
+        document.querySelectorAll('.metric-btn').forEach(b => {
+            b.classList.remove('active');
+        }); 
         if (btn) {
             btn.classList.add('active'); 
         } else if (key === 'name') { 
@@ -920,19 +922,24 @@
 
     function setZoneFilter(zone, btn) { 
         currentZoneFilter = zone; 
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('active');
+        }); 
         btn.classList.add('active'); 
         renderAll(); 
     }
 
     function toggleTroops() { 
-        document.getElementById('troopRow').classList.toggle('open'); 
-        document.getElementById('troopToggle').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; 
+        const row = document.getElementById('troopRow');
+        const trigger = document.getElementById('troopToggle');
+        row.classList.toggle('open'); 
+        trigger.style.transform = row.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; 
     }
 
     function updateSortBar() { 
         const container = document.querySelector('#troopRow .metric-row'); 
         if (!container) return; 
+        
         container.innerHTML = activeTroopKeys.map(k => `
             <button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>
         `).join(''); 
@@ -975,18 +982,47 @@
             zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, 
             ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] 
         }); 
+        // Automatically switch to Name Sort so "A New Group" is visible at the top
         setSort('name', document.getElementById('btnSortName'));
     }
 
     function toggleModal(v) { 
-        document.getElementById('authModal').style.display = v ? 'flex' : 'none'; 
+        const modal = document.getElementById('authModal');
+        const errorDiv = document.getElementById('loginError');
+        modal.style.display = v ? 'flex' : 'none'; 
         if(!v) {
-            document.getElementById('loginError').style.display = 'none'; 
+            errorDiv.style.display = 'none'; 
         }
     }
 
     function hideDropdown() {}
 
+    function setupSortable(mIdx) { 
+        const el = document.getElementById(`tbody-${mIdx}`); 
+        if (el) {
+            new Sortable(el, { 
+                handle: '.col-drag', 
+                animation: 150, 
+                onEnd: (evt) => { 
+                    const moved = currentMatchups[mIdx].ids.splice(evt.oldIndex, 1)[0]; 
+                    currentMatchups[mIdx].ids.splice(evt.newIndex, 0, moved); 
+                    renderAll(); 
+                } 
+            });
+        }
+    }
+
+    async function applyTeamToMatchup(mIdx, side, teamName) {
+        const team = (allTeamsData[selectedFileName] || []).find(t => t.name === teamName);
+        if (!team) return;
+        let ids = [...currentMatchups[mIdx].ids];
+        if (side === 'A') {
+            currentMatchups[mIdx].ids = [...team.ids, ...ids.slice(ids.indexOf("TOTAL A"))];
+        } else {
+            currentMatchups[mIdx].ids = [...ids.slice(0, ids.indexOf("TOTAL B") + 1), ...team.ids];
+        }
+        renderAll();
+    }
 </script>
 </body>
 </html>
