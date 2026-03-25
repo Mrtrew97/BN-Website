@@ -4,14 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BN Analytics | Official Matchups</title>
+    
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="mobile.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
-
+        /* --- ROTATE HINT OVERLAY --- */
         #rotate-hint {
             display: none;
             position: fixed;
@@ -52,7 +56,6 @@
             cursor: pointer;
         }
 
-        /* PHONE ROTATION ANIMATION */
         .phone-icon {
             width: 50px;
             height: 80px;
@@ -81,42 +84,48 @@
             80%, 100% { transform: rotate(0deg); }
         }
 
-        .brand-logo { position: fixed; bottom: 30px; z-index: 2000; opacity: 0.6; width: 200px; pointer-events: none; user-select: none; transition: 0.4s ease; }
-        .logo-right { right: -9px; } .logo-left { left: 0px; }
-        @media (max-width: 650px) { .brand-logo { width: 100px; bottom: 15px; } .logo-right { right: 15px; } .logo-left { left: 15px; } }
-        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 0; overflow-x: hidden; }
+        /* --- BASE STYLING --- */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
+            background-attachment: fixed; 
+            color: var(--text); 
+            margin: 0; 
+            padding: 0; 
+            overflow-x: hidden; 
+        }
+        
         .unified-container { max-width: 1600px; margin: 0 auto; padding: 0 25px; box-sizing: border-box; width: 100%; }
+        
         .header-top-row { margin-top: 25px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; }
         .nav-side-box { display: flex; align-items: center; }
         .nav-side-box.right { justify-content: flex-end; gap: 10px; }
         .header-top-row .home-link { position: static; margin: 0; backdrop-filter: none; }
+        
         .tools-glass-row { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 12px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 20px; margin-bottom: 20px; }
         .search-center-box { width: 500px; display: flex; justify-content: center; }
         .search-input { width: 100%; padding: 10px 18px; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; outline: none; }
-        .zone-cluster { display: flex; gap: 6px; justify-content: flex-end; }
+        
+        .zone-cluster { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
         .filter-btn { padding: 8px 16px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase; }
         .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+
         .sticky-wrapper { position: sticky; top: 15px; z-index: 1000; width: 100%; display: flex; justify-content: center; margin-bottom: 50px; padding: 0 25px; box-sizing: border-box; }
         .metrics-island { width: 100%; max-width: 1350px; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 28px; padding: 12px 0; box-shadow: 0 20px 40px rgba(0,0,0,0.4); display: flex; flex-direction: column; align-items: center; }
         .metric-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 4px 15px; width: 100%; }
         .metric-btn { padding: 10px 18px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 20px; font-size: 0.65rem; font-weight: 800; cursor: pointer; color: var(--muted); transition: 0.2s; text-transform: uppercase; }
         .metric-btn:hover { background: rgba(255,255,255,0.1); color: white; }
         .metric-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+
         .expand-rows { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out; width: 100%; }
         .expand-rows.open { max-height: 250px; margin-top: 10px; border-top: 1px solid var(--glass-border); padding-top: 10px; }
         .toggle-trigger { width: 100%; display: flex; justify-content: center; cursor: pointer; color: var(--muted); padding-top: 8px; transition: 0.3s; }
+
+        /* --- CARDS & TABLES --- */
         #matchupsContainer { display: flex; flex-direction: column; gap: 40px; padding-bottom: 60px; }
         .matchup-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; }
         
-        .card-header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 15px; 
-            border-bottom: 1px solid var(--glass-border); 
-            padding-bottom: 15px; 
-        }
-        
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
         .name-input { 
             font-size: 1.3rem; 
             font-weight: 900; 
@@ -131,28 +140,32 @@
             text-overflow: ellipsis; 
         }
 
-        input.name-input {
-            text-overflow: ellipsis; 
-        }
-        
+        input.name-input { text-overflow: ellipsis; }
+
         .table-wrapper { width: 100%; overflow-x: auto; border-radius: 15px; } 
         table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1850px; }
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
         td { padding: 12px 2px; text-align: center; background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 0.8rem; }
+        
         .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 950 !important; }
         .row-total-a, .row-total-b { background: rgba(59, 130, 246, 0.1) !important; color: var(--primary) !important; }
         .row-differentials-a-b { background: rgba(168, 85, 247, 0.1) !important; color: var(--accent) !important; }
         .paragon-text { color: rgb(245, 158, 11) !important; font-weight: 900 !important; text-decoration: none !important; }
+        
         .id-input { width: 50px; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #3b82f6; text-align: center; font-weight: 800; border-radius: 4px; outline: none; }
+        
+        /* --- BUTTONS --- */
         .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; background: var(--glass); color: white; text-transform: uppercase; transition: 0.2s; }
         .btn:hover { background: var(--primary); transform: translateY(-2px); }
         .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: white; }
         .btn-blue { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); color: white; }
         .btn-green { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: white; }
+        
         .col-drag { width: 30px; cursor: grab; opacity: 0.3; color: var(--muted); }
         .col-del { width: 30px; color: #ef4444; font-weight: 900; cursor: pointer; }
         .admin-select { background: rgba(15, 23, 42, 0.9); border: 1px solid var(--glass-border); color: #3b82f6; font-size: 0.65rem; border-radius: 6px; padding: 4px; font-weight: 700; outline: none; cursor: pointer; }
         
+        /* --- MODALS & OVERLAYS --- */
         #authModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); align-items: center; justify-content: center; z-index: 2000; }
         .modal-content { background: #1e293b; padding: 40px; border-radius: 24px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
         
@@ -160,6 +173,8 @@
         #progressContainer { width: 100%; max-width: 500px; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 20px auto; display: none; overflow: hidden; border: 1px solid var(--glass-border); }
         #progressBar { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s ease; }
         #status-msg { text-align: center; font-weight: 800; color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 20px; min-height: 1em; }
+        
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body onclick="hideDropdown()">
@@ -196,14 +211,19 @@
 
 <div class="unified-container">
     <div class="tools-glass-row">
-        <div class="nav-side-box"><select id="fileSelector" onchange="loadSpecificFile(this.value)" style="min-width: 150px;"></select></div>
-        <div class="search-center-box"><input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup, Alliance, or ID..." oninput="renderAll()" autocomplete="off"></div>
+        <div class="nav-side-box">
+            <select id="fileSelector" onchange="loadSpecificFile(this.value)" style="min-width: 150px;"></select>
+        </div>
+        <div class="search-center-box">
+            <input type="text" id="teamSearch" class="search-input" placeholder="Search Matchup, Alliance, or ID..." oninput="renderAll()" autocomplete="off">
+        </div>
         <div class="zone-cluster" id="zoneFilterRow">
             <button class="filter-btn active" onclick="setZoneFilter('all', this)">ALL</button>
             <button class="filter-btn" onclick="setZoneFilter('overall', this)">KVK START</button>
             <button class="filter-btn" onclick="setZoneFilter('zone 2', this)">Z2</button>
             <button class="filter-btn" onclick="setZoneFilter('zone 3', this)">Z3</button>
             <button class="filter-btn" onclick="setZoneFilter('zone 4', this)">Z4</button>
+            <button class="filter-btn" onclick="setZoneFilter('final', this)">FINAL ZONE</button>
         </div>
     </div>
 </div>
@@ -269,6 +289,7 @@
     let selectedFileName = "";
     let activeTroopKeys = [];
     let sosMap = {};
+    let kvkWinners = {};
     
     const possibleTroopHeaders = [
         "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
@@ -350,8 +371,8 @@
             const timestamp = `?t=${Date.now()}`;
             
             const [fRes, sRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json'),
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json')
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp)
             ]);
             
             if (fRes.error) throw fRes.error;
@@ -372,6 +393,7 @@
 
             await fetchMatchupsFromCloud();
             await fetchTeamsFromCloud();
+            await fetchWinnersFromCloud(); 
             
             if (files.length > 0) {
                 await loadSpecificFile(files[0]);
@@ -388,11 +410,12 @@
         selectedFileName = fileName; 
         const cleanName = fileName.replace(/\.csv/i, ''); 
         const jsonName = cleanName + ".json";
+        const timestamp = `?t=${Date.now()}`;
         
         try {
             const [regRes, csvRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}`),
-                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}`)
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}${timestamp}`),
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}${timestamp}`)
             ]);
             
             if (regRes.data) {
@@ -453,8 +476,9 @@
     }
 
     async function fetchMatchupsFromCloud() { 
+        const timestamp = `?t=${Date.now()}`;
         try { 
-            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('MatchupsConfig.json'); 
+            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('MatchupsConfig.json' + timestamp); 
             if (data) allCloudData = JSON.parse(await data.text()); 
         } catch (e) { 
             allCloudData = {}; 
@@ -475,6 +499,16 @@
         }
     }
 
+    async function fetchWinnersFromCloud() {
+        const timestamp = `?t=${Date.now()}`;
+        try { 
+            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('kvkwinners.json' + timestamp); 
+            if (data) kvkWinners = JSON.parse(await data.text()); 
+        } catch (e) { 
+            kvkWinners = {}; 
+        }
+    }
+
     async function saveToCloud() { 
         if (!isAdmin) return; 
         
@@ -485,11 +519,9 @@
         const cleanKey = selectedFileName.replace(/\.csv/i,''); 
         allCloudData[cleanKey] = currentMatchups; 
         
-        const blob = new Blob([JSON.stringify(allCloudData, null, 2)], { type: 'application/json' });
-        
         try { 
-            const { error } = await supabaseClient.storage.from(BUCKET_CONFIGS).upload('MatchupsConfig.json', blob, { upsert: true, contentType: 'application/json' }); 
-            if (error) throw error; 
+            await supabaseClient.storage.from(BUCKET_CONFIGS).upload('MatchupsConfig.json', JSON.stringify(allCloudData, null, 2), { upsert: true, contentType: 'application/json' }); 
+            await supabaseClient.storage.from(BUCKET_CONFIGS).upload('kvkwinners.json', JSON.stringify(kvkWinners, null, 2), { upsert: true, contentType: 'application/json' }); 
             
             btn.textContent = "SAVED!"; 
             setTimeout(() => btn.textContent="SAVE CLOUD", 2000); 
@@ -536,6 +568,26 @@
                 renderAll(); 
             }
         }); 
+    }
+
+    function updateMatchupName(mIdx, newName) {
+        const cleanKey = selectedFileName.replace(/\.csv/i,'');
+        const oldName = currentMatchups[mIdx].name;
+        
+        currentMatchups[mIdx].name = newName;
+
+        if (kvkWinners[cleanKey] && kvkWinners[cleanKey][oldName] !== undefined) {
+            kvkWinners[cleanKey][newName] = kvkWinners[cleanKey][oldName];
+            delete kvkWinners[cleanKey][oldName];
+        }
+    }
+
+    function updateWinner(mIdx, val) {
+        const cleanKey = selectedFileName.replace(/\.csv/i,'');
+        if (!kvkWinners[cleanKey]) kvkWinners[cleanKey] = {};
+        
+        const mName = currentMatchups[mIdx].name;
+        kvkWinners[cleanKey][mName] = val;
     }
 
     function renderAll() {
@@ -598,7 +650,7 @@
                     return `
                         <tr class="row-${rowClass}">
                             ${isAdmin ? '<td></td><td></td>' : ''}
-                            <td style="text-align:left; padding-left:20px; font-weight:950;" colspan="${!allTbd ? 4 : 3}">${upper}</td>
+                            <td class="sticky-special-label" colspan="${!allTbd ? 4 : 3}">${upper}</td>
                             <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td>
                             <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td>
                             <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td>
@@ -623,10 +675,10 @@
                         <tr>
                             ${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}
                             <td class="col-small">-</td>
-                            <td style="color:var(--primary); font-weight:800;">
+                            <td class="sticky-col-kd" style="color:var(--primary); font-weight:800;">
                                 ${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}
                             </td>
-                            <td colspan="${dataColsSpan}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td>
+                            <td colspan="${activeTroopKeys.length + 9}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td>
                         </tr>
                     `;
                 }
@@ -635,11 +687,14 @@
                     <tr>
                         ${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}
                         <td>${d.powerRank || '-'}</td>
-                        <td style="color:var(--primary); font-weight:800;">
+                        <td class="sticky-col-kd" style="color:var(--primary); font-weight:800;">
                             ${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}
                         </td>
                         ${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}
-                        <td style="text-align:center; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td>
+                        
+                        <!-- NEW PARAGON GLOW LOGIC APPLIED TO ALLIANCE COLUMN -->
+                        <td class="sticky-col-ally ${d.isParagon ? 'paragon-text' : ''}" style="text-align:center; font-weight:700;">${d.alliance}</td>
+                        
                         <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
                         <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
                         <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
@@ -662,6 +717,7 @@
                     <option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option>
                     <option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option>
                     <option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option>
+                    <option value="final" ${matchup.zone === 'final' ? 'selected' : ''}>FINAL ZONE</option>
                 </select>
             ` : `<span class="btn" style="font-size:0.6rem; padding:4px 10px;">${matchup.zone.toUpperCase()}</span>`;
             
@@ -681,12 +737,38 @@
                     </div>
                 </div>
             ` : '';
+
+            let winnerUI = '';
+            if (matchup.zone === 'final') {
+                const cleanKey = selectedFileName.replace(/\.csv/i,'');
+                const currentWinner = (kvkWinners[cleanKey] && kvkWinners[cleanKey][matchup.name]) || "";
+                
+                if (isAdmin) {
+                    winnerUI = `
+                        <div style="margin-bottom:15px; background:rgba(251, 191, 36, 0.1); border:1px solid rgba(251, 191, 36, 0.3); padding:10px 15px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                            <span style="color:#fbbf24; font-weight:900; font-size:0.85rem; text-transform:uppercase; display:flex; align-items:center; gap:5px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                Who Won:
+                            </span>
+                            <input type="text" value="${currentWinner}" placeholder="Enter KD# (e.g. 94, 102)" style="background:rgba(0,0,0,0.5); border:1px solid rgba(251, 191, 36, 0.5); color:white; padding:6px 12px; border-radius:6px; outline:none; font-weight:800; font-size:0.9rem; flex:1;" onchange="updateWinner(${mIdx}, this.value)">
+                        </div>`;
+                } else if (currentWinner) {
+                    winnerUI = `
+                        <div style="margin-bottom:15px; background:rgba(251, 191, 36, 0.1); border:1px solid rgba(251, 191, 36, 0.3); padding:10px 15px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                            <span style="color:#fbbf24; font-weight:900; font-size:0.85rem; text-transform:uppercase; display:flex; align-items:center; gap:5px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                Winner:
+                            </span>
+                            <span style="color:white; font-weight:950; font-size:1.1rem; letter-spacing:1px;">${currentWinner}</span>
+                        </div>`;
+                }
+            }
             
             card.innerHTML = `
                 <div class="card-header" style="align-items: flex-start; gap: 20px;">
                     <div style="flex: 1; min-width: 0;">
                         ${isAdmin ? 
-                            `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : 
+                            `<input class="name-input" value="${matchup.name}" onchange="updateMatchupName(${mIdx}, this.value)">` : 
                             `<div class="name-input" style="word-wrap: break-word;">${matchup.name}</div>`
                         }
                     </div>
@@ -700,15 +782,16 @@
                     </div>
                 </div>
                 ${adminTeamSelects}
+                ${winnerUI}
                 <div class="table-wrapper">
                     <table>
                         <thead>
                             <tr>
                                 ${isAdmin ? '<th></th><th></th>' : ''}
                                 <th>RANK</th>
-                                <th>KD#</th>
+                                <th class="sticky-col-kd">KD#</th>
                                 ${!allTbd ? '<th>CLASS</th>' : ''}
-                                <th>ALLIANCE</th>
+                                <th class="sticky-col-ally">ALLIANCE</th>
                                 <th>POWER</th>
                                 <th>MERITS</th>
                                 <th>M/P</th>
@@ -735,7 +818,7 @@
 
     function calculateMatchupStats(ids) {
         let a = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} };
-        let b = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} };
+        let b = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} }; 
         
         activeTroopKeys.forEach(k => { 
             a.b[k] = 0; 
@@ -902,7 +985,7 @@
         }
     }
 
-    function hideDropdown() { }
+    function hideDropdown() {}
 
 </script>
 </body>
