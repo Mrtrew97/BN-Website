@@ -2,21 +2,98 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kingdom Evolutions</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BN Analytics | Kingdom Evolutions</title>
     <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="mobile.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+
+        /* Only show on screens smaller than 900px AND in Portrait mode */
+        #rotate-hint {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 900px) and (orientation: portrait) {
+            #rotate-hint { display: flex; }
+        }
+
+        .rotate-content p {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            margin: 20px 0;
+            color: var(--primary);
+        }
+
+        .rotate-content button {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--muted);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        /* PHONE ROTATION ANIMATION */
+        .phone-icon {
+            width: 50px;
+            height: 80px;
+            border: 3px solid white;
+            border-radius: 6px;
+            position: relative;
+            margin: 0 auto;
+            animation: rotatePhone 3s ease-in-out infinite;
+        }
+
+        .phone-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        @keyframes rotatePhone {
+            0%, 20% { transform: rotate(0deg); }
+            40%, 60% { transform: rotate(90deg); }
+            80%, 100% { transform: rotate(0deg); }
+        }
         .brand-logo { position: fixed; bottom: 30px; z-index: 2000; opacity: 0.6; width: 200px; pointer-events: none; user-select: none; transition: 0.4s ease; }
         .logo-right { right: 30px; } .logo-left { left: 30px; }
         @media (max-width: 650px) { .brand-logo { width: 100px; bottom: 15px; } .logo-right { right: 15px; } .logo-left { left: 15px; } }
         body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); background-attachment: fixed; color: var(--text); margin: 0; padding: 20px; line-height: 1.5; }
         .header-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; padding-top: 10px; }
+        .page-title-main { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -2px; margin: 0; }
         #status-text { text-align: center; margin: 25px auto; font-weight: 900; color: var(--muted); text-transform: uppercase; font-size: 0.85rem; letter-spacing: 2px; background: rgba(255,255,255,0.05); width: fit-content; padding: 8px 30px; border-radius: 50px; border: 1px solid var(--glass-border); }
+        .progress-container { width: 100%; max-width: 600px; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 0 auto 20px auto; display: none; overflow: hidden; border: 1px solid var(--glass-border); }
+        #progressBar { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s ease; }
         .search-container { display: none; justify-content: center; margin-bottom: 20px; }
         .sort-bar { display: none; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .sort-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--muted); padding: 10px 20px; border-radius: 30px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: 0.3s; }
+        .sort-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         .search-box { padding: 16px; border-radius: 16px; border: 1px solid var(--glass-border); width: 100%; max-width: 500px; background: rgba(0,0,0,0.3); color: white; outline: none; font-weight: 600; text-align: center; font-size: 1rem; }
         #cardGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 25px; max-width: 1400px; margin: 0 auto; }
         .kd-card { background: var(--glass); backdrop-filter: blur(10px); border-radius: 24px; padding: 24px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 16px; transition: 0.3s; cursor: pointer; position: relative; }
@@ -59,6 +136,14 @@
 </head>
 <body>
 
+<div id="rotate-hint">
+    <div class="rotate-content">
+        <div class="phone-icon"></div>
+        <p>Landscape view recommended</p>
+        <button onclick="document.getElementById('rotate-hint').style.setProperty('display', 'none', 'important')">Dismiss</button>
+    </div>
+</div>
+
 <a href="index.html" class="home-link">HOME PAGE</a>
 
 <div class="header-container">
@@ -70,7 +155,7 @@
 </div>
 
 <div class="sort-bar" id="sortBar">
-    <button class="sort-btn" onclick="handleSort('id', this)">Kingdom #</button>
+    <button class="sort-btn active" onclick="handleSort('id', this)">Kingdom #</button>
     <button class="sort-btn" onclick="handleSort('merits', this)">Merits</button>
     <button class="sort-btn" onclick="handleSort('mp', this)">M/P Ratio</button>
     <button class="sort-btn" onclick="handleSort('kills', this)">Kills</button>
@@ -80,6 +165,7 @@
 </div>
 
 <div id="status-text">Connecting to Hub...</div>
+<div class="progress-container" id="progressContainer"><div id="progressBar"></div></div>
 <div id="cardGrid"></div>
 
 <div style="text-align: center;">
@@ -98,148 +184,134 @@
 </div>
 
 <script>
-    const RENDER_URL = "https://kd-backend-icbu.onrender.com";
-    let fileList = [];
-    let masterData = {}; 
-    let kingdomStats = [];
-    let filteredList = [];
+    // --- SUPABASE CONFIG ---
+    const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
+    const BUCKET_DATA = "kvk-data";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // --- STATE ---
+    let fileList = [], kingdomStats = [], filteredList = [], activeCharts = [], sosMap = {};
     let currentSort = { key: 'id', asc: true };
     let itemsShown = 30;
     const pageSize = 30;
-    let activeCharts = [];
-    let sosMap = {};
 
+    // --- METRIC DEFINITIONS ---
     const metricsConfig = [
         { id: 'Power', label: 'Power', key: 'pwr', colName: 'Power', index: 2, isPct: false },
-        { id: 'Merits', label: 'Merits', key: 'd', colName: 'Merits', index: 3, isPct: false },
-        { id: 'MP', label: 'M/P Ratio', key: 'e', colName: 'M/P', index: 4, isPct: true },
-        { id: 'Kills', label: 'Kills', key: 'f', colName: 'Kills', index: 5, isPct: false },
-        { id: 'Deads', label: 'Deads', key: 'g', colName: 'Deads', index: 6, isPct: false },
-        { id: 'Heals', label: 'Heals', key: 'h', colName: 'Heals', index: 7, isPct: false },
+        { id: 'Merits', label: 'Merits', key: 'merits', colName: 'Top 300 Merits', index: 3, isPct: false },
+        { id: 'MP', label: 'M/P Ratio', key: 'mp', colName: 'M/P', index: 4, isPct: true },
+        { id: 'Kills', label: 'Kills', key: 'kills', colName: 'Top 300 Kills', index: 5, isPct: false },
+        { id: 'Deads', label: 'Deads', key: 'deads', colName: 'Top 300 Deads', index: 6, isPct: false },
+        { id: 'Heals', label: 'Heals', key: 'heals', colName: 'Top 300 Heals', index: 7, isPct: false },
         { id: 'CH25', label: 'CH25', key: 'ch', colName: 'CH25', index: 8, isPct: false },
         { id: 'CH25AP', label: 'CH25 AP', key: 'ap', colName: 'CH25 AP', index: 9, isPct: false }
     ];
 
-    function formatShorthand(v) {
-        if (v === null || isNaN(v)) return "-";
-        if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
-        if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
-        return Math.round(v).toLocaleString();
-    }
-
-    function formatRawDots(v) {
-        if (v === null || isNaN(v)) return "-";
-        return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-
-    function formatMini(v, isPct) {
-        if (v === null || isNaN(v)) return "-";
-        if (isPct) return (v * 100).toFixed(2) + '%';
-        if (v >= 1e6) return formatShorthand(v);
-        return Math.round(v).toLocaleString();
-    }
-
-    async function syncIDs() {
+    // --- DATA LOADING & PROCESSING ---
+    window.onload = async () => {
         const status = document.getElementById('status-text');
-        status.textContent = "Connecting to Archive...";
         try {
-            // Updated to fetch through backend proxy
-            const sResp = await fetch(`${RENDER_URL}/api/data/Pull/SosNames.json?cb=${Date.now()}`);
-            sosMap = sResp.ok ? await sResp.json() : {};
+            updateProgress(0, "Fetching file list...");
+            const timestamp = `?t=${Date.now()}`;
+            const [sRes, fRes] = await Promise.all([
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp)
+            ]);
+            sosMap = JSON.parse(await sRes.data.text());
+            fileList = JSON.parse(await fRes.data.text()).sort();
 
-            const resp = await fetch(`${RENDER_URL}/api/data/Pull/files.json`);
-            fileList = await resp.json();
-            fileList.sort();
-            
-            for (let i = 0; i < fileList.length; i++) {
-                const file = fileList[i];
-                status.textContent = `Syncing Snapshot ${i+1}/${fileList.length}...`;
-                const r = await fetch(`${RENDER_URL}/api/data/Pull/${file}`);
-                const csv = Papa.parse(await r.text(), { skipEmptyLines: true }).data;
-                masterData[file] = csv;
-            }
+            // Download all CSVs in parallel
+            let downloadedCount = 0;
+            const downloadPromises = fileList.map(file => 
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${file}${timestamp}`)
+                    .then(result => {
+                        downloadedCount++;
+                        updateProgress((downloadedCount / fileList.length) * 50, `Downloading ${downloadedCount}/${fileList.length}...`);
+                        return { file, ...result };
+                    })
+            );
+            const allCSVs = await Promise.all(downloadPromises);
 
-            const idSet = new Set();
-            Object.values(masterData).forEach(csv => {
-                csv.forEach((row, idx) => {
-                    if (idx === 0) return;
-                    const id = String(row[0]).trim();
-                    if (id !== "" && !isNaN(id) && id.length < 5) idSet.add(id);
-                });
-            });
+            // Process data efficiently
+            updateProgress(50, "Processing all snapshots...");
+            const tempKingdoms = {}; // Use an object for fast lookups
+            let processedCount = 0;
 
-            const uniqueIDs = Array.from(idSet).sort((a, b) => Number(a) - Number(b));
-            
-            kingdomStats = uniqueIDs.map(id => {
-                let s = {
-                    id: Number(id), ally: "Unknown", count: 0, dates: [],
-                    pwr: [], d: [], e: [], f: [], g: [], h: [], ch: [], ap: [],
-                    src: {
-                        d_min: {v: Infinity, s: ""}, d_max: {v: -Infinity, s: ""},
-                        e_min: {v: Infinity, s: ""}, e_max: {v: -Infinity, s: ""},
-                        f_min: {v: Infinity, s: ""}, f_max: {v: -Infinity, s: ""},
-                        g_min: {v: Infinity, s: ""}, g_max: {v: -Infinity, s: ""},
-                        h_min: {v: Infinity, s: ""}, h_max: {v: -Infinity, s: ""},
-                        pwr_min: {v: Infinity, s: ""}, pwr_max: {v: -Infinity, s: ""},
-                        ch_min: {v: Infinity, s: ""}, ch_max: {v: -Infinity, s: ""},
-                        ap_min: {v: Infinity, s: ""}, ap_max: {v: -Infinity, s: ""}
+            for (const { file, data, error } of allCSVs) {
+                if (error) { console.warn(`Could not load ${file}:`, error); continue; }
+                const csvText = await data.text();
+                const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
+                const date = file.replace(/\.csv/i, '');
+
+                parsed.forEach(row => {
+                    const kd = String(row.KD || row['KD#'] || "").trim();
+                    if (!kd) return;
+
+                    if (!tempKingdoms[kd]) { // Initialize if new
+                        tempKingdoms[kd] = { id: kd, ally: "Unknown", count: 0, dates: [], searchText: kd };
+                        metricsConfig.forEach(m => tempKingdoms[kd][m.key] = []);
                     }
-                };
-
-                fileList.forEach(file => {
-                    const csv = masterData[file];
-                    const headers = csv[0].map(h => h.trim());
-                    const row = csv.find(r => String(r[0]).trim() === String(id));
-                    const date = file.replace('.csv','');
-                    s.dates.push(date);
+                    const kingdom = tempKingdoms[kd];
+                    kingdom.count++;
+                    kingdom.dates.push(date);
+                    if (row['#1 Ally']) kingdom.ally = row['#1 Ally'];
+                    kingdom.searchText = `${kd} ${kingdom.ally.toLowerCase()}`;
 
                     metricsConfig.forEach(m => {
-                        let colIdx = headers.indexOf(m.colName);
-                        if (colIdx === -1) colIdx = m.index;
-                        let val = row ? row[colIdx] : null;
+                        let val = row[m.colName];
                         let n = null;
                         if (val !== undefined && val !== null && val !== "") {
                             let cleanVal = String(val).replace(/[^0-9.\-]/g, '');
                             n = parseFloat(cleanVal);
-                            if (m.isPct && n > 1) n = n / 100;
+                            if (m.isPct && n > 1) n /= 100;
                             if (isNaN(n)) n = null;
                         }
-                        s[m.key].push(n);
-                        if (n !== null) {
-                            if (row) s.ally = row[1] || s.ally; 
-                            if (n < s.src[m.key + '_min'].v) s.src[m.key + '_min'] = { v: n, s: date };
-                            if (n > s.src[m.key + '_max'].v) s.src[m.key + '_max'] = { v: n, s: date };
+                        kingdom[m.key].push(n);
+                    });
+                });
+                processedCount++;
+                updateProgress(50 + (processedCount / fileList.length) * 50, `Processing ${processedCount}/${fileList.length}...`);
+            }
+            
+            // Finalize data structure
+            kingdomStats = Object.values(tempKingdoms).map(s => {
+                const getAvg = (arr) => { const valid = arr.filter(v => v !== null); return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 0; };
+                const getMinMax = (arr, dateArr) => {
+                    let min = {v: Infinity, s: ""}, max = {v: -Infinity, s: ""};
+                    arr.forEach((val, i) => {
+                        if (val !== null) {
+                            if (val < min.v) min = { v: val, s: dateArr[i] };
+                            if (val > max.v) max = { v: val, s: dateArr[i] };
                         }
                     });
-                    if (row) s.count++;
-                });
-
-                const getAvg = (arr) => {
-                    const valid = arr.filter(v => v !== null);
-                    return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 0;
+                    return { min, max };
                 };
-
-                s.avgMerits = getAvg(s.d); s.avgMp = getAvg(s.e); s.avgKills = getAvg(s.f);
-                s.avgDeads = getAvg(s.g); s.avgHeals = getAvg(s.h); s.avgPwr = getAvg(s.pwr);
+                
+                s.src = {};
+                metricsConfig.forEach(m => {
+                    const {min, max} = getMinMax(s[m.key], s.dates);
+                    s.src[`${m.key}_min`] = min;
+                    s.src[`${m.key}_max`] = max;
+                });
+                
+                s.avgMerits = getAvg(s.merits); s.avgMp = getAvg(s.mp); s.avgKills = getAvg(s.kills);
+                s.avgDeads = getAvg(s.deads); s.avgHeals = getAvg(s.heals); s.avgPwr = getAvg(s.pwr);
                 s.avgCh = getAvg(s.ch); s.avgAp = getAvg(s.ap);
-                s.searchText = `${s.id} ${s.ally.toLowerCase()}`;
                 return s;
-            });
+            }).sort((a,b) => a.id - b.id);
 
             status.textContent = `${kingdomStats.length} Kingdom Profiles Prepared`;
+            document.getElementById('progressContainer').style.display = 'none';
             autoInitialise();
         } catch (err) { 
+            status.style.color = '#ef4444';
             status.textContent = "Archive Connection Failed."; 
             console.error(err); 
         }
     }
-
-    function autoInitialise() {
-        document.getElementById('searchArea').style.display = 'flex';
-        document.getElementById('sortBar').style.display = 'flex';
-        applyFilterAndSort();
-    }
-
+    
+    // --- UI/RENDERING ---
     function renderGrid() {
         const grid = document.getElementById('cardGrid'); grid.innerHTML = '';
         filteredList.slice(0, itemsShown).forEach(s => {
@@ -248,11 +320,11 @@
             card.innerHTML = `
                 <div class="card-header"><div style="display: flex; gap: 10px; align-items: baseline;"><div class="kd-id">KD ${s.id}</div><div class="kd-ally">${s.ally}</div></div><div class="snap-count">${s.count} Snaps</div></div>
                 <div class="stat-grid">
-                    <div class="stat-box box-mp"><div><span class="stat-label">M/P Ratio (AVG)</span><div class="stat-value">${(s.avgMp*100).toFixed(2)}%</div></div>${getRangeHTML(s.src.e_min, s.src.e_max, true)}</div>
-                    <div class="stat-box box-merits"><div><span class="stat-label">Merits (AVG)</span><div class="stat-value">${formatShorthand(s.avgMerits)}</div></div>${getRangeHTML(s.src.d_min, s.src.d_max, false)}</div>
-                    <div class="stat-box box-kills"><div><span class="stat-label">Kills (AVG)</span><div class="stat-value">${formatShorthand(s.avgKills)}</div></div>${getRangeHTML(s.src.f_min, s.src.f_max, false)}</div>
-                    <div class="stat-box box-deads"><div><span class="stat-label">Deads (AVG)</span><div class="stat-value">${formatShorthand(s.avgDeads)}</div></div>${getRangeHTML(s.src.g_min, s.src.g_max, false)}</div>
-                    <div class="stat-box box-heals"><div><span class="stat-label">Heals (AVG)</span><div class="stat-value">${formatShorthand(s.avgHeals)}</div></div>${getRangeHTML(s.src.h_min, s.src.h_max, false)}</div>
+                    <div class="stat-box box-mp"><div><span class="stat-label">M/P Ratio (AVG)</span><div class="stat-value">${(s.avgMp*100).toFixed(2)}%</div></div>${getRangeHTML(s.src.mp_min, s.src.mp_max, true)}</div>
+                    <div class="stat-box box-merits"><div><span class="stat-label">Merits (AVG)</span><div class="stat-value">${formatShorthand(s.avgMerits)}</div></div>${getRangeHTML(s.src.merits_min, s.src.merits_max, false)}</div>
+                    <div class="stat-box box-kills"><div><span class="stat-label">Kills (AVG)</span><div class="stat-value">${formatShorthand(s.avgKills)}</div></div>${getRangeHTML(s.src.kills_min, s.src.kills_max, false)}</div>
+                    <div class="stat-box box-deads"><div><span class="stat-label">Deads (AVG)</span><div class="stat-value">${formatShorthand(s.avgDeads)}</div></div>${getRangeHTML(s.src.deads_min, s.src.deads_max, false)}</div>
+                    <div class="stat-box box-heals"><div><span class="stat-label">Heals (AVG)</span><div class="stat-value">${formatShorthand(s.avgHeals)}</div></div>${getRangeHTML(s.src.heals_min, s.src.heals_max, false)}</div>
                     <div class="stat-box box-ch"><div><span class="stat-label">CH25 (AVG)</span><div class="stat-value">${Math.round(s.avgCh)}</div></div>${getRangeHTML(s.src.ch_min, s.src.ch_max, false)}</div>
                 </div>
                 <div class="card-hint">Click card for historical progression</div>
@@ -272,29 +344,39 @@
             kd.dates.forEach((date, index) => {
                 const val = kd[m.key][index];
                 if (val !== null) {
-                    const label = sosMap[date] ? `${sosMap[date]} (${date})` : date;
+                    const label = sosMap[date] ? `${sosMap[date]}` : date; // Simplified label for clarity
                     plotLabels.push(label); plotValues.push(val);
                 }
             });
             if (plotValues.length === 0) return; 
             const card = document.createElement('div'); card.className = 'chart-card-solo';
-            const avgKeyMap = { pwr: 'avgPwr', d: 'avgMerits', e: 'avgMp', f: 'avgKills', g: 'avgDeads', h: 'avgHeals', ch: 'avgCh', ap: 'avgAp' };
+            const avgKeyMap = { pwr: 'avgPwr', merits: 'avgMerits', mp: 'avgMp', kills: 'avgKills', deads: 'avgDeads', heals: 'avgHeals', ch: 'avgCh', ap: 'avgAp' };
             card.innerHTML = `<div style="position: relative; height: 100%;"><canvas id="soloChart-${m.id}"></canvas></div><div class="mini-stats-panel"><div class="mini-stat-box"><span class="mini-stat-label">Average</span><div class="mini-stat-val">${formatMini(kd[avgKeyMap[m.key]], m.isPct)}</div></div><div class="mini-stat-box"><span class="mini-stat-label">Min</span><div class="mini-stat-val">${formatMini(kd.src[m.key+'_min'].v, m.isPct)}</div><div class="mini-stat-date">${sosMap[kd.src[m.key+'_min'].s] || kd.src[m.key+'_min'].s}</div></div><div class="mini-stat-box"><span class="mini-stat-label">Max</span><div class="mini-stat-val">${formatMini(kd.src[m.key+'_max'].v, m.isPct)}</div><div class="mini-stat-date">${sosMap[kd.src[m.key+'_max'].s] || kd.src[m.key+'_max'].s}</div></div></div>`;
             container.appendChild(card);
             const ctx = document.getElementById(`soloChart-${m.id}`).getContext('2d');
             activeCharts.push(new Chart(ctx, {
                 type: 'line', 
                 data: { labels: plotLabels, datasets: [{ label: m.label, data: plotValues, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.3, pointRadius: 5 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: m.label, color: '#fff', font: { size: 14, weight: '900' } }, legend: { display: false }, tooltip: { callbacks: { label: function(context) { let val = context.parsed.y; if (m.isPct) return m.label + ": " + (val * 100).toFixed(2) + "%"; return m.label + ": " + formatRawDots(val); } } } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', callback: function(value) { if (m.isPct) return (value * 100).toFixed(1) + '%'; return formatShorthand(value); } } }, x: { grid: { display: false }, ticks: { color: '#94a3b8' } } } }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: m.label, color: '#fff', font: { size: 14, weight: '900' } }, legend: { display: false }, tooltip: { callbacks: { label: function(context) { let val = context.parsed.y; if (m.isPct) return m.label + ": " + (val * 100).toFixed(2) + "%"; return m.label + ": " + formatRawDots(val); } } } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', callback: function(value) { if (m.isPct) return (value * 100).toFixed(1) + '%'; return formatShorthand(value); } } }, x: { grid: { display: false }, ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 45 } } } }
             }));
         });
         document.getElementById('soloModal').style.display = 'block'; document.body.style.overflow = 'hidden';
     }
 
+    // --- HELPERS & UTILS ---
+    function updateProgress(pct, text) {
+        document.getElementById('progressContainer').style.display = 'block';
+        document.getElementById('progressBar').style.width = pct + '%';
+        if (text) document.getElementById('status-text').textContent = text;
+    }
+    function autoInitialise() {
+        document.getElementById('searchArea').style.display = 'flex';
+        document.getElementById('sortBar').style.display = 'flex';
+        applyFilterAndSort();
+    }
     function getRangeHTML(minObj, maxObj, isPct) { 
         return `<div class="range-row"><div class="range-item"><span class="range-label">MIN</span><span class="range-val">${isPct ? (minObj.v*100).toFixed(2)+'%' : formatShorthand(minObj.v)}</span><span class="range-date">${sosMap[minObj.s] || minObj.s}</span></div><div class="range-item"><span class="range-label">MAX</span><span class="range-val">${isPct ? (maxObj.v*100).toFixed(2)+'%' : formatShorthand(maxObj.v)}</span><span class="range-date">${sosMap[maxObj.s] || maxObj.s}</span></div></div>`; 
     }
-
     function closeSolo() { document.getElementById('soloModal').style.display = 'none'; document.body.style.overflow = 'auto'; activeCharts.forEach(c => c.destroy()); }
     function handleSearch() { applyFilterAndSort(); }
     function applyFilterAndSort() {
@@ -302,22 +384,25 @@
         filteredList = kingdomStats.filter(s => s.searchText.includes(query));
         filteredList.sort((a, b) => {
             let valA = a[currentSort.key] || 0, valB = b[currentSort.key] || 0;
-            if(currentSort.key === 'id') { valA = a.id; valB = b.id; }
-            else if(currentSort.key === 'merits') { valA = a.avgMerits; valB = b.avgMerits; }
-            else if(currentSort.key === 'mp') { valA = a.avgMp; valB = b.avgMp; }
-            else if(currentSort.key === 'kills') { valA = a.avgKills; valB = b.avgKills; }
-            else if(currentSort.key === 'deads') { valA = a.avgDeads; valB = b.avgDeads; }
-            else if(currentSort.key === 'heals') { valA = a.avgHeals; valB = b.avgHeals; }
-            else if(currentSort.key === 'ch') { valA = a.avgCh; valB = b.avgCh; }
+            const avgKeyMap = { id: 'id', merits: 'avgMerits', mp: 'avgMp', kills: 'avgKills', deads: 'avgDeads', heals: 'avgHeals', ch: 'avgCh' };
+            valA = a[avgKeyMap[currentSort.key]];
+            valB = b[avgKeyMap[currentSort.key]];
             return currentSort.asc ? valA - valB : valB - valA;
         });
         itemsShown = pageSize; renderGrid();
     }
     function loadMore() { itemsShown += pageSize; renderGrid(); }
-    function handleSort(key, btn) { currentSort.asc = (currentSort.key === key) ? !currentSort.asc : false; currentSort.key = key; document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); if(btn) btn.classList.add('active'); applyFilterAndSort(); }
-    window.onload = syncIDs;
+    function handleSort(key, btn) { 
+        if (currentSort.key === key) currentSort.asc = !currentSort.asc;
+        else currentSort.asc = (key === 'id'); // Default ID to ascending, others to descending
+        currentSort.key = key; 
+        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); 
+        if(btn) btn.classList.add('active'); 
+        applyFilterAndSort(); 
+    }
+    function formatShorthand(v) { if (v === null || isNaN(v) || v === Infinity || v === -Infinity) return "-"; if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B'; if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M'; return Math.round(v).toLocaleString(); }
+    function formatRawDots(v) { if (v === null || isNaN(v)) return "-"; return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+    function formatMini(v, isPct) { if (v === null || isNaN(v) || v === Infinity || v === -Infinity) return "-"; if (isPct) return (v * 100).toFixed(2) + '%'; if (v >= 1e6) return formatShorthand(v); return Math.round(v).toLocaleString(); }
 </script>
-<img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/dadrew%20logo.png" alt="Dadrew Logo" class="brand-logo logo-right">
-<img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/BE%20NASTi%20Guy.png" alt="BE NASTi Logo" class="brand-logo logo-left">
 </body>
 </html>
