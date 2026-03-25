@@ -80,6 +80,7 @@
             40%, 60% { transform: rotate(90deg); }
             80%, 100% { transform: rotate(0deg); }
         }
+
         .brand-logo { position: fixed; bottom: 30px; z-index: 2000; opacity: 0.6; width: 200px; pointer-events: none; user-select: none; transition: 0.4s ease; }
         .logo-right { right: -9px; } .logo-left { left: 0px; }
         @media (max-width: 650px) { .brand-logo { width: 100px; bottom: 15px; } .logo-right { right: 15px; } .logo-left { left: 15px; } }
@@ -106,8 +107,34 @@
         .toggle-trigger { width: 100%; display: flex; justify-content: center; cursor: pointer; color: var(--muted); padding-top: 8px; transition: 0.3s; }
         #matchupsContainer { display: flex; flex-direction: column; gap: 40px; padding-bottom: 60px; }
         .matchup-card { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border); border-radius: 24px; padding: 25px; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
-        .name-input { font-size: 1.2rem; font-weight: 900; border: 1px solid transparent; background: transparent; color: var(--primary); padding: 4px 8px; border-radius: 6px; width: 350px; outline: none; }
+        
+        .card-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 15px; 
+            border-bottom: 1px solid var(--glass-border); 
+            padding-bottom: 15px; 
+        }
+        
+        .name-input { 
+            font-size: 1.3rem; 
+            font-weight: 900; 
+            border: 1px solid transparent; 
+            background: transparent; 
+            color: var(--primary); 
+            padding: 0px 8px; 
+            border-radius: 6px; 
+            width: 100%; 
+            outline: none; 
+            box-sizing: border-box;
+            text-overflow: ellipsis; 
+        }
+
+        input.name-input {
+            text-overflow: ellipsis; 
+        }
+        
         .table-wrapper { width: 100%; overflow-x: auto; border-radius: 15px; } 
         table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1850px; }
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
@@ -125,8 +152,10 @@
         .col-drag { width: 30px; cursor: grab; opacity: 0.3; color: var(--muted); }
         .col-del { width: 30px; color: #ef4444; font-weight: 900; cursor: pointer; }
         .admin-select { background: rgba(15, 23, 42, 0.9); border: 1px solid var(--glass-border); color: #3b82f6; font-size: 0.65rem; border-radius: 6px; padding: 4px; font-weight: 700; outline: none; cursor: pointer; }
+        
         #authModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); align-items: center; justify-content: center; z-index: 2000; }
         .modal-content { background: #1e293b; padding: 40px; border-radius: 24px; width: 320px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        
         #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s; }
         #progressContainer { width: 100%; max-width: 500px; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 20px auto; display: none; overflow: hidden; border: 1px solid var(--glass-border); }
         #progressBar { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s ease; }
@@ -193,7 +222,9 @@
             <button class="metric-btn" onclick="setSort('ch25', this)">CH25</button>
             <button class="metric-btn" onclick="setSort('ap', this)">CH25 AVG</button>
         </div>
-        <div id="troopRow" class="expand-rows"><div class="metric-row"></div></div>
+        <div id="troopRow" class="expand-rows">
+            <div class="metric-row"></div>
+        </div>
         <div class="toggle-trigger" id="troopToggle" onclick="toggleTroops()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
@@ -227,8 +258,22 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- STATE ---
-    let isAdmin = false, masterData = new Map(), allCloudData = {}, allTeamsData = {}, currentMatchups = [], currentSort = 'power', currentZoneFilter = 'all', currentRegistrations = {}, selectedFileName = "", activeTroopKeys = [], sosMap = {};
-    const possibleTroopHeaders = ["10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+","10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200M+"];
+    let isAdmin = false;
+    let masterData = new Map();
+    let allCloudData = {};
+    let allTeamsData = {};
+    let currentMatchups = [];
+    let currentSort = 'power';
+    let currentZoneFilter = 'all';
+    let currentRegistrations = {};
+    let selectedFileName = "";
+    let activeTroopKeys = [];
+    let sosMap = {};
+    
+    const possibleTroopHeaders = [
+        "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
+        "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200M+"
+    ];
 
     function kdClean(val) {
         if (!val) return "";
@@ -239,6 +284,7 @@
         const bar = document.getElementById('progressBar');
         const container = document.getElementById('progressContainer');
         const status = document.getElementById('status-msg');
+        
         if (container) container.style.display = 'block';
         if (bar) bar.style.width = pct + '%';
         if (status && text) status.innerText = text;
@@ -250,27 +296,44 @@
             overlay.style.opacity = '0';
             setTimeout(() => { 
                 overlay.style.display = 'none'; 
-                document.getElementById('progressContainer').style.display = 'none';
+                if(document.getElementById('progressContainer')) {
+                    document.getElementById('progressContainer').style.display = 'none';
+                }
             }, 300);
         }
     }
 
-    // --- AUTH ---
     function enableAdminMode() {
         isAdmin = true;
         const area = document.getElementById('adminArea');
         const lBtn = document.getElementById('loginBtn');
+        
         if (area) area.style.display = 'flex';
         if (lBtn) lBtn.style.display = 'none';
         renderAll();
     }
 
     async function login() {
-        const email = document.getElementById('email').value, password = document.getElementById('pass').value, errorDiv = document.getElementById('loginError'), btn = document.getElementById('loginActionBtn');
-        errorDiv.style.display = 'none'; btn.textContent = "AUTHORIZING..."; btn.disabled = true;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('pass').value;
+        const errorDiv = document.getElementById('loginError');
+        const btn = document.getElementById('loginActionBtn');
+        
+        errorDiv.style.display = 'none';
+        btn.textContent = "AUTHORIZING...";
+        btn.disabled = true;
+        
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { errorDiv.textContent = error.message; errorDiv.style.display = 'block'; btn.disabled = false; btn.textContent = "AUTHORIZE"; } 
-        else { enableAdminMode(); toggleModal(false); }
+        
+        if (error) { 
+            errorDiv.textContent = error.message; 
+            errorDiv.style.display = 'block'; 
+            btn.disabled = false; 
+            btn.textContent = "AUTHORIZE"; 
+        } else { 
+            enableAdminMode(); 
+            toggleModal(false); 
+        }
     }
 
     async function logout() { 
@@ -278,7 +341,6 @@
         location.reload(); 
     }
 
-    // --- DATA LOADING ---
     window.onload = async () => {
         try {
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -286,19 +348,23 @@
 
             updateProgress(20, "Fetching metadata...");
             const timestamp = `?t=${Date.now()}`;
+            
             const [fRes, sRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json'),
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json')
             ]);
             
             if (fRes.error) throw fRes.error;
+            
             const files = JSON.parse(await fRes.data.text());
             if (sRes.data) sosMap = JSON.parse(await sRes.data.text());
 
             const selector = document.getElementById('fileSelector'); 
             selector.innerHTML = '';
+            
             files.reverse().forEach(f => {
-                const opt = document.createElement('option'); opt.value = f;
+                const opt = document.createElement('option'); 
+                opt.value = f;
                 const dateKey = f.replace(/\.csv/i, '');
                 opt.textContent = sosMap[dateKey] ? `${sosMap[dateKey]} (${dateKey})` : f.toUpperCase().replace(/\.CSV/i, '');
                 selector.appendChild(opt);
@@ -306,16 +372,23 @@
 
             await fetchMatchupsFromCloud();
             await fetchTeamsFromCloud();
-            if (files.length > 0) await loadSpecificFile(files[0]);
+            
+            if (files.length > 0) {
+                await loadSpecificFile(files[0]);
+            }
 
-        } catch (e) { console.error("Init Error:", e); } 
-        finally { hideLoading(); }
+        } catch (e) { 
+            console.error("Init Error:", e); 
+        } finally { 
+            hideLoading(); 
+        }
     };
 
     async function loadSpecificFile(fileName) {
         selectedFileName = fileName; 
         const cleanName = fileName.replace(/\.csv/i, ''); 
         const jsonName = cleanName + ".json";
+        
         try {
             const [regRes, csvRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}`),
@@ -326,48 +399,111 @@
                 const regWrapper = JSON.parse(await regRes.data.text());
                 currentRegistrations = regWrapper.data || {};
                 var registeredIDs = new Set();
-                if (regWrapper.kingdoms) regWrapper.kingdoms.forEach(k => registeredIDs.add(kdClean(k)));
-            } else { currentRegistrations = {}; var registeredIDs = new Set(); }
+                if (regWrapper.kingdoms) {
+                    regWrapper.kingdoms.forEach(k => registeredIDs.add(kdClean(k)));
+                }
+            } else { 
+                currentRegistrations = {}; 
+                var registeredIDs = new Set(); 
+            }
 
             if (csvRes.data) {
                 const result = Papa.parse(await csvRes.data.text(), { header: true, skipEmptyLines: 'greedy' });
-                const headers = result.meta.fields; activeTroopKeys = headers.filter(h => possibleTroopHeaders.includes(h));
-                updateSortBar(); masterData.clear(); let rankedPool = [];
+                const headers = result.meta.fields; 
+                activeTroopKeys = headers.filter(h => possibleTroopHeaders.includes(h));
+                updateSortBar(); 
+                
+                masterData.clear(); 
+                let rankedPool = [];
+                
                 result.data.forEach(row => {
                     const cleanId = kdClean(row.KD || row['KD#']);
                     const p = cleanNum(row['Top 300 Power'] || row.Power);
                     if (cleanId && p > 0) {
-                        const regInfo = currentRegistrations[cleanId], obj = { kd: cleanId, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits), kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads), heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']), mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0, class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true, alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", raw: row };
-                        masterData.set(cleanId, obj); if (registeredIDs.has(cleanId)) rankedPool.push(obj);
+                        const regInfo = currentRegistrations[cleanId];
+                        const obj = { 
+                            kd: cleanId, 
+                            power: p, 
+                            merits: cleanNum(row['Top 300 Merits'] || row.Merits), 
+                            kills: cleanNum(row['Top 300 Kills'] || row.Kills), 
+                            deads: cleanNum(row['Top 300 Deads'] || row.Deads), 
+                            heals: cleanNum(row['Top 300 Heals'] || row.Heals), 
+                            ch25: cleanNum(row['CH25']), 
+                            ap: cleanNum(row['CH25 AP']), 
+                            mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0, 
+                            class: regInfo ? (regInfo.class || "TBD") : "-", 
+                            isParagon: regInfo?.isParagon === true, 
+                            alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", 
+                            raw: row 
+                        };
+                        masterData.set(cleanId, obj); 
+                        if (registeredIDs.has(cleanId)) rankedPool.push(obj);
                     }
                 });
+                
                 rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
                 rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
             }
-            currentMatchups = allCloudData[cleanName] || []; renderAll();
-        } catch (e) { console.error("Load Error:", e); }
+            
+            currentMatchups = allCloudData[cleanName] || []; 
+            renderAll();
+        } catch (e) { 
+            console.error("Load Error:", e); 
+        }
     }
 
     async function fetchMatchupsFromCloud() { 
-        try { const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('MatchupsConfig.json'); if (data) allCloudData = JSON.parse(await data.text()); } catch (e) { allCloudData = {}; } 
+        try { 
+            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('MatchupsConfig.json'); 
+            if (data) allCloudData = JSON.parse(await data.text()); 
+        } catch (e) { 
+            allCloudData = {}; 
+        } 
     }
+
     async function fetchTeamsFromCloud() {
-        try { const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('TeamsConfig.json'); if (data) allTeamsData = JSON.parse(await data.text()); } catch (e) { allTeamsData = {}; }
+        const timestamp = `?t=${Date.now()}`;
+        try { 
+            const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('TeamsConfig.json' + timestamp); 
+            if (error) {
+                allTeamsData = {};
+                return;
+            }
+            if (data) allTeamsData = JSON.parse(await data.text()); 
+        } catch (e) { 
+            allTeamsData = {}; 
+        }
     }
 
     async function saveToCloud() { 
         if (!isAdmin) return; 
-        const btn = document.getElementById('saveStatusBtn'); btn.textContent = "SAVING..."; btn.disabled = true;
-        const cleanKey = selectedFileName.replace(/\.csv/i,''); allCloudData[cleanKey] = currentMatchups; 
+        
+        const btn = document.getElementById('saveStatusBtn'); 
+        btn.textContent = "SAVING..."; 
+        btn.disabled = true;
+        
+        const cleanKey = selectedFileName.replace(/\.csv/i,''); 
+        allCloudData[cleanKey] = currentMatchups; 
+        
         const blob = new Blob([JSON.stringify(allCloudData, null, 2)], { type: 'application/json' });
-        try { const { error } = await supabaseClient.storage.from(BUCKET_CONFIGS).upload('MatchupsConfig.json', blob, { upsert: true, contentType: 'application/json' }); if (error) throw error; btn.textContent = "SAVED!"; setTimeout(() => btn.textContent="SAVE CLOUD", 2000); } 
-        catch (e) { btn.textContent = "RETRY"; console.error(e); } finally { btn.disabled = false; }
+        
+        try { 
+            const { error } = await supabaseClient.storage.from(BUCKET_CONFIGS).upload('MatchupsConfig.json', blob, { upsert: true, contentType: 'application/json' }); 
+            if (error) throw error; 
+            
+            btn.textContent = "SAVED!"; 
+            setTimeout(() => btn.textContent="SAVE CLOUD", 2000); 
+        } catch (e) { 
+            btn.textContent = "RETRY"; 
+            console.error(e); 
+        } finally { 
+            btn.disabled = false; 
+        }
     }
-
-    // --- UI LOGIC ---
 
     function applyTeamToMatchup(mIdx, side, teamName) {
         if (!teamName) return;
+        
         const fileTeams = allTeamsData[selectedFileName] || [];
         const team = fileTeams.find(t => t.name === teamName);
         if (!team) return;
@@ -377,11 +513,9 @@
         const idxTotalB = ids.indexOf("TOTAL B");
 
         if (side === 'A') {
-            // Team A Members (Replaced) -> TOTAL A -> DIFF -> TOTAL B -> Team B Members (Preserved)
             const markersAndB = ids.slice(idxTotalA);
             currentMatchups[mIdx].ids = [...team.ids, ...markersAndB];
         } else {
-            // Team A (Preserved) -> TOTAL A -> DIFF -> TOTAL B -> Team B Members (Replaced)
             const everythingBeforeTeamB = ids.slice(0, idxTotalB + 1);
             currentMatchups[mIdx].ids = [...everythingBeforeTeamB, ...team.ids];
         }
@@ -391,6 +525,7 @@
     function setupSortable(mIdx) { 
         const el = document.getElementById(`tbody-${mIdx}`);
         if (!el) return;
+        
         new Sortable(el, { 
             handle: '.col-drag', 
             animation: 150, 
@@ -404,61 +539,371 @@
     }
 
     function renderAll() {
-        const container = document.getElementById('matchupsContainer'), sT = document.getElementById('teamSearch').value.toLowerCase().trim(); container.innerHTML = '';
-        let displayList = currentMatchups.map((m, idx) => ({ ...m, originalIdx: idx, stats: calculateMatchupStats(m.ids) }));
-        if (currentZoneFilter !== 'all') displayList = displayList.filter(m => m.zone === currentZoneFilter);
-        if (sT) { displayList = displayList.filter(m => m.name.toLowerCase().includes(sT) || m.ids.some(id => { const d = masterData.get(kdClean(id)); return kdClean(id).includes(sT) || (d && d.alliance.toLowerCase().includes(sT)); })); }
-        if (currentSort === 'name') { displayList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })); }
-        else { displayList.sort((a, b) => { let valA = Math.abs(a.stats.diff[currentSort] || (a.stats.diff.b && a.stats.diff.b[currentSort]) || 0), valB = Math.abs(b.stats.diff[currentSort] || (b.stats.diff.b && b.stats.diff.b[currentSort]) || 0); return valB - valA; }); }
-        const fileTeams = allTeamsData[selectedFileName] || [], teamOptions = `<option value="">-- Pick a Team --</option>` + fileTeams.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+        const container = document.getElementById('matchupsContainer');
+        const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); 
+        container.innerHTML = '';
+        
+        let displayList = currentMatchups.map((m, idx) => ({ 
+            ...m, 
+            originalIdx: idx, 
+            stats: calculateMatchupStats(m.ids) 
+        }));
+        
+        if (currentZoneFilter !== 'all') {
+            displayList = displayList.filter(m => m.zone === currentZoneFilter);
+        }
+        
+        if (sT) { 
+            displayList = displayList.filter(m => 
+                m.name.toLowerCase().includes(sT) || 
+                m.ids.some(id => { 
+                    const d = masterData.get(kdClean(id)); 
+                    return kdClean(id).includes(sT) || (d && d.alliance.toLowerCase().includes(sT)); 
+                })
+            ); 
+        }
+        
+        if (currentSort === 'name') { 
+            displayList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })); 
+        } else { 
+            displayList.sort((a, b) => { 
+                let valA = Math.abs(a.stats.diff[currentSort] || (a.stats.diff.b && a.stats.diff.b[currentSort]) || 0);
+                let valB = Math.abs(b.stats.diff[currentSort] || (b.stats.diff.b && b.stats.diff.b[currentSort]) || 0); 
+                return valB - valA; 
+            }); 
+        }
+        
+        const fileTeams = allTeamsData[selectedFileName] || [];
+        const teamOptions = `<option value="">-- Pick a Team --</option>` + fileTeams.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
 
         displayList.forEach(matchup => {
-            const mIdx = matchup.originalIdx, card = document.createElement('div'); card.className = 'matchup-card';
-            const allTbd = matchup.ids.every(id => { const d = masterData.get(kdClean(id)); return !d || d.class === "TBD" || d.class === "-"; });
+            const mIdx = matchup.originalIdx;
+            const card = document.createElement('div'); 
+            card.className = 'matchup-card';
+            
+            const allTbd = matchup.ids.every(id => { 
+                const d = masterData.get(kdClean(id)); 
+                return !d || d.class === "TBD" || d.class === "-"; 
+            });
+            
             const dataColsSpan = 9 + activeTroopKeys.length + (!allTbd ? 1 : 0);
+            
             let rowsHtml = matchup.ids.map((id, rIdx) => {
-                const upper = String(id).toUpperCase().trim(); const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper); const rowData = matchup.stats.rows[rIdx];
-                if (isSpecial) { const rowClass = upper.replace(/\s+/g, '-').replace(/[()]/g, '').toLowerCase(); return `<tr class="row-${rowClass}">${isAdmin ? '<td></td><td></td>' : ''}<td style="text-align:left; padding-left:20px; font-weight:950;" colspan="${!allTbd ? 4 : 3}">${upper}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${rowData.mpRankSum || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowData.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowData.deads)}</td><td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowData.heals)}</td><td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowData.ch25)}</td><td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowData.ap)}</td>${activeTroopKeys.map(k => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(rowData.b[k])}</td>`).join('')}</tr>`; }
-                const cleanId = kdClean(id); const d = masterData.get(cleanId);
-                if (!d) return `<tr>${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}<td class="col-small">-</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td><td colspan="${dataColsSpan}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td></tr>`;
-                return `<tr>${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}<td>${d.powerRank || '-'}</td><td style="color:var(--primary); font-weight:800;">${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}</td>${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}<td style="text-align:center; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td><td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td><td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td><td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td><td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td><td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td><td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td><td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td><td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td><td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>${activeTroopKeys.map(k => `<td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}</tr>`;
+                const upper = String(id).toUpperCase().trim(); 
+                const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper); 
+                const rowData = matchup.stats.rows[rIdx];
+                
+                if (isSpecial) { 
+                    const rowClass = upper.replace(/\s+/g, '-').replace(/[()]/g, '').toLowerCase(); 
+                    return `
+                        <tr class="row-${rowClass}">
+                            ${isAdmin ? '<td></td><td></td>' : ''}
+                            <td style="text-align:left; padding-left:20px; font-weight:950;" colspan="${!allTbd ? 4 : 3}">${upper}</td>
+                            <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td>
+                            <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td>
+                            <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td>
+                            <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${rowData.mpRankSum || 0}</td>
+                            <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowData.kills)}</td>
+                            <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowData.deads)}</td>
+                            <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowData.heals)}</td>
+                            <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowData.ch25)}</td>
+                            <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowData.ap)}</td>
+                            ${activeTroopKeys.map(k => `
+                                <td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(rowData.b[k])}</td>
+                            `).join('')}
+                        </tr>
+                    `; 
+                }
+                
+                const cleanId = kdClean(id); 
+                const d = masterData.get(cleanId);
+                
+                if (!d) {
+                    return `
+                        <tr>
+                            ${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}
+                            <td class="col-small">-</td>
+                            <td style="color:var(--primary); font-weight:800;">
+                                ${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}
+                            </td>
+                            <td colspan="${dataColsSpan}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td>
+                        </tr>
+                    `;
+                }
+                
+                return `
+                    <tr>
+                        ${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}
+                        <td>${d.powerRank || '-'}</td>
+                        <td style="color:var(--primary); font-weight:800;">
+                            ${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}
+                        </td>
+                        ${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}
+                        <td style="text-align:center; font-weight:700;" class="${d.isParagon ? 'paragon-text' : ''}">${d.alliance}</td>
+                        <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
+                        <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
+                        <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
+                        <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td>
+                        <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
+                        <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
+                        <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td>
+                        <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
+                        <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
+                        ${activeTroopKeys.map(k => `
+                            <td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>
+                        `).join('')}
+                    </tr>
+                `;
             }).join('');
-            const adminZoneSelect = isAdmin ? `<select style="background:#0f172a; border:1px solid var(--glass-border); color:white; font-size:0.7rem; border-radius:5px;" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();"><option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>KVK START</option><option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option><option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option><option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option></select>` : `<span class="btn" style="font-size:0.6rem; padding:4px 10px;">${matchup.zone.toUpperCase()}</span>`;
-            const adminTeamSelects = isAdmin ? `<div style="display:flex; gap:10px; margin-top:10px; margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--glass-border);"><div style="display:flex; flex-direction:column; gap:4px;"><span style="font-size:0.6rem; color:var(--muted); font-weight:800;">AUTO-FILL SIDE A</span><select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'A', this.value)">${teamOptions}</select></div><div style="display:flex; flex-direction:column; gap:4px;"><span style="font-size:0.6rem; color:var(--muted); font-weight:800;">AUTO-FILL SIDE B</span><select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'B', this.value)">${teamOptions}</select></div></div>` : '';
-            card.innerHTML = `<div class="card-header"><div>${isAdmin ? `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : `<div class="name-input">${matchup.name}</div>`}</div><div style="display:flex; align-items:center; gap:10px;">${adminZoneSelect}${isAdmin ? `<button class="btn btn-green" onclick="addRowA(${mIdx})">+ A</button><button class="btn btn-blue" onclick="addRowB(${mIdx})">+ B</button><button class="btn btn-red" onclick="deleteMatchup(${mIdx})">DEL</button>` : ''}</div></div>${adminTeamSelects}<div class="table-wrapper"><table><thead><tr>${isAdmin ? '<th></th><th></th>' : ''}<th>RANK</th><th>KD#</th>${!allTbd ? '<th>CLASS</th>' : ''}<th>ALLIANCE</th><th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>CH25 AVG</th>${activeTroopKeys.map(k => `<th>${k.replace('+', '')}</th>`).join('')}</tr></thead><tbody id="tbody-${mIdx}">${rowsHtml}</tbody></table></div>`;
-            container.appendChild(card); if(isAdmin) setupSortable(mIdx);
+            
+            const adminZoneSelect = isAdmin ? `
+                <select style="background:#0f172a; border:1px solid var(--glass-border); color:white; font-size:0.7rem; border-radius:5px;" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();">
+                    <option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>KVK START</option>
+                    <option value="zone 2" ${matchup.zone === 'zone 2' ? 'selected' : ''}>ZONE 2</option>
+                    <option value="zone 3" ${matchup.zone === 'zone 3' ? 'selected' : ''}>ZONE 3</option>
+                    <option value="zone 4" ${matchup.zone === 'zone 4' ? 'selected' : ''}>ZONE 4</option>
+                </select>
+            ` : `<span class="btn" style="font-size:0.6rem; padding:4px 10px;">${matchup.zone.toUpperCase()}</span>`;
+            
+            const adminTeamSelects = isAdmin ? `
+                <div style="display:flex; gap:10px; margin-top:10px; margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--glass-border);">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span style="font-size:0.6rem; color:var(--muted); font-weight:800;">AUTO-FILL SIDE A</span>
+                        <select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'A', this.value)">
+                            ${teamOptions}
+                        </select>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span style="font-size:0.6rem; color:var(--muted); font-weight:800;">AUTO-FILL SIDE B</span>
+                        <select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'B', this.value)">
+                            ${teamOptions}
+                        </select>
+                    </div>
+                </div>
+            ` : '';
+            
+            card.innerHTML = `
+                <div class="card-header" style="align-items: flex-start; gap: 20px;">
+                    <div style="flex: 1; min-width: 0;">
+                        ${isAdmin ? 
+                            `<input class="name-input" value="${matchup.name}" onchange="currentMatchups[${mIdx}].name=this.value;">` : 
+                            `<div class="name-input" style="word-wrap: break-word;">${matchup.name}</div>`
+                        }
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; flex-shrink: 0;">
+                        ${adminZoneSelect}
+                        ${isAdmin ? `
+                            <button class="btn btn-green" onclick="addRowA(${mIdx})">+ A</button>
+                            <button class="btn btn-blue" onclick="addRowB(${mIdx})">+ B</button>
+                            <button class="btn btn-red" onclick="deleteMatchup(${mIdx})">DEL</button>
+                        ` : ''}
+                    </div>
+                </div>
+                ${adminTeamSelects}
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                ${isAdmin ? '<th></th><th></th>' : ''}
+                                <th>RANK</th>
+                                <th>KD#</th>
+                                ${!allTbd ? '<th>CLASS</th>' : ''}
+                                <th>ALLIANCE</th>
+                                <th>POWER</th>
+                                <th>MERITS</th>
+                                <th>M/P</th>
+                                <th>M/P R</th>
+                                <th>KILLS</th>
+                                <th>DEADS</th>
+                                <th>HEALS</th>
+                                <th>CH25</th>
+                                <th>CH25 AVG</th>
+                                ${activeTroopKeys.map(k => `<th>${k.replace('+', '')}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-${mIdx}">
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            container.appendChild(card); 
+            if(isAdmin) setupSortable(mIdx);
         });
     }
 
     function calculateMatchupStats(ids) {
-        let a = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} }, b = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} }; activeTroopKeys.forEach(k => { a.b[k]=0; b.b[k]=0; }); 
-        let current = a; ids.forEach(id => { const u = String(id).toUpperCase().trim(); if (u === "TOTAL A") current = b; else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { const d = masterData.get(kdClean(id)); if (d) { current.power += d.power; current.merits += d.merits; current.kills += d.kills; current.deads += d.deads; current.heals += d.heals; current.ch25 += d.ch25; current.ap += d.ap; current.count++; current.mpRankSum += (d.mpRank || 0); activeTroopKeys.forEach(k => current.b[k] += cleanNum(d.raw[k])); } } });
-        const statsA = { ...a, mp: a.power > 0 ? a.merits/a.power : 0, ap: a.count > 0 ? a.ap/a.count : 0 }, statsB = { ...b, mp: b.power > 0 ? b.merits/b.power : 0, ap: b.count > 0 ? b.ap/b.count : 0 };
-        const diff = { power: statsA.power - statsB.power, merits: statsA.merits - statsB.merits, kills: statsA.kills - statsB.kills, deads: statsA.deads - statsB.deads, heals: statsA.heals - statsB.heals, ch25: statsA.ch25 - statsB.ch25, ap: statsA.ap - statsB.ap, mp: statsA.mp - statsB.mp, mpRank: statsA.mpRankSum - statsB.mpRankSum, b: {} };
+        let a = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} };
+        let b = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} };
+        
+        activeTroopKeys.forEach(k => { 
+            a.b[k] = 0; 
+            b.b[k] = 0; 
+        }); 
+        
+        let current = a; 
+        
+        ids.forEach(id => { 
+            const u = String(id).toUpperCase().trim(); 
+            if (u === "TOTAL A") {
+                current = b; 
+            } else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { 
+                const d = masterData.get(kdClean(id)); 
+                if (d) { 
+                    current.power += d.power; 
+                    current.merits += d.merits; 
+                    current.kills += d.kills; 
+                    current.deads += d.deads; 
+                    current.heals += d.heals; 
+                    current.ch25 += d.ch25; 
+                    current.ap += d.ap; 
+                    current.count++; 
+                    current.mpRankSum += (d.mpRank || 0); 
+                    activeTroopKeys.forEach(k => current.b[k] += cleanNum(d.raw[k])); 
+                } 
+            } 
+        });
+        
+        const statsA = { 
+            ...a, 
+            mp: a.power > 0 ? a.merits/a.power : 0, 
+            ap: a.count > 0 ? a.ap/a.count : 0 
+        };
+        
+        const statsB = { 
+            ...b, 
+            mp: b.power > 0 ? b.merits/b.power : 0, 
+            ap: b.count > 0 ? b.ap/b.count : 0 
+        };
+        
+        const diff = { 
+            power: statsA.power - statsB.power, 
+            merits: statsA.merits - statsB.merits, 
+            kills: statsA.kills - statsB.kills, 
+            deads: statsA.deads - statsB.deads, 
+            heals: statsA.heals - statsB.heals, 
+            ch25: statsA.ch25 - statsB.ch25, 
+            ap: statsA.ap - statsB.ap, 
+            mp: statsA.mp - statsB.mp, 
+            mpRank: statsA.mpRankSum - statsB.mpRankSum, 
+            b: {} 
+        };
+        
         activeTroopKeys.forEach(k => diff.b[k] = statsA.b[k] - statsB.b[k]);
-        return { rows: ids.map(id => { const u = String(id).toUpperCase().trim(); if (u === "TOTAL A") return statsA; if (u === "TOTAL B") return statsB; if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; return {}; }), diff };
+        
+        return { 
+            rows: ids.map(id => { 
+                const u = String(id).toUpperCase().trim(); 
+                if (u === "TOTAL A") return statsA; 
+                if (u === "TOTAL B") return statsB; 
+                if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; 
+                return {}; 
+            }), 
+            diff 
+        };
     }
 
-    // --- HELPERS ---
-    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
-    function formatVal(n) { if (!n && n !== 0) return "0.00"; const abs = Math.abs(n); let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
-    function formatValNoDec(n) { if (!n && n !== 0) return "0"; const abs = Math.floor(Math.abs(n)); let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
-    function setSort(key, btn) { currentSort = key; document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active')); if (btn) btn.classList.add('active'); else if (key === 'name') { const b = document.getElementById('btnSortName'); if(b) b.classList.add('active'); } renderAll(); }
-    function setZoneFilter(zone, btn) { currentZoneFilter = zone; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderAll(); }
-    function toggleTroops() { document.getElementById('troopRow').classList.toggle('open'); document.getElementById('troopToggle').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; }
-    function updateSortBar() { const container = document.querySelector('#troopRow .metric-row'); if (!container) return; container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); }
-    function updateId(mIdx, rIdx, val) { currentMatchups[mIdx].ids[rIdx] = val; renderAll(); }
-    function addRowA(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.indexOf("TOTAL A"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
-    function addRowB(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.indexOf("TOTAL B"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
-    function removeRow(mIdx, rIdx) { currentMatchups[mIdx].ids.splice(rIdx, 1); renderAll(); }
-    function deleteMatchup(idx) { if(confirm("Delete Group?")) { currentMatchups.splice(idx, 1); renderAll(); } }
+    function cleanNum(v) { 
+        if (!v) return 0; 
+        return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; 
+    }
+
+    function formatVal(n) { 
+        if (!n && n !== 0) return "0.00"; 
+        const abs = Math.abs(n); 
+        let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
+        return n < 0 ? "-" + s : s; 
+    }
+
+    function formatValNoDec(n) { 
+        if (!n && n !== 0) return "0"; 
+        const abs = Math.floor(Math.abs(n)); 
+        let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
+        return n < 0 ? "-" + s : s; 
+    }
+
+    function setSort(key, btn) { 
+        currentSort = key; 
+        document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active')); 
+        if (btn) {
+            btn.classList.add('active'); 
+        } else if (key === 'name') { 
+            const b = document.getElementById('btnSortName'); 
+            if(b) b.classList.add('active'); 
+        } 
+        renderAll(); 
+    }
+
+    function setZoneFilter(zone, btn) { 
+        currentZoneFilter = zone; 
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+        btn.classList.add('active'); 
+        renderAll(); 
+    }
+
+    function toggleTroops() { 
+        document.getElementById('troopRow').classList.toggle('open'); 
+        document.getElementById('troopToggle').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; 
+    }
+
+    function updateSortBar() { 
+        const container = document.querySelector('#troopRow .metric-row'); 
+        if (!container) return; 
+        container.innerHTML = activeTroopKeys.map(k => `
+            <button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>
+        `).join(''); 
+    }
+
+    function updateId(mIdx, rIdx, val) { 
+        currentMatchups[mIdx].ids[rIdx] = val; 
+        renderAll(); 
+    }
+
+    function addRowA(mIdx) { 
+        const ids = currentMatchups[mIdx].ids; 
+        const target = ids.indexOf("TOTAL A"); 
+        ids.splice(target !== -1 ? target : ids.length, 0, "000"); 
+        renderAll(); 
+    }
+
+    function addRowB(mIdx) { 
+        const ids = currentMatchups[mIdx].ids; 
+        const target = ids.indexOf("TOTAL B"); 
+        ids.splice(target !== -1 ? target : ids.length, 0, "000"); 
+        renderAll(); 
+    }
+
+    function removeRow(mIdx, rIdx) { 
+        currentMatchups[mIdx].ids.splice(rIdx, 1); 
+        renderAll(); 
+    }
+
+    function deleteMatchup(idx) { 
+        if(confirm("Delete Group?")) { 
+            currentMatchups.splice(idx, 1); 
+            renderAll(); 
+        } 
+    }
+
     function addNewMatchup() { 
-        currentMatchups.unshift({ name: "A New Group", zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] }); 
+        currentMatchups.unshift({ 
+            name: "A New Group", 
+            zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, 
+            ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] 
+        }); 
         setSort('name', document.getElementById('btnSortName'));
     }
-    function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; if(!v) document.getElementById('loginError').style.display = 'none'; }
-    function hideDropdown() { }
-</script>
 
+    function toggleModal(v) { 
+        document.getElementById('authModal').style.display = v ? 'flex' : 'none'; 
+        if(!v) {
+            document.getElementById('loginError').style.display = 'none'; 
+        }
+    }
+
+    function hideDropdown() { }
+
+</script>
 </body>
 </html>
