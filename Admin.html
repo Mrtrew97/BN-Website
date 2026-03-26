@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Dashboard | BN Analytics</title>
+    
+    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="mobile.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        /**
+         * THE COMMANDER'S GUARD
+         */
+        const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
+        const supabaseAdmin = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function checkAuth() {
+            const { data: { session } } = await supabaseAdmin.auth.getSession();
+            
+            if (!session) {
+                window.location.replace('index.html');
+            } else {
+                document.getElementById('adminContent').style.display = 'flex';
+                document.getElementById('loadingOverlay').style.display = 'none';
+                initMetadataEditor();
+            }
+        }
+        
+        checkAuth();
+    </script>
+
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
+            background-attachment: fixed; 
+            color: var(--text); 
+            margin: 0; 
+            padding: 40px 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .admin-card {
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            border-radius: 40px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+
+        .admin-header h1 {
+            font-size: 3rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: -3px;
+            margin: 0 0 10px 0;
+            color: white;
+        }
+
+        .editor-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        .pane {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+        }
+
+        .pane h2 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary);
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-list-container {
+            max-height: 450px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .file-list-container::-webkit-scrollbar { width: 6px; }
+        .file-list-container::-webkit-scrollbar-track { background: transparent; }
+        .file-list-container::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+            border: 1px solid transparent;
+        }
+
+        .file-date {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--muted);
+            width: 100px;
+            flex-shrink: 0;
+        }
+
+        .alias-input {
+            flex: 2;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .gpool-select {
+            flex: 1;
+            background: #0f172a;
+            color: #3b82f6;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .save-btn {
+            margin-top: 25px;
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: 1px solid var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            transition: 0.3s;
+        }
+
+        .save-btn:hover {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+
+        /* --- NEW RED TERMINATE BUTTON STYLING --- */
+        .terminate-btn {
+            margin-top: 10px;
+            padding: 14px 35px;
+            border-radius: 14px;
+            font-weight: 900;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            transition: 0.3s;
+        }
+
+        .terminate-btn:hover {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            width: 100%;
+            margin-top: 30px;
+        }
+
+        .tool-btn {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 15px;
+            color: white;
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .tool-btn:hover { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+
+        #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="adminContent" style="display: none; width: 100%; flex-direction: column; align-items: center;">
+        
+        <div class="admin-card">
+            <div class="admin-header">
+                <h1>Admin Hub</h1>
+                <p style="color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px;">Snapshot & Generation Management</p>
+            </div>
+
+            <div class="editor-section">
+                <div class="pane">
+                    <h2>
+                        <span>Master Snapshot Control</span>
+                        <span id="fileCount" style="font-size: 0.6rem; opacity: 0.5;">0 Files Found</span>
+                    </h2>
+                    
+                    <div id="globalList" class="file-list-container">
+                        <!-- Rows populated by JS -->
+                    </div>
+
+                    <button class="save-btn" id="saveGlobalBtn" onclick="saveMetadataGlobal()">Save Global Configuration</button>
+                </div>
+            </div>
+
+            <div class="tool-grid">
+                <a href="KDPVP.html" class="tool-btn">Registrations</a>
+                <a href="Matchups.html" class="tool-btn">Matchups</a>
+                <a href="Teams.html" class="tool-btn">Teams</a>
+                <a href="index.html" class="tool-btn">Exit Hub</a>
+            </div>
+        </div>
+
+        <!-- NEW TERMINATE BUTTON APPLIED HERE -->
+        <button class="terminate-btn" onclick="terminateSession()">Terminate Admin Session</button>
+    </div>
+
+    <script>
+        // Use separate objects to ensure no data mixing
+        let currentAliases = {};
+        let currentGPool = {};
+
+        /**
+         * INITIALIZATION
+         */
+        async function initMetadataEditor() {
+            const timestamp = `?t=${Date.now()}`;
+            
+            try {
+                // 1. Fetch file list from Pull folder
+                const { data: files, error: listError } = await supabaseAdmin.storage
+                    .from('kvk-data')
+                    .list('Pull', { limit: 100 });
+
+                if (listError) throw listError;
+
+                // 2. Fetch SosNames (Aliases)
+                const { data: aliasBlob } = await supabaseAdmin.storage
+                    .from('kvk-data')
+                    .download(`Pull/SosNames.json${timestamp}`);
+                
+                currentAliases = aliasBlob ? JSON.parse(await aliasBlob.text()) : {};
+
+                // 3. Fetch GPool Configuration from configs bucket
+                const { data: gPoolBlob } = await supabaseAdmin.storage
+                    .from('configs')
+                    .download(`GPool.json${timestamp}`);
+                
+                currentGPool = gPoolBlob ? JSON.parse(await gPoolBlob.text()) : {};
+
+                // 4. Render the UI
+                renderGlobalList(files);
+
+            } catch (e) {
+                console.error(`Error loading data:`, e);
+            }
+        }
+
+        /**
+         * RENDERER
+         */
+        function renderGlobalList(files) {
+            const container = document.getElementById(`globalList`);
+            const countLabel = document.getElementById('fileCount');
+            container.innerHTML = '';
+
+            const csvFiles = files
+                .filter(f => f.name.toLowerCase().endsWith('.csv'))
+                .sort((a, b) => b.name.localeCompare(a.name));
+
+            countLabel.innerText = `${csvFiles.length} Snapshot Files Found`;
+
+            csvFiles.forEach(file => {
+                const dateKey = file.name.replace(/\.csv/i, '');
+                
+                // Initialize state for this key if it doesn't exist
+                if (currentAliases[dateKey] === undefined) currentAliases[dateKey] = "";
+                if (currentGPool[dateKey] === undefined) currentGPool[dateKey] = "G2";
+
+                const aliasValue = currentAliases[dateKey];
+                const gValue = currentGPool[dateKey];
+
+                const row = document.createElement('div');
+                row.className = 'file-row';
+                row.innerHTML = `
+                    <div class="file-date">${dateKey}</div>
+                    
+                    <input type="text" 
+                           class="alias-input" 
+                           placeholder="Display Name" 
+                           value="${aliasValue}"
+                           oninput="updateLocalAlias('${dateKey}', this.value)">
+                    
+                    <select class="gpool-select" onchange="updateLocalGPool('${dateKey}', this.value)">
+                        <option value="G1" ${gValue === 'G1' ? 'selected' : ''}>G1</option>
+                        <option value="G2" ${gValue === 'G2' ? 'selected' : ''}>G2</option>
+                        <option value="G3" ${gValue === 'G3' ? 'selected' : ''}>G3</option>
+                        <option value="G4" ${gValue === 'G4' ? 'selected' : ''}>G4</option>
+                    </select>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function updateLocalAlias(key, value) {
+            currentAliases[key] = value;
+        }
+
+        function updateLocalGPool(key, value) {
+            currentGPool[key] = value;
+        }
+
+        /**
+         * SAVE LOGIC
+         */
+        async function saveMetadataGlobal() {
+            const btn = document.getElementById(`saveGlobalBtn`);
+            const originalText = btn.innerText;
+            
+            btn.innerText = "UPLOADING CONFIGURATIONS...";
+            btn.disabled = true;
+
+            try {
+                const aliasString = JSON.stringify(currentAliases, null, 2);
+                const gPoolString = JSON.stringify(currentGPool, null, 2);
+
+                // Prepare upload tasks
+                const tasks = [
+                    // Update Aliases in kvk-data bucket
+                    supabaseAdmin.storage.from('kvk-data').upload(`Pull/SosNames.json`, aliasString, { upsert: true, contentType: 'application/json' }),
+                    supabaseAdmin.storage.from('kvk-data').upload(`Players/SosNames.json`, aliasString, { upsert: true, contentType: 'application/json' }),
+                    // Update GPool in configs bucket
+                    supabaseAdmin.storage.from('configs').upload(`GPool.json`, gPoolString, { upsert: true, contentType: 'application/json' })
+                ];
+
+                const results = await Promise.all(tasks);
+                
+                // Check for individual errors
+                for (const res of results) {
+                    if (res.error) throw res.error;
+                }
+
+                btn.innerText = "ALL SYSTEMS SYNCED!";
+                btn.style.borderColor = "#10b981";
+                btn.style.color = "#10b981";
+
+            } catch (e) {
+                console.error(e);
+                btn.innerText = "SYNC FAILED";
+                btn.style.borderColor = "#ef4444";
+                btn.style.color = "#ef4444";
+                alert("Save Failed: " + e.message);
+            } finally {
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                    btn.style.borderColor = "";
+                    btn.style.color = "";
+                }, 3000);
+            }
+        }
+
+        async function terminateSession() {
+            if (confirm("Terminate secure session?")) {
+                await supabaseAdmin.auth.signOut();
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+
+</body>
+</html>

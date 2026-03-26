@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="mobile.css">
     
+    <!-- Supabase & Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
@@ -58,14 +61,10 @@
             box-sizing: border-box;
         }
 
-        /* Bento Hover Glow Effect */
         .bento-card::before {
             content: ''; 
             position: absolute; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 70%);
             opacity: 0; 
             transition: 0.4s; 
@@ -77,12 +76,10 @@
             border-color: var(--primary);
             box-shadow: 0 15px 40px rgba(59, 130, 246, 0.15);
         }
-
         .bento-card:hover::before { 
             opacity: 1; 
         }
 
-        /* Card Text Styling */
         .bento-card h2 { 
             color: white; 
             font-weight: 900; 
@@ -104,7 +101,6 @@
             position: relative; 
         }
 
-        /* Bento Spanning Rules */
         .span-full { grid-column: span 12; }
         .span-4 { grid-column: span 4; }
         .span-3 { grid-column: span 3; }
@@ -125,7 +121,6 @@
             gap: 15px;
         }
 
-        /* Logo Constraints */
         .header-logo {
             flex: 0 1 auto; 
             max-height: 180px; 
@@ -137,7 +132,6 @@
             z-index: 1;
         }
 
-        /* Middle Text Grouping */
         .title-text-group {
             flex: 1 1 auto; 
             min-width: 0; 
@@ -163,6 +157,32 @@
             font-size: 1.1rem;
             margin: 0 0 5px 0;
             font-weight: 800;
+        }
+
+        /* --- ADMIN TRIGGER BUTTON --- */
+        .admin-trigger {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: #a855f7;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .admin-trigger:hover {
+            background: #a855f7;
+            color: white;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
         }
 
         /* --- SOCIAL BUTTONS --- */
@@ -194,7 +214,6 @@
             position: relative;
         }
         
-        /* Social Hover States */
         .social-yt:hover { border-color: #ff0000; box-shadow: 0 10px 30px rgba(255, 0, 0, 0.15); }
         .social-yt:hover svg { stroke: #ff0000; }
         
@@ -245,6 +264,15 @@
                 font-size: 0.65rem !important;
                 letter-spacing: 2px;
             }
+
+            .admin-trigger {
+                right: 50%;
+                transform: translateX(50%);
+                top: auto;
+                bottom: 20px;
+                width: 80%;
+                text-align: center;
+            }
         }
 
         /* Sideways / Short Screen Landscape Fix */
@@ -253,10 +281,11 @@
                 padding: 20px 10px !important;
             }
 
-            /* Force 1 column even in landscape to ensure stacked layout */
+            /* Force 1 column even in landscape to ensure Title Box stays full width and buttons stack */
             .bento-grid {
                 grid-template-columns: 1fr !important;
                 max-width: 600px;
+                width: 100%;
             }
 
             .span-4, .span-3, .span-full {
@@ -266,6 +295,7 @@
             .card-header {
                 min-height: 110px !important;
                 padding: 10px 20px !important;
+                width: 100% !important;
             }
 
             .header-logo {
@@ -280,11 +310,13 @@
                 min-height: 100px !important;
                 padding: 15px !important;
                 border-radius: 20px;
+                width: 100%;
             }
 
             .social-row {
                 flex-direction: row;
                 flex-wrap: wrap;
+                width: 100%;
             }
 
             .card-social {
@@ -297,9 +329,12 @@
 </head>
 <body>
 
+    <!-- ADMIN ACCESS BUTTON -->
+    <button class="admin-trigger" onclick="checkAdminStatus()">Admin Access</button>
+
     <div class="bento-grid">
         
-        <!-- TOP BRANDING BOX (Stays at the top, full width) -->
+        <!-- TOP BRANDING BOX -->
         <div class="bento-card card-header span-full">
             <!-- Left Branding: BE NASTi Guy -->
             <img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/BE%20NASTi%20Guy.png" 
@@ -318,7 +353,7 @@
                  class="header-logo">
         </div>
 
-        <!-- MAIN NAVIGATION LINKS (Stacked 1 per row on mobile/landscape) -->
+        <!-- MAIN NAVIGATION LINKS -->
         <a href="Teams.html" class="bento-card span-4">
             <h2>Official Teams</h2>
             <p>Alliance Groupings</p>
@@ -372,7 +407,7 @@
             </a>
             
             <a href="https://www.patreon.com/u68144994" class="bento-card card-social social-pt" target="_blank">
-                <svg viewBox="0 0 24 24">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="14.5" cy="9.5" r="5.5"></circle>
                     <line x1="5" y1="4" x2="5" y2="20"></line>
                 </svg>
@@ -388,6 +423,66 @@
             </a>
         </div>
     </div>
+
+    <!-- UNIFIED LOGIN MODAL -->
+    <div id="authModal">
+        <div class="modal-content">
+            <h2>Admin Access</h2>
+            <input type="email" id="email" class="modal-input" placeholder="Admin Email">
+            <input type="password" id="pass" class="modal-input" placeholder="Password">
+            <div id="loginError" style="color: #ef4444; font-size: 0.7rem; font-weight: 800; margin-bottom: 15px; display: none;"></div>
+            <button class="sort-btn active" style="width:100%; padding: 15px;" onclick="login()">Authorize Hub</button>
+            <button class="sort-btn" style="width:100%; margin-top:10px; background:transparent;" onclick="toggleModal(false)">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // --- SUPABASE CONFIG ---
+        const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        /**
+         * Checks if a user is already logged in.
+         * Redirects to Admin.html if yes, otherwise opens modal.
+         */
+        async function checkAdminStatus() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                window.location.href = 'Admin.html';
+            } else {
+                toggleModal(true);
+            }
+        }
+
+        /**
+         * Handles Supabase authentication
+         */
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('pass').value;
+            const errorDiv = document.getElementById('loginError');
+
+            const { error } = await supabaseClient.auth.signInWithPassword({ 
+                email: email, 
+                password: password 
+            });
+            
+            if (error) {
+                errorDiv.innerText = error.message;
+                errorDiv.style.display = 'block';
+            } else {
+                window.location.href = 'Admin.html';
+            }
+        }
+
+        /**
+         * Toggles the visibility of the login modal
+         */
+        function toggleModal(show) {
+            document.getElementById('authModal').style.display = show ? 'flex' : 'none';
+        }
+    </script>
 
 </body>
 </html>

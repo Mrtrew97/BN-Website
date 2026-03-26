@@ -113,6 +113,7 @@
             text-transform: uppercase; 
             letter-spacing: -2px; 
             margin: 0; 
+            text-align: center;
         }
 
         #status-text { 
@@ -152,7 +153,42 @@
         .search-container { 
             display: none; 
             justify-content: center; 
+            align-items: center;
+            gap: 15px;
             margin-bottom: 20px; 
+            flex-wrap: wrap;
+        }
+
+        .gen-select {
+            padding: 14px 20px; 
+            border-radius: 16px; 
+            border: 1px solid var(--glass-border); 
+            background: rgba(0,0,0,0.5); 
+            color: var(--primary); 
+            outline: none; 
+            font-weight: 900; 
+            font-size: 1rem; 
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .gen-select option {
+            background: #0f172a;
+            color: white;
+        }
+
+        .search-box { 
+            padding: 16px; 
+            border-radius: 16px; 
+            border: 1px solid var(--glass-border); 
+            width: 100%; 
+            max-width: 500px; 
+            background: rgba(0,0,0,0.3); 
+            color: white; 
+            outline: none; 
+            font-weight: 600; 
+            text-align: center; 
+            font-size: 1rem; 
         }
 
         .sort-bar { 
@@ -180,20 +216,6 @@
             background: var(--primary); 
             color: white; 
             border-color: var(--primary); 
-        }
-
-        .search-box { 
-            padding: 16px; 
-            border-radius: 16px; 
-            border: 1px solid var(--glass-border); 
-            width: 100%; 
-            max-width: 500px; 
-            background: rgba(0,0,0,0.3); 
-            color: white; 
-            outline: none; 
-            font-weight: 600; 
-            text-align: center; 
-            font-size: 1rem; 
         }
 
         /* --- CARDS GRID --- */
@@ -271,6 +293,18 @@
         .box-heals { border-left-color: #10b981; background: rgba(16, 185, 129, 0.05); }
         .box-ch { border-left-color: #06b6d4; background: rgba(6, 182, 212, 0.05); }
 
+        /* ADDED CARD HINT STYLING */
+        .card-hint { 
+            text-align: center; 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            color: var(--muted); 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            margin-top: 10px; 
+            opacity: 0.6; 
+        }
+
         /* --- SOLO MODAL --- */
         #soloModal { 
             display: none; 
@@ -341,7 +375,7 @@
         .chart-wrapper-internal {
             flex: 1;
             position: relative;
-            min-width: 0; /* Prevents flex items from overflowing container */
+            min-width: 0;
         }
 
         .mini-stats-panel { 
@@ -367,21 +401,10 @@
         .mini-stat-val { font-size: 1rem; font-weight: 900; color: white; margin-top: 2px; }
         .mini-stat-date { font-size: 0.5rem; color: var(--muted); opacity: 0.7; }
 
-        /* ============================================================
-           FIXED: DYNAMIC LANDSCAPE MOBILE ADAPTATION
-           ============================================================ */
         @media (max-height: 550px) and (orientation: landscape) { 
-            .modal-container {
-                padding: 20px !important;
-            }
-            .solo-grid {
-                grid-template-columns: 1fr !important;
-                gap: 15px !important;
-            }
-            .chart-card-solo { 
-                flex-direction: column !important; /* Stats move to bottom */
-                height: 450px !important; 
-            } 
+            .modal-container { padding: 20px !important; }
+            .solo-grid { grid-template-columns: 1fr !important; gap: 15px !important; }
+            .chart-card-solo { flex-direction: column !important; height: 450px !important; } 
             .mini-stats-panel { 
                 border-left: none !important; 
                 border-top: 1px solid var(--glass-border); 
@@ -392,10 +415,7 @@
                 height: auto !important;
                 justify-content: space-around;
             } 
-            .mini-stat-box {
-                flex: 1;
-                text-align: center;
-            }
+            .mini-stat-box { flex: 1; text-align: center; }
         }
 
         @media (max-width: 700px) {
@@ -420,6 +440,13 @@
 </div>
 
 <div class="search-container" id="searchArea">
+    <!-- NEW GENERATION SELECTOR -->
+    <select id="genSelector" class="gen-select" onchange="handleGenChange(this.value)">
+        <option value="G1">G1</option>
+        <option value="G2" selected>G2</option>
+        <option value="G3">G3</option>
+        <option value="G4">G4</option>
+    </select>
     <input type="text" id="searchInput" class="search-box" placeholder="Search Kingdom# or Alliance Name..." oninput="handleSearch()">
 </div>
 
@@ -457,10 +484,12 @@
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
     const BUCKET_DATA = "kvk-data";
+    const BUCKET_CONFIGS = "configs";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- STATE ---
-    let fileList = [];
+    let fullFileList = [];
+    let gPoolMap = {};
     let kingdomStats = [];
     let filteredList = [];
     let activeCharts = [];
@@ -483,26 +512,73 @@
     window.onload = async () => {
         const status = document.getElementById('status-text');
         try {
-            updateProgress(0, "Syncing metadata...");
+            updateProgress(10, "Syncing metadata...");
             const timestamp = `?t=${Date.now()}`;
             
-            const [sRes, fRes] = await Promise.all([
+            // TRIPLE SYNC (Metadata Only)
+            const [sRes, fRes, gRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download(`Pull/SosNames.json${timestamp}`),
-                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/files.json${timestamp}`)
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/files.json${timestamp}`),
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`GPool.json${timestamp}`)
             ]);
             
-            sosMap = JSON.parse(await sRes.data.text());
-            fileList = JSON.parse(await fRes.data.text()).sort();
+            sosMap = sRes.data ? JSON.parse(await sRes.data.text()) : {};
+            fullFileList = fRes.data ? JSON.parse(await fRes.data.text()).sort() : [];
+            gPoolMap = gRes.data ? JSON.parse(await gRes.data.text()) : {};
 
+            // Default to G2 on initial load
+            document.getElementById('genSelector').value = "G2";
+            await loadHistoricalData("G2");
+
+        } catch (err) { 
+            status.style.color = '#ef4444';
+            status.textContent = "Archive Connection Failed."; 
+            console.error(err); 
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+    };
+
+    function handleGenChange(selectedGen) {
+        loadHistoricalData(selectedGen);
+    }
+
+    async function loadHistoricalData(targetGen) {
+        const status = document.getElementById('status-text');
+        
+        // Reset State & UI
+        kingdomStats = [];
+        filteredList = [];
+        document.getElementById('cardGrid').innerHTML = '';
+        document.getElementById('loadMoreBtn').style.display = 'none';
+        
+        // Filter the master list for the selected Generation
+        const targetFiles = fullFileList.filter(file => {
+            const dateKey = file.replace(/\.csv/i, '');
+            const fileGen = gPoolMap[dateKey] || "G2"; // Fallback to G2
+            return fileGen === targetGen;
+        });
+
+        if (targetFiles.length === 0) {
+            updateProgress(100, `No historical records found for ${targetGen}.`);
+            setTimeout(() => document.getElementById('progressContainer').style.display = 'none', 1000);
+            return;
+        }
+
+        try {
             let downloadedCount = 0;
-            const downloadPromises = fileList.map(file => 
+            updateProgress(5, `Downloading ${targetGen} Data: 0/${targetFiles.length}`);
+            
+            const timestamp = `?t=${Date.now()}`;
+            const downloadPromises = targetFiles.map(file => 
                 supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${file}${timestamp}`)
                     .then(result => {
                         downloadedCount++;
-                        updateProgress((downloadedCount / fileList.length) * 50, `Downloading: ${downloadedCount}/${fileList.length}`);
+                        // Map progress from 5% to 50%
+                        updateProgress(5 + (downloadedCount / targetFiles.length) * 45, `Downloading ${targetGen}: ${downloadedCount}/${targetFiles.length}`);
                         return { file, ...result };
                     })
             );
+            
             const allCSVs = await Promise.all(downloadPromises);
 
             updateProgress(60, "Building historical timelines...");
@@ -541,8 +617,10 @@
                         kingdom[m.key].push(n);
                     });
                 });
+                
                 processedCount++;
-                updateProgress(60 + (processedCount / fileList.length) * 40, `Processing ${processedCount}/${fileList.length}`);
+                // Map processing progress from 60% to 100%
+                updateProgress(60 + (processedCount / targetFiles.length) * 40, `Processing ${targetGen}: ${processedCount}/${targetFiles.length}`);
             }
             
             kingdomStats = Object.values(tempKingdoms).map(s => {
@@ -575,15 +653,21 @@
                 return s;
             }).sort((a,b) => a.id - b.id);
 
-            status.textContent = `${kingdomStats.length} Historical Records Processed`;
-            document.getElementById('progressContainer').style.display = 'none';
+            status.textContent = `${kingdomStats.length} Historical Records Processed for ${targetGen}`;
+            
+            setTimeout(() => {
+                document.getElementById('progressContainer').style.display = 'none';
+            }, 500);
+            
             autoInitialise();
-        } catch (err) { 
+            
+        } catch (err) {
             status.style.color = '#ef4444';
-            status.textContent = "Archive Connection Failed."; 
-            console.error(err); 
+            status.textContent = `Error loading data for ${targetGen}.`; 
+            console.error(err);
+            document.getElementById('progressContainer').style.display = 'none';
         }
-    };
+    }
     
     function renderGrid() {
         const grid = document.getElementById('cardGrid'); 
@@ -623,7 +707,7 @@
             kd.dates.forEach((date, index) => {
                 const val = kd[m.key][index];
                 if (val !== null) {
-                    plotLabels.push(sosMap[date] ? `${sosMap[date]}` : date); 
+                    plotLabels.push(sosMap[date] || date);
                     plotValues.push(val);
                 }
             });
@@ -689,10 +773,25 @@
         document.getElementById('progressBar').style.width = pct + '%';
         if (text) document.getElementById('status-text').textContent = text;
     }
-    function autoInitialise() { document.getElementById('searchArea').style.display = 'flex'; document.getElementById('sortBar').style.display = 'flex'; applyFilterAndSort(); }
-    function getRangeHTML(minObj, maxObj, isPct) { return `<div class="range-row"><div class="range-item"><span class="range-label">MIN</span><span class="range-val">${isPct ? (minObj.v*100).toFixed(2)+'%' : formatShorthand(minObj.v)}</span><span class="range-date">${sosMap[minObj.s] || minObj.s}</span></div><div class="range-item"><span class="range-label">MAX</span><span class="range-val">${isPct ? (maxObj.v*100).toFixed(2)+'%' : formatShorthand(maxObj.v)}</span><span class="range-date">${sosMap[maxObj.s] || maxObj.s}</span></div></div>`; }
-    function closeSolo() { document.getElementById('soloModal').style.display = 'none'; document.body.style.overflow = 'auto'; activeCharts.forEach(c => c.destroy()); }
+    
+    function autoInitialise() { 
+        document.getElementById('searchArea').style.display = 'flex'; 
+        document.getElementById('sortBar').style.display = 'flex'; 
+        applyFilterAndSort(); 
+    }
+    
+    function getRangeHTML(minObj, maxObj, isPct) { 
+        return `<div class="range-row"><div class="range-item"><span class="range-label">MIN</span><span class="range-val">${isPct ? (minObj.v*100).toFixed(2)+'%' : formatShorthand(minObj.v)}</span><span class="range-date">${sosMap[minObj.s] || minObj.s}</span></div><div class="range-item"><span class="range-label">MAX</span><span class="range-val">${isPct ? (maxObj.v*100).toFixed(2)+'%' : formatShorthand(maxObj.v)}</span><span class="range-date">${sosMap[maxObj.s] || maxObj.s}</span></div></div>`; 
+    }
+    
+    function closeSolo() { 
+        document.getElementById('soloModal').style.display = 'none'; 
+        document.body.style.overflow = 'auto'; 
+        activeCharts.forEach(c => c.destroy()); 
+    }
+    
     function handleSearch() { applyFilterAndSort(); }
+    
     function applyFilterAndSort() {
         const query = document.getElementById('searchInput').value.toLowerCase();
         filteredList = kingdomStats.filter(s => s.searchText.includes(query));
@@ -702,9 +801,12 @@
             if (currentSort.key === 'id') { valA = parseInt(valA); valB = parseInt(valB); }
             return currentSort.asc ? valA - valB : valB - valA;
         });
-        itemsShown = pageSize; renderGrid();
+        itemsShown = pageSize; 
+        renderGrid();
     }
+    
     function loadMore() { itemsShown += pageSize; renderGrid(); }
+    
     function handleSort(key, btn) { 
         if (currentSort.key === key) currentSort.asc = !currentSort.asc;
         else currentSort.asc = (key === 'id'); 
@@ -713,6 +815,7 @@
         if(btn) btn.classList.add('active'); 
         applyFilterAndSort(); 
     }
+    
     function formatShorthand(v) { if (v === null || isNaN(v) || v === Infinity || v === -Infinity) return "-"; if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B'; if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M'; return Math.round(v).toLocaleString(); }
     function formatRawDots(v) { if (v === null || isNaN(v)) return "-"; return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
     function formatMini(v, isPct) { if (v === null || isNaN(v) || v === Infinity || v === -Infinity) return "-"; if (isPct) return (v * 100).toFixed(2) + '%'; if (v >= 1e6) return formatShorthand(v); return Math.round(v).toLocaleString(); }

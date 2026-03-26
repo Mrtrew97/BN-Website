@@ -42,7 +42,6 @@
             width: 100%; 
         }
         
-        /* Disclaimer Bar Styling */
         .disclaimer-bar { 
             text-align: center; 
             margin: 0 auto 30px auto; 
@@ -91,6 +90,36 @@
             align-items: center; 
             gap: 15px; 
             margin-bottom: 25px; 
+            flex-wrap: wrap;
+        }
+
+        .gen-select {
+            padding: 12px 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--glass-border); 
+            background: rgba(0,0,0,0.5); 
+            color: var(--primary); 
+            outline: none; 
+            font-weight: 900; 
+            font-size: 0.8rem; 
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .gen-select option {
+            background: #0f172a;
+            color: white;
+        }
+
+        select {
+            background: rgba(0,0,0,0.3); 
+            border: 1px solid var(--glass-border); 
+            color: white; 
+            padding: 12px 20px; 
+            border-radius: 12px; 
+            font-family: 'Inter', sans-serif; 
+            font-weight: 600; 
+            outline: none; 
         }
         
         #progressContainer { 
@@ -522,6 +551,15 @@
     </div>
 
     <div class="selectors-row">
+        <!-- NEW GENERATION SELECTOR -->
+        <select id="genSelector" class="gen-select" onchange="handleGenChange(this.value)">
+            <option value="all" selected>All Gens</option>
+            <option value="G1">G1</option>
+            <option value="G2">G2</option>
+            <option value="G3">G3</option>
+            <option value="G4">G4</option>
+        </select>
+        
         <div id="singleSelectArea">
             <select id="fileSelector" onchange="refreshData()"></select>
         </div>
@@ -538,7 +576,6 @@
 
     <div class="search-row">
         <div class="search-wrapper" onclick="event.stopPropagation()">
-            <!-- NOTE: Using oninput with the debounced function -->
             <input type="text" id="playerSearch" class="search-input" placeholder="Search Rank 1-100 by Name or ID..." oninput="debouncedSearch(this.value)">
             <div id="searchDropdown" class="search-dropdown"></div>
         </div>
@@ -590,11 +627,13 @@
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU"; 
     const BUCKET_DATA = "kvk-data";
+    const BUCKET_CONFIGS = "configs";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- STATE ---
     let currentMode = 'total'; 
     let fullFileList = []; 
+    let gPoolMap = {};
     let sosMap = {}; 
     let processedData = []; 
     let top100Data = []; 
@@ -606,9 +645,11 @@
         "Gold": "Gold Gathered", "Wood": "Wood Gathered", "Ore": "Ore Gathered", "Mana": "Mana Gathered"
     };
 
-    // --- UTILITIES ---
+    /**
+     * UTILITIES
+     */
     
-    // DEBOUNCE FUNCTION: Prevents rapid re-rendering when searching
+    // DEBOUNCE: Prevents performance lag during rapid typing
     function debounce(func, delay) {
         let timeout;
         return function(...args) {
@@ -618,8 +659,8 @@
     }
 
     // CACHE BUSTING FETCH HELPER
-    async function fetchLatest(path) {
-        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET_DATA}/${path}?t=${Date.now()}`;
+    async function fetchLatest(bucket, path) {
+        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?t=${Date.now()}`;
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -637,24 +678,30 @@
         return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; 
     }
 
-    // --- INITIALIZATION ---
+    /**
+     * INITIALIZATION
+     */
     window.onload = async () => {
         try {
             updateProgress(10, "Fetching Metadata...");
-            const [sRes, fRes] = await Promise.all([
-                fetchLatest('Players/SosNames.json'),
-                fetchLatest('Players/files.json')
+            
+            // TRIPLE SYNC
+            const [sRes, fRes, gRes] = await Promise.all([
+                fetchLatest(BUCKET_DATA, 'Players/SosNames.json').catch(() => null),
+                fetchLatest(BUCKET_DATA, 'Players/files.json').catch(() => null),
+                fetchLatest(BUCKET_CONFIGS, 'GPool.json').catch(() => null)
             ]);
             
-            sosMap = await sRes.json();
-            fullFileList = await fRes.json();
+            if (sRes) sosMap = await sRes.json();
+            if (fRes) fullFileList = await fRes.json();
+            if (gRes) gPoolMap = await gRes.json();
             
-            populateSelectors();
-            setMode('total');
+            // Set up initial state ("All Gens" is default in HTML)
+            handleGenChange('all');
+            
         } catch (e) { 
             console.error(e); 
             document.getElementById('status-msg').innerText = "Initialization Failed.";
-        } finally { 
             hideLoading();
         }
     };
@@ -676,25 +723,55 @@
             setTimeout(() => { 
                 overlay.style.display = 'none'; 
                 document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('status-msg').innerText = '';
             }, 300);
         }
     }
 
-    function populateSelectors() {
-        const createOpts = (el) => {
+    function handleGenChange(val) {
+        let activeFiles = [];
+        if (val === 'all') {
+            activeFiles = [...fullFileList];
+        } else {
+            activeFiles = fullFileList.filter(f => {
+                const dateKey = f.replace('.csv', '');
+                const fileGen = gPoolMap[dateKey] || "G2";
+                return fileGen === val;
+            });
+        }
+        
+        populateSelectors(activeFiles);
+        setMode(currentMode); // Ensure correct mode display & trigger refreshData
+    }
+
+    function populateSelectors(files) {
+        const createOpts = (el, defaultIdx) => {
             el.innerHTML = '';
-            [...fullFileList].reverse().forEach(f => {
+            
+            if (files.length === 0) {
+                const opt = document.createElement('option');
+                opt.textContent = "No Data Available";
+                opt.value = "";
+                el.appendChild(opt);
+                return;
+            }
+
+            [...files].reverse().forEach(f => {
                 const opt = document.createElement('option'); 
                 opt.value = f; 
                 const d = f.replace('.csv','');
-                opt.textContent = sosMap[d] ? `${sosMap[d]} (${d})` : d; 
+                opt.textContent = sosMap[d] || d; 
                 el.appendChild(opt);
             });
+            
+            if (el.options.length > defaultIdx) {
+                el.selectedIndex = defaultIdx;
+            }
         };
         
-        createOpts(document.getElementById('fileSelector')); 
-        createOpts(document.getElementById('startSelector')); 
-        createOpts(document.getElementById('endSelector'));
+        createOpts(document.getElementById('fileSelector'), 0); 
+        createOpts(document.getElementById('startSelector'), 1); // 2nd newest default
+        createOpts(document.getElementById('endSelector'), 0);   // Newest default
     }
 
     function setMode(mode) {
@@ -706,21 +783,35 @@
         refreshData();
     }
 
-    // --- DATA HANDLING ---
+    /**
+     * DATA HANDLING
+     */
     async function refreshData() {
         const overlay = document.getElementById('loadingOverlay');
+        
+        const fileSelect = currentMode === 'total' ? document.getElementById('fileSelector') : document.getElementById('endSelector');
+        const startSelect = document.getElementById('startSelector');
+
+        // Handle Empty State (No files in generation)
+        if (!fileSelect || !fileSelect.value || (currentMode === 'diff' && (!startSelect || !startSelect.value))) {
+            processedData = [];
+            updateTop100();
+            hideLoading();
+            return;
+        }
+
         if (overlay) { 
             overlay.style.display = 'flex'; 
             overlay.style.opacity = '1'; 
         }
-        
-        const file = currentMode === 'total' ? document.getElementById('fileSelector').value : document.getElementById('endSelector').value;
-        const startFile = document.getElementById('startSelector').value;
+
+        const file = fileSelect.value;
+        const startFile = startSelect.value;
 
         try {
             if (currentMode === 'total') {
                 updateProgress(20, `Downloading ${file}...`);
-                const res = await fetchLatest(`Players/${file}`);
+                const res = await fetchLatest(BUCKET_DATA, `Players/${file}`);
                 const csvText = await res.text();
                 
                 updateProgress(60, "Parsing Data...");
@@ -729,8 +820,8 @@
             } else {
                 updateProgress(10, `Downloading snapshots...`);
                 const [sRes, eRes] = await Promise.all([
-                    fetchLatest(`Players/${startFile}`), 
-                    fetchLatest(`Players/${file}`)
+                    fetchLatest(BUCKET_DATA, `Players/${startFile}`), 
+                    fetchLatest(BUCKET_DATA, `Players/${file}`)
                 ]);
                 
                 updateProgress(50, "Parsing Season Snapshots...");
@@ -755,18 +846,24 @@
         } catch (e) { 
             console.error(e); 
             document.getElementById('status-msg').innerText = "Error: File missing or access denied.";
+            hideLoading();
         }
     }
 
     function updateTop100() {
-        let fullSorted = [...processedData].sort((a, b) => cleanNum(b[currentSortKey]) - cleanNum(a[currentSortKey]));
-        top100Data = fullSorted.slice(0, 100).map((p, index) => ({ ...p, globalRank: index + 1 }));
+        if (processedData.length === 0) {
+            top100Data = [];
+        } else {
+            let fullSorted = [...processedData].sort((a, b) => cleanNum(b[currentSortKey]) - cleanNum(a[currentSortKey]));
+            top100Data = fullSorted.slice(0, 100).map((p, index) => ({ ...p, globalRank: index + 1 }));
+        }
         renderUI();
     }
 
-    // --- UI LOGIC ---
-
-    // The actual search filtering function
+    /**
+     * UI LOGIC
+     */
+    
     function handleSearchInputLogic(val) {
         const query = val.toLowerCase().trim(); 
         const dropdown = document.getElementById('searchDropdown');
@@ -797,7 +894,6 @@
         renderUI();
     }
 
-    // Apply Debounce to the search input
     const debouncedSearch = debounce(handleSearchInputLogic, 300);
 
     function selectPlayer(name) { 
@@ -821,6 +917,17 @@
                 (p.Name && p.Name.toLowerCase().includes(query)) || 
                 (p["Lord ID"] && String(p["Lord ID"]).toLowerCase().includes(query))
             );
+        }
+
+        if (top100Data.length === 0) {
+            podium.style.display = 'none';
+            grid.innerHTML = `
+                <div class="no-results">
+                    <h3>No Data Found</h3>
+                    <p>There is no ranking data available for the selected filters.</p>
+                </div>
+            `;
+            return;
         }
 
         if (!query) {

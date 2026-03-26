@@ -115,9 +115,27 @@
             width: 100%; 
         }
 
-        .nav-side-box { display: flex; align-items: center; }
-        .nav-side-box.right { min-width: 150px; }
+        .nav-side-box { display: flex; align-items: center; gap: 10px; }
+        .nav-side-box.right { justify-content: flex-end; }
         .header-top-row .home-link { position: static; margin: 0; backdrop-filter: none; }
+
+        .gen-select {
+            padding: 10px 16px; 
+            border-radius: 12px; 
+            border: 1px solid var(--glass-border); 
+            background: rgba(0,0,0,0.5); 
+            color: var(--primary); 
+            outline: none; 
+            font-weight: 900; 
+            font-size: 0.8rem; 
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .gen-select option {
+            background: #0f172a;
+            color: white;
+        }
 
         .comparison-wrapper { 
             display: grid; 
@@ -246,7 +264,6 @@
         @media (max-width: 1200px) { 
             .comparison-wrapper { grid-template-columns: 1fr; } 
             .header-top-row { grid-template-columns: 1fr auto; } 
-            .nav-side-box.right { display: none; } 
         }
         
         #progressContainer { 
@@ -294,7 +311,16 @@
             <a href="index.html" class="home-link btn" style="text-decoration:none; padding:10px 20px; border-radius:12px; border:1px solid var(--glass-border); background:var(--glass); color:white; font-weight:800; font-size:0.7rem;">HOME PAGE</a>
         </div>
         <h1 class="page-title-main">Kingdom Comparison</h1>
-        <div class="nav-side-box right"></div>
+        <div class="nav-side-box right">
+            <!-- NEW GENERATION SELECTOR -->
+            <select id="genSelector" class="gen-select" onchange="handleGenChange(this.value)">
+                <option value="all" selected>All Gens</option>
+                <option value="G1">G1</option>
+                <option value="G2">G2</option>
+                <option value="G3">G3</option>
+                <option value="G4">G4</option>
+            </select>
+        </div>
     </div>
 </div>
 
@@ -339,9 +365,12 @@
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
     const BUCKET_DATA = "kvk-data";
+    const BUCKET_CONFIGS = "configs";
     
     // --- STATE & CONSTANTS ---
+    let fullFileList = [];
     let fileList = [];
+    let gPoolMap = {};
     let charts = { A: {}, B: {} };
     let sosMap = {};
     const palette = ['#3b82f6', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#f43f5e', '#84cc16', '#ec4899', '#6366f1', '#14b8a6'];
@@ -358,8 +387,8 @@
     ];
 
     // --- CACHE BUSTING FETCH HELPER ---
-    async function fetchLatest(path) {
-        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET_DATA}/${path}?t=${Date.now()}`;
+    async function fetchLatest(bucket, path) {
+        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?t=${Date.now()}`;
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -411,13 +440,17 @@
     async function init() {
         try {
             updateProgress(10, "Fetching Metadata...");
-            const [sRes, fRes] = await Promise.all([
-                fetchLatest('Pull/SosNames.json'),
-                fetchLatest('Pull/files.json')
+            
+            // TRIPLE SYNC
+            const [sRes, fRes, gRes] = await Promise.all([
+                fetchLatest(BUCKET_DATA, 'Pull/SosNames.json').catch(() => null),
+                fetchLatest(BUCKET_DATA, 'Pull/files.json').catch(() => null),
+                fetchLatest(BUCKET_CONFIGS, 'GPool.json').catch(() => null)
             ]);
             
-            sosMap = await sRes.json();
-            fileList = (await fRes.json()).sort();
+            if (sRes) sosMap = await sRes.json();
+            if (fRes) fullFileList = (await fRes.json()).sort();
+            if (gRes) gPoolMap = await gRes.json();
 
             updateProgress(30, "Preparing Charts...");
             ['A', 'B'].forEach(group => {
@@ -431,6 +464,9 @@
                 });
             });
             
+            // Apply default "All Gens" filter
+            handleGenChange('all');
+
             updateProgress(100, "Ready");
             setTimeout(hideLoading, 500);
 
@@ -438,6 +474,26 @@
             console.error("Initialization Error:", e);
             document.getElementById('status-text').textContent = "ERROR: Connection failed.";
             document.getElementById('status-text').style.color = "#ef4444";
+        }
+    }
+
+    function handleGenChange(val) {
+        if (val === 'all') {
+            fileList = [...fullFileList];
+        } else {
+            fileList = fullFileList.filter(file => {
+                const dateKey = file.replace(/\.csv/i, '');
+                const fileGen = gPoolMap[dateKey] || "G2";
+                return fileGen === val;
+            });
+        }
+        
+        // Auto-re-run comparisons if inputs already have text
+        if (document.getElementById('inputA').value.trim() !== '') {
+            runComparison('A');
+        }
+        if (document.getElementById('inputB').value.trim() !== '') {
+            runComparison('B');
         }
     }
 
@@ -501,7 +557,21 @@
     async function runComparison(group) {
         const input = document.getElementById(`input${group}`).value;
         const targetIds = input.split(',').map(s => s.trim()).filter(s => s !== "");
-        if (!targetIds.length || !fileList.length) return;
+        
+        // Handle empty file lists (e.g. no snapshots in this generation)
+        if (!targetIds.length || !fileList.length) {
+            if (!fileList.length) {
+                metrics.forEach(m => {
+                    const chart = charts[group][m.id];
+                    chart.data.labels = [];
+                    chart.data.datasets = [];
+                    chart.update();
+                });
+                document.getElementById(`legend${group}`).innerHTML = '';
+                document.getElementById(`sticky${group}`).style.display = 'none';
+            }
+            return;
+        }
         
         updateProgress(5, "Analyzing Snapshots...");
         const history = {}; 
@@ -510,7 +580,7 @@
         
         try {
             const lastFile = fileList[fileList.length-1];
-            const lastRes = await fetchLatest(`Pull/${lastFile}`);
+            const lastRes = await fetchLatest(BUCKET_DATA, `Pull/${lastFile}`);
             const lastCsv = Papa.parse(await lastRes.text(), {skipEmptyLines: true}).data;
             
             targetIds.forEach(id => { 
@@ -521,7 +591,7 @@
             let count = 0;
             const downloadPromises = fileList.map(async (f) => {
                 try {
-                    const res = await fetchLatest(`Pull/${f}`);
+                    const res = await fetchLatest(BUCKET_DATA, `Pull/${f}`);
                     const csvData = Papa.parse(await res.text(), {skipEmptyLines: true}).data;
                     const date = f.replace(/\.csv/i, '');
                     
@@ -550,7 +620,7 @@
             await Promise.all(downloadPromises);
 
             const dateKeys = fileList.map(f => f.replace(/\.csv/i, ''));
-            const displayLabels = dateKeys.map(d => sosMap[d] ? `${sosMap[d]} (${d})` : d);
+            const displayLabels = dateKeys.map(d => sosMap[d] || d);
             const legendDiv = document.getElementById(`legend${group}`);
             legendDiv.innerHTML = '';
             document.getElementById(`sticky${group}`).style.display = 'block';

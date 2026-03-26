@@ -101,7 +101,7 @@
         .unified-container { max-width: 1600px; margin: 0 auto; padding: 0 25px; box-sizing: border-box; width: 100%; }
         
         .header-top-row { margin-top: 25px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%; }
-        .nav-side-box { display: flex; align-items: center; }
+        .nav-side-box { display: flex; align-items: center; gap: 10px; }
         .nav-side-box.right { justify-content: flex-end; gap: 10px; }
         .header-top-row .home-link { position: static; margin: 0; backdrop-filter: none; }
         
@@ -215,6 +215,14 @@
 <div class="unified-container">
     <div class="tools-glass-row">
         <div class="nav-side-box">
+            <!-- NEW GENERATION SELECTOR -->
+            <select id="genSelector" onchange="handleGenFilterChange(this.value)">
+                <option value="all">All Gens</option>
+                <option value="G1">G1</option>
+                <option value="G2">G2</option>
+                <option value="G3">G3</option>
+                <option value="G4">G4</option>
+            </select>
             <select id="fileSelector" onchange="loadSpecificFile(this.value)" style="min-width: 150px;"></select>
         </div>
         <div class="search-center-box">
@@ -292,6 +300,10 @@
     let selectedFileName = "";
     let activeTroopKeys = [];
     let sosMap = {};
+    
+    // NEW FILTERING STATE
+    let gPoolMap = {}; 
+    let fullFileList = []; 
 
     let zoneWinners = {
         "zone 2": {},
@@ -387,34 +399,25 @@
             
             const timestamp = `?t=${Date.now()}`;
             
-            const [fRes, sRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json?t=' + Date.now()),
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json?t=' + Date.now())
+            // TRIPLE SYNC
+            const [fRes, sRes, gRes] = await Promise.all([
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
+                supabaseClient.storage.from(BUCKET_CONFIGS).download('GPool.json' + timestamp)
             ]);
             
             if (fRes.error) throw fRes.error;
             
-            const files = JSON.parse(await fRes.data.text());
+            fullFileList = JSON.parse(await fRes.data.text());
             if (sRes.data) sosMap = JSON.parse(await sRes.data.text());
-
-            const selector = document.getElementById('fileSelector'); 
-            selector.innerHTML = '';
-            
-            files.reverse().forEach(f => {
-                const opt = document.createElement('option'); 
-                opt.value = f;
-                const dateKey = f.replace(/\.csv/i, '');
-                opt.textContent = sosMap[dateKey] ? `${sosMap[dateKey]} (${dateKey})` : f.toUpperCase().replace(/\.CSV/i, '');
-                selector.appendChild(opt);
-            });
+            if (gRes.data) gPoolMap = JSON.parse(await gRes.data.text());
 
             await fetchMatchupsFromCloud();
             await fetchTeamsFromCloud();
             await fetchAllWinnersFromCloud(); 
             
-            if (files.length > 0) {
-                await loadSpecificFile(files[0]);
-            }
+            // Initial population showing All Generations
+            populateFileSelector('all');
 
         } catch (e) { 
             console.error("Init Error:", e); 
@@ -422,6 +425,50 @@
             hideLoading(); 
         }
     };
+
+    // --- NEW FILTERING FUNCTIONS ---
+    function handleGenFilterChange(selectedGen) {
+        populateFileSelector(selectedGen);
+    }
+
+    function populateFileSelector(filterGen) {
+        const selector = document.getElementById('fileSelector'); 
+        selector.innerHTML = '';
+        
+        // Filter the master file list based on GPool mapping
+        let filteredFiles = fullFileList.filter(file => {
+            if (filterGen === 'all') return true;
+            const dateKey = file.replace(/\.csv/i, '');
+            const fileGen = gPoolMap[dateKey] || "G2"; // Default fallback
+            return fileGen === filterGen;
+        });
+
+        // Make a copy and reverse it so the newest snapshot is always at index [0]
+        const displayFiles = [...filteredFiles].reverse();
+
+        // Populate the dropdown
+        displayFiles.forEach(file => {
+            const opt = document.createElement('option'); 
+            opt.value = file;
+            const dateKey = file.replace(/\.csv/i, '');
+            opt.textContent = sosMap[dateKey] || dateKey.toUpperCase();
+            selector.appendChild(opt);
+        });
+        
+        // Auto-load the first file in the new list if available
+        if (displayFiles.length > 0) {
+            selector.value = displayFiles[0];
+            loadSpecificFile(selector.value);
+        } else {
+            // Handle empty state
+            masterData.clear();
+            currentMatchups = [];
+            document.getElementById('matchupsContainer').innerHTML = `
+                <div style="text-align:center; padding:50px; color:var(--muted); font-weight:800; text-transform:uppercase;">
+                    No snapshots found for ${filterGen}
+                </div>`;
+        }
+    }
 
     async function loadSpecificFile(fileName) {
         selectedFileName = fileName; 
@@ -598,22 +645,6 @@
             currentMatchups[mIdx].ids = [...everythingBeforeTeamB, ...team.ids];
         }
         renderAll();
-    }
-
-    function setupSortable(mIdx) { 
-        const el = document.getElementById(`tbody-${mIdx}`);
-        if (!el) return;
-        
-        new Sortable(el, { 
-            handle: '.col-drag', 
-            animation: 150, 
-            onEnd: (evt) => { 
-                const team = currentMatchups[mIdx]; 
-                const moved = team.ids.splice(evt.oldIndex, 1)[0]; 
-                team.ids.splice(evt.newIndex, 0, moved); 
-                renderAll(); 
-            }
-        }); 
     }
 
     function updateMatchupName(mIdx, newName) {

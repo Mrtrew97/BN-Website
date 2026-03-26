@@ -78,6 +78,7 @@
             text-transform: uppercase; 
             letter-spacing: -2px; 
             margin: 0; 
+            text-align: center;
         }
         
         .disclaimer-bar { 
@@ -279,6 +280,11 @@
             outline: none; 
             min-width: 220px; 
         }
+
+        #genSelector {
+            color: var(--primary);
+            font-weight: 900;
+        }
         
         .compare-btn { 
             background: var(--primary); 
@@ -291,6 +297,12 @@
             text-transform: uppercase; 
             transition: 0.3s; 
             height: 46px; 
+        }
+
+        .compare-btn:disabled {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.3);
+            cursor: not-allowed;
         }
 
         /* Search & Sort */
@@ -746,6 +758,15 @@
 
 <div class="selector-island">
     <div class="select-group">
+        <label>Generation</label>
+        <select id="genSelector" onchange="handleGenChange(this.value)">
+            <option value="G1">G1</option>
+            <option value="G2" selected>G2</option>
+            <option value="G3">G3</option>
+            <option value="G4">G4</option>
+        </select>
+    </div>
+    <div class="select-group">
         <label>Start Snapshot</label>
         <select id="startSelect"></select>
     </div>
@@ -818,11 +839,14 @@
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU"; 
     const BUCKET_DATA = "kvk-data";
+    const BUCKET_CONFIGS = "configs";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let migrationData = [];
     let filteredData = [];
+    let fullFilesList = [];
     let allFiles = [];
+    let gPoolMap = {};
     let latestAllianceMap = {};
     let sosMap = {};
     let currentSort = { key: 'count', direction: 'desc' };
@@ -831,8 +855,8 @@
     let pageSize = 30;
 
     // --- CACHE BUSTING FETCH HELPER ---
-    async function fetchLatest(path) {
-        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET_DATA}/${path}?t=${Date.now()}`;
+    async function fetchLatest(bucket, path) {
+        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?t=${Date.now()}`;
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -883,30 +907,22 @@
     async function init() {
         try {
             updateProgress(10, "Fetching Metadata...");
-            const [sRes, fRes] = await Promise.all([
-                fetchLatest('Players/SosNames.json'),
-                fetchLatest('Players/files.json')
+            
+            // TRIPLE SYNC
+            const [sRes, fRes, gRes] = await Promise.all([
+                fetchLatest(BUCKET_DATA, 'Players/SosNames.json').catch(() => null),
+                fetchLatest(BUCKET_DATA, 'Players/files.json').catch(() => null),
+                fetchLatest(BUCKET_CONFIGS, 'GPool.json').catch(() => null)
             ]);
             
-            sosMap = await sRes.json();
-            allFiles = await fRes.json();
+            if (sRes) sosMap = await sRes.json();
+            if (fRes) fullFilesList = await fRes.json();
+            if (gRes) gPoolMap = await gRes.json();
             
-            const startSelect = document.getElementById('startSelect');
-            const endSelect = document.getElementById('endSelect');
-            startSelect.innerHTML = ''; 
-            endSelect.innerHTML = '';
-
-            [...allFiles].reverse().forEach(file => {
-                const date = file.replace('.csv','');
-                const name = sosMap[date] ? `${sosMap[date]} (${date})` : date;
-                startSelect.add(new Option(name, file)); 
-                endSelect.add(new Option(name, file));
-            });
-
-            if(endSelect.options.length > 1) { 
-                endSelect.selectedIndex = 0; 
-                startSelect.selectedIndex = 1; 
-            }
+            // Apply default G2 filter
+            document.getElementById('genSelector').value = "G2";
+            handleGenChange("G2");
+            
             hideLoading();
         } catch (err) { 
             console.error(err); 
@@ -914,8 +930,55 @@
         }
     }
 
+    function handleGenChange(targetGen) {
+        const startSelect = document.getElementById('startSelect');
+        const endSelect = document.getElementById('endSelect');
+        startSelect.innerHTML = ''; 
+        endSelect.innerHTML = '';
+
+        // Filter files for the selected Generation
+        allFiles = fullFilesList.filter(file => {
+            const dateKey = file.replace('.csv', '');
+            const fileGen = gPoolMap[dateKey] || "G2";
+            return fileGen === targetGen;
+        });
+
+        // Safety check for empty or single-file generations
+        if (allFiles.length < 2) {
+            startSelect.add(new Option("No Files Found  For This Gen", ""));
+            endSelect.add(new Option("No Files Found  For This Gen", ""));
+            document.getElementById('analyzeBtn').disabled = true;
+            document.getElementById('status-msg').innerText = `Not enough snapshots found for ${targetGen}. Need at least 2.`;
+            document.getElementById('cardGrid').innerHTML = '';
+            document.getElementById('loadMoreBtn').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('status-msg').innerText = '';
+
+        // Populate dropdowns
+        [...allFiles].reverse().forEach(file => {
+            const date = file.replace('.csv','');
+            const name = sosMap[date] || date;
+            startSelect.add(new Option(name, file)); 
+            endSelect.add(new Option(name, file));
+        });
+
+        if(endSelect.options.length > 1) { 
+            endSelect.selectedIndex = 0; 
+            startSelect.selectedIndex = 1; 
+        }
+
+        // Clear existing grid when switching gens
+        migrationData = [];
+        filteredData = [];
+        document.getElementById('cardGrid').innerHTML = '';
+        document.getElementById('loadMoreBtn').style.display = 'none';
+    }
+
     async function fetchCSVFull(filename, progressOffset, progressScale) {
-        const res = await fetchLatest(`Players/${filename}`);
+        const res = await fetchLatest(BUCKET_DATA, `Players/${filename}`);
         const text = await res.text();
         return await parseCSVChunked(text, (pct) => {
             updateProgress(progressOffset + (pct * progressScale), `Analyzing ${filename}...`);

@@ -119,6 +119,7 @@
         .nav-side-box { 
             display: flex; 
             align-items: center; 
+            gap: 10px;
         }
 
         .nav-side-box.right { 
@@ -427,6 +428,15 @@
 <div class="unified-container">
     <div class="tools-glass-row">
         <div class="nav-side-box">
+            <!-- NEW GENERATION SELECTOR -->
+            <select id="genSelector" onchange="handleGenFilterChange(this.value)">
+                <option value="all">All Gens</option>
+                <option value="G1">G1</option>
+                <option value="G2">G2</option>
+                <option value="G3">G3</option>
+                <option value="G4">G4</option>
+            </select>
+            <!-- FILE SELECTOR MOVED TO RIGHT -->
             <select id="fileSelector" onchange="loadSelectedFile(this.value)" style="min-width: 150px;"></select>
         </div>
         <div class="search-center-box">
@@ -490,6 +500,8 @@
     let currentRegistrations = {};
     let activeTroopKeys = [];
     let sosMap = {};
+    let gPoolMap = {}; // State for generation filtering
+    let fullFileList = []; // Persistent list of all available CSVs
     
     const possibleTroopHeaders = [
         "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
@@ -550,7 +562,6 @@
         }
     }
 
-    // FIXED: Logout function is now async to ensure session is destroyed before reload
     async function logout() { 
         await supabaseClient.auth.signOut(); 
         location.reload(); 
@@ -562,33 +573,23 @@
             if (session) enableAdminMode();
 
             const timestamp = `?t=${Date.now()}`;
-            const [sRes, fRes] = await Promise.all([
+            const [sRes, fRes, gRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp)
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
+                supabaseClient.storage.from(BUCKET_CONFIGS).download('GPool.json' + timestamp)
             ]);
             
             if (sRes.error) throw sRes.error;
             if (fRes.error) throw fRes.error;
             
             sosMap = JSON.parse(await sRes.data.text());
-            const files = JSON.parse(await fRes.data.text());
-            
-            const selector = document.getElementById('fileSelector'); 
-            selector.innerHTML = '';
-            
-            files.reverse().forEach(file => {
-                const opt = document.createElement('option'); 
-                opt.value = file;
-                const dateKey = file.replace('.csv', '').replace('.CSV', '');
-                opt.textContent = sosMap[dateKey] ? `${sosMap[dateKey]} (${dateKey})` : dateKey.toUpperCase();
-                selector.appendChild(opt);
-            });
+            fullFileList = JSON.parse(await fRes.data.text());
+            gPoolMap = gRes.data ? JSON.parse(await gRes.data.text()) : {};
             
             await fetchTeamsFromCloud(); 
             
-            if (files.length > 0) {
-                await loadSelectedFile(files[0]);
-            }
+            // Initial population showing All Generations
+            populateFileSelector('all');
 
         } catch (e) { 
             console.error(e); 
@@ -596,6 +597,52 @@
             hideLoading();
         }
     };
+
+    /**
+     * Logic for switching generation filter
+     */
+    function handleGenFilterChange(selectedGen) {
+        populateFileSelector(selectedGen);
+    }
+
+    /**
+     * Rebuilds the File Selector dropdown based on Generation Filter
+     */
+    function populateFileSelector(filterGen) {
+        const selector = document.getElementById('fileSelector'); 
+        selector.innerHTML = '';
+        
+        // Filter the master file list based on GPool mapping
+        const filteredFiles = fullFileList.filter(file => {
+            if (filterGen === 'all') return true;
+            const dateKey = file.replace('.csv', '');
+            const fileGen = gPoolMap[dateKey] || "G2"; // Default fallback
+            return fileGen === filterGen;
+        });
+
+        // Populate the dropdown
+        filteredFiles.reverse().forEach(file => {
+            const opt = document.createElement('option'); 
+            opt.value = file;
+            const dateKey = file.replace('.csv', '').replace('.CSV', '');
+            opt.textContent = sosMap[dateKey] || dateKey.toUpperCase();
+            selector.appendChild(opt);
+        });
+        
+        // Auto-load the first file in the new list if available
+        if (filteredFiles.length > 0) {
+            selector.value = filteredFiles[filteredFiles.length - 1];
+            loadSelectedFile(selector.value);
+        } else {
+            // Handle empty state
+            masterData.clear();
+            currentTeams = [];
+            document.getElementById('teamsContainer').innerHTML = `
+                <div style="text-align:center; padding:50px; color:var(--muted); font-weight:800; text-transform:uppercase;">
+                    No snapshots found for ${filterGen}
+                </div>`;
+        }
+    }
 
     async function loadSelectedFile(fileName) {
         selectedFileName = fileName; 
