@@ -550,8 +550,9 @@
         }
     }
 
-    function logout() { 
-        supabaseClient.auth.signOut(); 
+    // FIXED: Logout function is now async to ensure session is destroyed before reload
+    async function logout() { 
+        await supabaseClient.auth.signOut(); 
         location.reload(); 
     }
 
@@ -691,6 +692,7 @@
                 .upload('TeamsConfig.json', JSON.stringify(allTeamsData, null, 2), { upsert: true, contentType: 'application/json' });
             
             if (error) throw error;
+            
             btn.textContent = "SAVED!"; 
             setTimeout(() => btn.textContent="SAVE CLOUD", 2000);
         } catch (e) { 

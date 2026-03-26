@@ -273,7 +273,7 @@
 </div>
 
 <script>
-    // --- SUPABASE CONFIGURATION ---
+    // --- SUPABASE CONFIG ---
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
     const BUCKET_DATA = "kvk-data";
@@ -292,12 +292,25 @@
     let selectedFileName = "";
     let activeTroopKeys = [];
     let sosMap = {};
-    let kvkWinners = {};
+
+    let zoneWinners = {
+        "zone 2": {},
+        "zone 3": {},
+        "zone 4": {},
+        "final": {}
+    };
     
     const possibleTroopHeaders = [
         "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
         "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200M+"
     ];
+
+    const zoneFileMap = {
+        "zone 2": "z2winners.json",
+        "zone 3": "z3winners.json",
+        "zone 4": "z4winners.json",
+        "final": "kvkwinners.json"
+    };
 
     function kdClean(val) {
         if (!val) return "";
@@ -372,6 +385,8 @@
 
             updateProgress(20, "Fetching metadata...");
             
+            const timestamp = `?t=${Date.now()}`;
+            
             const [fRes, sRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json?t=' + Date.now()),
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json?t=' + Date.now())
@@ -395,7 +410,7 @@
 
             await fetchMatchupsFromCloud();
             await fetchTeamsFromCloud();
-            await fetchWinnersFromCloud(); 
+            await fetchAllWinnersFromCloud(); 
             
             if (files.length > 0) {
                 await loadSpecificFile(files[0]);
@@ -477,8 +492,9 @@
     }
 
     async function fetchMatchupsFromCloud() { 
+        const timestamp = Date.now();
         try { 
-            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('MatchupsConfig.json?t=' + Date.now()); 
+            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`MatchupsConfig.json?t=${timestamp}`); 
             if (data) allCloudData = JSON.parse(await data.text()); 
         } catch (e) { 
             allCloudData = {}; 
@@ -486,8 +502,9 @@
     }
 
     async function fetchTeamsFromCloud() {
+        const timestamp = Date.now();
         try { 
-            const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('TeamsConfig.json?t=' + Date.now()); 
+            const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`TeamsConfig.json?t=${timestamp}`); 
             if (error) {
                 allTeamsData = {};
                 return;
@@ -498,13 +515,17 @@
         }
     }
 
-    async function fetchWinnersFromCloud() {
-        try { 
-            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('kvkwinners.json?t=' + Date.now()); 
-            if (data) kvkWinners = JSON.parse(await data.text()); 
-        } catch (e) { 
-            kvkWinners = {}; 
-        }
+    async function fetchAllWinnersFromCloud() {
+        const timestamp = Date.now();
+        const promises = Object.entries(zoneFileMap).map(async ([zone, filename]) => {
+            try {
+                const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`${filename}?t=${timestamp}`);
+                if (data) zoneWinners[zone] = JSON.parse(await data.text());
+            } catch (e) {
+                zoneWinners[zone] = {};
+            }
+        });
+        await Promise.all(promises);
     }
 
     async function saveToCloud() { 
@@ -518,8 +539,35 @@
         allCloudData[cleanKey] = currentMatchups; 
         
         try { 
+            // 1. Rebuild zoneWinners locally to only include existing groups (Cleanup logic)
+            const currentGroupNames = new Set(currentMatchups.map(m => m.name));
+            for (const zone of Object.keys(zoneWinners)) {
+                if (zoneWinners[zone][cleanKey]) {
+                    const winnersForDate = zoneWinners[zone][cleanKey];
+                    // Keep winners only if the group name still exists
+                    Object.keys(winnersForDate).forEach(name => {
+                        if (!currentGroupNames.has(name)) {
+                            delete winnersForDate[name];
+                        }
+                    });
+                }
+            }
+
+            // 2. Save Matchups
             await supabaseClient.storage.from(BUCKET_CONFIGS).upload('MatchupsConfig.json', JSON.stringify(allCloudData, null, 2), { upsert: true, contentType: 'application/json' }); 
-            await supabaseClient.storage.from(BUCKET_CONFIGS).upload('kvkwinners.json', JSON.stringify(kvkWinners, null, 2), { upsert: true, contentType: 'application/json' }); 
+            
+            // 3. Save zone-specific winners with APPEND logic
+            for (const [zone, filename] of Object.entries(zoneFileMap)) {
+                let serverFile = {};
+                try {
+                    const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`${filename}?t=${Date.now()}`);
+                    if (data) serverFile = JSON.parse(await data.text());
+                } catch(e) {}
+
+                serverFile[cleanKey] = zoneWinners[zone][cleanKey] || {};
+
+                await supabaseClient.storage.from(BUCKET_CONFIGS).upload(filename, JSON.stringify(serverFile, null, 2), { upsert: true, contentType: 'application/json' });
+            }
             
             btn.textContent = "SAVED!"; 
             setTimeout(() => btn.textContent="SAVE CLOUD", 2000); 
@@ -570,22 +618,27 @@
 
     function updateMatchupName(mIdx, newName) {
         const cleanKey = selectedFileName.replace(/\.csv/i,'');
-        const oldName = currentMatchups[mIdx].name;
+        const matchup = currentMatchups[mIdx];
+        const oldName = matchup.name;
+        const zone = matchup.zone;
         
-        currentMatchups[mIdx].name = newName;
+        matchup.name = newName;
 
-        if (kvkWinners[cleanKey] && kvkWinners[cleanKey][oldName] !== undefined) {
-            kvkWinners[cleanKey][newName] = kvkWinners[cleanKey][oldName];
-            delete kvkWinners[cleanKey][oldName];
+        if (zoneWinners[zone] && zoneWinners[zone][cleanKey] && zoneWinners[zone][cleanKey][oldName]) {
+            zoneWinners[zone][cleanKey][newName] = zoneWinners[zone][cleanKey][oldName];
+            delete zoneWinners[zone][cleanKey][oldName];
         }
     }
 
     function updateWinner(mIdx, val) {
         const cleanKey = selectedFileName.replace(/\.csv/i,'');
-        if (!kvkWinners[cleanKey]) kvkWinners[cleanKey] = {};
+        const matchup = currentMatchups[mIdx];
+        const zone = matchup.zone;
+
+        if (!zoneWinners[zone]) zoneWinners[zone] = {};
+        if (!zoneWinners[zone][cleanKey]) zoneWinners[zone][cleanKey] = {};
         
-        const mName = currentMatchups[mIdx].name;
-        kvkWinners[cleanKey][mName] = val;
+        zoneWinners[zone][cleanKey][matchup.name] = val;
     }
 
     function renderAll() {
@@ -705,6 +758,40 @@
                     </tr>
                 `;
             }).join('');
+
+            let winnerUI = '';
+            const zonesWithWinners = ['zone 2', 'zone 3', 'zone 4', 'final'];
+            
+            if (zonesWithWinners.includes(matchup.zone)) {
+                const cleanKey = selectedFileName.replace(/\.csv/i,'');
+                const zone = matchup.zone;
+                const currentWinner = (zoneWinners[zone] && zoneWinners[zone][cleanKey] && zoneWinners[zone][cleanKey][matchup.name]) || "";
+                
+                const isFinal = zone === 'final';
+                const themeColor = isFinal ? '#fbbf24' : '#3b82f6';
+                const themeBg = isFinal ? 'rgba(251, 191, 36, 0.1)' : 'rgba(59, 130, 246, 0.1)';
+                const themeBorder = isFinal ? 'rgba(251, 191, 36, 0.3)' : 'rgba(59, 130, 246, 0.3)';
+
+                if (isAdmin) {
+                    winnerUI = `
+                        <div style="margin-bottom:15px; background:${themeBg}; border:1px solid ${themeBorder}; padding:10px 15px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                            <span style="color:${themeColor}; font-weight:900; font-size:0.85rem; text-transform:uppercase; display:flex; align-items:center; gap:5px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                Who Won:
+                            </span>
+                            <input type="text" value="${currentWinner}" placeholder="Enter KD# (e.g. 94, 102)" style="background:rgba(0,0,0,0.5); border:1px solid ${themeBorder}; color:white; padding:6px 12px; border-radius:6px; outline:none; font-weight:800; font-size:0.9rem; flex:1;" onchange="updateWinner(${mIdx}, this.value)">
+                        </div>`;
+                } else if (currentWinner) {
+                    winnerUI = `
+                        <div style="margin-bottom:15px; background:${themeBg}; border:1px solid ${themeBorder}; padding:10px 15px; border-radius:10px; display:flex; align-items:center; gap:10px;">
+                            <span style="color:${themeColor}; font-weight:900; font-size:0.85rem; text-transform:uppercase; display:flex; align-items:center; gap:5px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                Winner:
+                            </span>
+                            <span style="color:white; font-weight:950; font-size:1.1rem; letter-spacing:1px;">${currentWinner}</span>
+                        </div>`;
+                }
+            }
             
             const adminZoneSelect = isAdmin ? `
                 <select style="background:#0f172a; border:1px solid var(--glass-border); color:white; font-size:0.7rem; border-radius:5px;" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();">
@@ -719,45 +806,14 @@
             const adminTeamSelects = isAdmin ? `
                 <div style="display:flex; gap:10px; margin-top:10px; margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--glass-border);">
                     <div style="display:flex; flex-direction:column; gap:4px;">
-                        <span style="font-size:0.6rem; color:var(--muted); font-weight:800;">AUTO-FILL SIDE A</span>
-                        <select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'A', this.value)">
-                            ${teamOptions}
-                        </select>
+                        <span style="font-size:0.6rem; color:var(--muted); font-weight:800;">AUTO-FILL A</span>
+                        <select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'A', this.value)">${teamOptions}</select>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:4px;">
-                        <span style="font-size:0.6rem; color:var(--muted); font-weight:800;">AUTO-FILL SIDE B</span>
-                        <select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'B', this.value)">
-                            ${teamOptions}
-                        </select>
+                        <span style="font-size:0.6rem; color:var(--muted); font-weight:800;">AUTO-FILL B</span>
+                        <select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'B', this.value)">${teamOptions}</select>
                     </div>
-                </div>
-            ` : '';
-
-            let winnerUI = '';
-            if (matchup.zone === 'final') {
-                const cleanKey = selectedFileName.replace(/\.csv/i,'');
-                const currentWinner = (kvkWinners[cleanKey] && kvkWinners[cleanKey][matchup.name]) || "";
-                
-                if (isAdmin) {
-                    winnerUI = `
-                        <div style="margin-bottom:15px; background:rgba(251, 191, 36, 0.1); border:1px solid rgba(251, 191, 36, 0.3); padding:10px 15px; border-radius:10px; display:flex; align-items:center; gap:10px;">
-                            <span style="color:#fbbf24; font-weight:900; font-size:0.85rem; text-transform:uppercase; display:flex; align-items:center; gap:5px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                                Who Won:
-                            </span>
-                            <input type="text" value="${currentWinner}" placeholder="Enter KD# (e.g. 94, 102)" style="background:rgba(0,0,0,0.5); border:1px solid rgba(251, 191, 36, 0.5); color:white; padding:6px 12px; border-radius:6px; outline:none; font-weight:800; font-size:0.9rem; flex:1;" onchange="updateWinner(${mIdx}, this.value)">
-                        </div>`;
-                } else if (currentWinner) {
-                    winnerUI = `
-                        <div style="margin-bottom:15px; background:rgba(251, 191, 36, 0.1); border:1px solid rgba(251, 191, 36, 0.3); padding:10px 15px; border-radius:10px; display:flex; align-items:center; gap:10px;">
-                            <span style="color:#fbbf24; font-weight:900; font-size:0.85rem; text-transform:uppercase; display:flex; align-items:center; gap:5px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                                Winner:
-                            </span>
-                            <span style="color:white; font-weight:950; font-size:1.1rem; letter-spacing:1px;">${currentWinner}</span>
-                        </div>`;
-                }
-            }
+                </div>` : '';
             
             card.innerHTML = `
                 <div class="card-header" style="align-items: flex-start; gap: 20px;">
@@ -787,26 +843,14 @@
                                 <th class="sticky-col-kd">KD#</th>
                                 ${!allTbd ? '<th>CLASS</th>' : ''}
                                 <th class="sticky-col-ally">ALLIANCE</th>
-                                <th>POWER</th>
-                                <th>MERITS</th>
-                                <th>M/P</th>
-                                <th>M/P R</th>
-                                <th>KILLS</th>
-                                <th>DEADS</th>
-                                <th>HEALS</th>
-                                <th>CH25</th>
-                                <th>CH25 AVG</th>
+                                <th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>CH25 AVG</th>
                                 ${activeTroopKeys.map(k => `<th>${k.replace('+', '')}</th>`).join('')}
                             </tr>
                         </thead>
-                        <tbody id="tbody-${mIdx}">
-                            ${rowsHtml}
-                        </tbody>
+                        <tbody id="tbody-${mIdx}">${rowsHtml}</tbody>
                     </table>
-                </div>
-            `;
-            
-            container.appendChild(card); 
+                </div>`;
+            container.appendChild(card);
             if(isAdmin) setupSortable(mIdx);
         });
     }
@@ -814,107 +858,35 @@
     function calculateMatchupStats(ids) {
         let a = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} };
         let b = { power:0, merits:0, kills:0, deads:0, heals:0, ch25:0, ap:0, count:0, mpRankSum:0, b:{} }; 
-        
-        activeTroopKeys.forEach(k => { 
-            a.b[k] = 0; 
-            b.b[k] = 0; 
-        }); 
-        
+        activeTroopKeys.forEach(k => { a.b[k]=0; b.b[k]=0; }); 
         let current = a; 
-        
         ids.forEach(id => { 
             const u = String(id).toUpperCase().trim(); 
-            if (u === "TOTAL A") {
-                current = b; 
-            } else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { 
+            if (u === "TOTAL A") current = b; 
+            else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { 
                 const d = masterData.get(kdClean(id)); 
                 if (d) { 
-                    current.power += d.power; 
-                    current.merits += d.merits; 
-                    current.kills += d.kills; 
-                    current.deads += d.deads; 
-                    current.heals += d.heals; 
-                    current.ch25 += d.ch25; 
-                    current.ap += d.ap; 
-                    current.count++; 
-                    current.mpRankSum += (d.mpRank || 0); 
+                    current.power += d.power; current.merits += d.merits; current.kills += d.kills; current.deads += d.deads; current.heals += d.heals; current.ch25 += d.ch25; current.ap += d.ap; current.count++; current.mpRankSum += (d.mpRank || 0); 
                     activeTroopKeys.forEach(k => current.b[k] += cleanNum(d.raw[k])); 
                 } 
             } 
         });
-        
-        const statsA = { 
-            ...a, 
-            mp: a.power > 0 ? a.merits/a.power : 0, 
-            ap: a.count > 0 ? a.ap/a.count : 0 
-        };
-        
-        const statsB = { 
-            ...b, 
-            mp: b.power > 0 ? b.merits/b.power : 0, 
-            ap: b.count > 0 ? b.ap/b.count : 0 
-        };
-        
-        const diff = { 
-            power: statsA.power - statsB.power, 
-            merits: statsA.merits - statsB.merits, 
-            kills: statsA.kills - statsB.kills, 
-            deads: statsA.deads - statsB.deads, 
-            heals: statsA.heals - statsB.heals, 
-            ch25: statsA.ch25 - statsB.ch25, 
-            ap: statsA.ap - statsB.ap, 
-            mp: statsA.mp - statsB.mp, 
-            mpRank: statsA.mpRankSum - statsB.mpRankSum, 
-            b: {} 
-        };
-        
+        const statsA = { ...a, mp: a.power > 0 ? a.merits/a.power : 0, ap: a.count > 0 ? a.ap/a.count : 0 };
+        const statsB = { ...b, mp: b.power > 0 ? b.merits/b.power : 0, ap: b.count > 0 ? b.ap/b.count : 0 };
+        const diff = { power: statsA.power - statsB.power, merits: statsA.merits - statsB.merits, kills: statsA.kills - statsB.kills, deads: statsA.deads - statsB.deads, heals: statsA.heals - statsB.heals, ch25: statsA.ch25 - statsB.ch25, ap: statsA.ap - statsB.ap, mp: statsA.mp - statsB.mp, mpRank: statsA.mpRankSum - statsB.mpRankSum, b: {} };
         activeTroopKeys.forEach(k => diff.b[k] = statsA.b[k] - statsB.b[k]);
-        
-        return { 
-            rows: ids.map(id => { 
-                const u = String(id).toUpperCase().trim(); 
-                if (u === "TOTAL A") return statsA; 
-                if (u === "TOTAL B") return statsB; 
-                if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; 
-                return {}; 
-            }), 
-            diff 
-        };
+        return { rows: ids.map(id => { const u = String(id).toUpperCase().trim(); if (u === "TOTAL A") return statsA; if (u === "TOTAL B") return statsB; if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; return {}; }), diff };
     }
 
-    function cleanNum(v) { 
-        if (!v) {
-            return 0;
-        }
-        return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; 
-    }
-
-    function formatVal(n) { 
-        if (!n && n !== 0) {
-            return "0.00";
-        }
-        const abs = Math.abs(n); 
-        let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
-        return n < 0 ? "-" + s : s; 
-    }
-
-    function formatValNoDec(n) { 
-        if (!n && n !== 0) {
-            return "0";
-        }
-        const abs = Math.floor(Math.abs(n)); 
-        let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
-        return n < 0 ? "-" + s : s; 
-    }
-
+    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
+    function formatVal(n) { if (!n && n !== 0) return "0.00"; const abs = Math.abs(n); let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
+    function formatValNoDec(n) { if (!n && n !== 0) return "0"; const abs = Math.floor(Math.abs(n)); let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
+    
     function setSort(key, btn) { 
         currentSort = key; 
-        document.querySelectorAll('.metric-btn').forEach(b => {
-            b.classList.remove('active');
-        }); 
-        if (btn) {
-            btn.classList.add('active'); 
-        } else if (key === 'name') { 
+        document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active')); 
+        if (btn) btn.classList.add('active'); 
+        else if (key === 'name') { 
             const b = document.getElementById('btnSortName'); 
             if(b) b.classList.add('active'); 
         } 
@@ -923,107 +895,41 @@
 
     function setZoneFilter(zone, btn) { 
         currentZoneFilter = zone; 
-        document.querySelectorAll('.filter-btn').forEach(b => {
-            b.classList.remove('active');
-        }); 
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
         btn.classList.add('active'); 
         renderAll(); 
     }
 
-    function toggleTroops() { 
-        const row = document.getElementById('troopRow');
-        const trigger = document.getElementById('troopToggle');
-        row.classList.toggle('open'); 
-        trigger.style.transform = row.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; 
-    }
-
-    function updateSortBar() { 
-        const container = document.querySelector('#troopRow .metric-row'); 
-        if (!container) return; 
-        
-        container.innerHTML = activeTroopKeys.map(k => `
-            <button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>
-        `).join(''); 
-    }
-
-    function updateId(mIdx, rIdx, val) { 
-        currentMatchups[mIdx].ids[rIdx] = val; 
-        renderAll(); 
-    }
-
-    function addRowA(mIdx) { 
-        const ids = currentMatchups[mIdx].ids; 
-        const target = ids.indexOf("TOTAL A"); 
-        ids.splice(target !== -1 ? target : ids.length, 0, "000"); 
-        renderAll(); 
-    }
-
-    function addRowB(mIdx) { 
-        const ids = currentMatchups[mIdx].ids; 
-        const target = ids.indexOf("TOTAL B"); 
-        ids.splice(target !== -1 ? target : ids.length, 0, "000"); 
-        renderAll(); 
-    }
-
-    function removeRow(mIdx, rIdx) { 
-        currentMatchups[mIdx].ids.splice(rIdx, 1); 
-        renderAll(); 
-    }
+    function toggleTroops() { document.getElementById('troopRow').classList.toggle('open'); document.getElementById('troopToggle').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; }
+    function updateSortBar() { const container = document.querySelector('#troopRow .metric-row'); if (container) container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); }
+    function updateId(mIdx, rIdx, val) { currentMatchups[mIdx].ids[rIdx] = val; renderAll(); }
+    function addRowA(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.indexOf("TOTAL A"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
+    function addRowB(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.indexOf("TOTAL B"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
+    function removeRow(mIdx, rIdx) { currentMatchups[mIdx].ids.splice(rIdx, 1); renderAll(); }
 
     function deleteMatchup(idx) { 
         if(confirm("Delete Group?")) { 
+            const matchup = currentMatchups[idx];
+            const cleanKey = selectedFileName.replace(/\.csv/i,'');
+            
+            // NEW: Explicitly purge winner data for this group when deleted
+            if (zoneWinners[matchup.zone] && zoneWinners[matchup.zone][cleanKey]) {
+                delete zoneWinners[matchup.zone][cleanKey][matchup.name];
+            }
+            
             currentMatchups.splice(idx, 1); 
             renderAll(); 
         } 
     }
-
+    
     function addNewMatchup() { 
-        currentMatchups.unshift({ 
-            name: "A New Group", 
-            zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, 
-            ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] 
-        }); 
-        // Automatically switch to Name Sort so "A New Group" is visible at the top
+        currentMatchups.unshift({ name: "A New Group", zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] }); 
         setSort('name', document.getElementById('btnSortName'));
     }
 
-    function toggleModal(v) { 
-        const modal = document.getElementById('authModal');
-        const errorDiv = document.getElementById('loginError');
-        modal.style.display = v ? 'flex' : 'none'; 
-        if(!v) {
-            errorDiv.style.display = 'none'; 
-        }
-    }
-
+    function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; if(!v) document.getElementById('loginError').style.display = 'none'; }
     function hideDropdown() {}
-
-    function setupSortable(mIdx) { 
-        const el = document.getElementById(`tbody-${mIdx}`); 
-        if (el) {
-            new Sortable(el, { 
-                handle: '.col-drag', 
-                animation: 150, 
-                onEnd: (evt) => { 
-                    const moved = currentMatchups[mIdx].ids.splice(evt.oldIndex, 1)[0]; 
-                    currentMatchups[mIdx].ids.splice(evt.newIndex, 0, moved); 
-                    renderAll(); 
-                } 
-            });
-        }
-    }
-
-    async function applyTeamToMatchup(mIdx, side, teamName) {
-        const team = (allTeamsData[selectedFileName] || []).find(t => t.name === teamName);
-        if (!team) return;
-        let ids = [...currentMatchups[mIdx].ids];
-        if (side === 'A') {
-            currentMatchups[mIdx].ids = [...team.ids, ...ids.slice(ids.indexOf("TOTAL A"))];
-        } else {
-            currentMatchups[mIdx].ids = [...ids.slice(0, ids.indexOf("TOTAL B") + 1), ...team.ids];
-        }
-        renderAll();
-    }
+    function setupSortable(mIdx) { const el = document.getElementById(`tbody-${mIdx}`); if (el) new Sortable(el, { handle: '.col-drag', animation: 150, onEnd: (evt) => { const moved = currentMatchups[mIdx].ids.splice(evt.oldIndex, 1)[0]; currentMatchups[mIdx].ids.splice(evt.newIndex, 0, moved); renderAll(); } }); }
 </script>
 </body>
 </html>
