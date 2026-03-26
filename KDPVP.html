@@ -633,7 +633,7 @@
                     <div class="stat-box box-heals"><span class="stat-label">Heals</span><div class="stat-value">${formatVal(a.heals)}</div></div>
                 </div>
                 <div class="roster-section">
-                    <span class="stat-label" style="display:block; text-align:center; color:var(--accent-purple)">Accounts per merit metric</span>
+                    <span class="stat-label" style="display:block; text-align:center; color:var(--accent-purple)"># of Accounts per power bracket</span>
                     <div class="roster-grid">${Object.entries(a.roster).map(([label, val]) => `<div class="roster-item" style="${val === 0 ? 'opacity:0.2' : ''}"><div class="stat-label" style="font-size:0.5rem;">${label.replace('+', '')}</div><div class="r-val">${val}</div></div>`).join('')}</div>
                 </div>
                 <div class="admin-card-controls" style="display: ${isAdmin ? 'flex' : 'none'};">
