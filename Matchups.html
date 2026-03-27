@@ -16,12 +16,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* --- 1. SCROLLBARS --- */
+        html {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        html::-webkit-scrollbar { 
+            display: none; 
+        }
+
         /* --- ROTATE HINT OVERLAY --- */
         #rotate-hint {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(15, 23, 42, 0.98);
             backdrop-filter: blur(15px);
             z-index: 99999;
             flex-direction: column;
@@ -146,13 +155,34 @@
         input.name-input { text-overflow: ellipsis; }
 
         .table-wrapper { width: 100%; overflow-x: auto; border-radius: 15px; } 
-        table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; min-width: 1850px; }
+        
+        /* --- PRO STRICT TABLE LOCKING --- */
+        table { 
+            width: auto; 
+            border-collapse: separate; 
+            border-spacing: 0 4px; 
+            table-layout: fixed !important; 
+            min-width: 2200px; 
+        }
+
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
         td { padding: 12px 2px; text-align: center; background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 0.8rem; }
         
-        /* --- SOLID STICKY COLUMN LOGIC (FIXED POSITIONING) --- */
+        /* PRO STICKY COLUMN LOGIC */
         
-        /* 1. Alliance Column (Sticky Left 1) */
+        /* Admin Button Sticky Units */
+        .col-del, .col-drag {
+            position: sticky !important;
+            z-index: 40;
+            background-color: #0f172a !important;
+            width: 30px !important;
+            min-width: 30px !important;
+            max-width: 30px !important;
+        }
+        .col-del { left: 0; }
+        .col-drag { left: 30px; }
+
+        /* Alliance Column (Sticky Left 1) */
         .sticky-col-ally {
             position: sticky !important;
             left: 0; 
@@ -160,27 +190,27 @@
             background-color: #0f172a !important; 
             width: 160px !important;
             min-width: 160px !important;
-            max-width: 160px !important; /* Strictly lock width */
-            border-right: none !important; 
+            max-width: 160px !important; 
+            border-right: none !important;
             text-align: center !important;
             box-shadow: none !important;
         }
 
-        /* 2. Kingdom ID Column (Sticky Left 2) */
+        /* Kingdom ID Column (Sticky Left 2) */
         .sticky-col-kd {
             position: sticky !important;
-            left: 160px !important; /* Locked offset */
+            left: 160px !important; 
             z-index: 30; 
             background-color: #0f172a !important; 
             width: 70px !important;
             min-width: 70px !important;
-            max-width: 70px !important; /* Strictly lock width */
-            border-right: none !important; 
+            max-width: 70px !important; 
+            border-right: none !important;
             text-align: center !important;
             box-shadow: none !important;
         }
 
-        /* Offset for when Admin Buttons (Del/Drag) are visible (60px) */
+        /* Admin Mode Offsets (30+30=60) */
         .admin-active .sticky-col-ally { left: 60px !important; }
         .admin-active .sticky-col-kd { left: 220px !important; }
 
@@ -189,19 +219,19 @@
             background-color: #1e293b !important; 
         }
 
-        /* Themed Solid Walls for Totals/Diffs */
-        .row-total-a .sticky-col-kd, .row-total-a .sticky-col-ally,
-        .row-total-b .sticky-col-kd, .row-total-b .sticky-col-ally {
-            background-color: #131d33 !important; /* Solid Wall */
+        /* THEMED SOLID WALLS FOR SPECIAL ROWS */
+        .row-total-a .sticky-col-kd, .row-total-a .sticky-col-ally, .row-total-a .col-del, .row-total-a .col-drag,
+        .row-total-b .sticky-col-kd, .row-total-b .sticky-col-ally, .row-total-b .col-del, .row-total-b .col-drag {
+            background-color: #131d33 !important; 
         }
 
-        .row-differentials-a-b .sticky-col-kd, .row-differentials-a-b .sticky-col-ally {
-            background-color: #191932 !important; /* Solid Wall */
+        .row-differentials-a-b .sticky-col-kd, .row-differentials-a-b .sticky-col-ally, .row-differentials-a-b .col-del, .row-differentials-a-b .col-drag {
+            background-color: #191932 !important; 
         }
 
-        /* Font Shrink for Differentials to prevent overlap */
+        /* Font Shrink for Differentials label */
         .row-differentials-a-b .sticky-col-ally {
-            font-size: 0.75rem !important;
+            font-size: 0.7rem !important;
             padding: 0 5px !important;
         }
 
@@ -210,7 +240,7 @@
         .row-differentials-a-b { background: rgba(168, 85, 247, 0.1) !important; color: var(--accent) !important; }
         .paragon-text { color: rgb(245, 158, 11) !important; font-weight: 900 !important; text-decoration: none !important; }
         
-        .id-input { width: 50px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: #3b82f6; text-align: center; font-weight: 800; border-radius: 4px; outline: none; }
+        .id-input { width: 55px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: #3b82f6; text-align: center; font-weight: 800; border-radius: 4px; outline: none; }
         
         /* --- BUTTONS --- */
         .btn { padding: 8px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.75rem; background: var(--glass); color: white; text-transform: uppercase; transition: 0.2s; }
@@ -218,10 +248,6 @@
         .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: white; }
         .btn-blue { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); color: white; }
         .btn-green { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: white; }
-        
-        .col-drag { width: 30px !important; cursor: grab; opacity: 0.3; color: var(--muted); }
-        .col-del { width: 30px !important; color: #ef4444; font-weight: 900; cursor: pointer; }
-        .admin-select { background: rgba(15, 23, 42, 0.9); border: 1px solid var(--glass-border); color: #3b82f6; font-size: 0.65rem; border-radius: 6px; padding: 4px; font-weight: 700; outline: none; cursor: pointer; }
         
         /* --- MODALS & OVERLAYS --- */
         #authModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(20px); align-items: center; justify-content: center; z-index: 2000; }
@@ -236,6 +262,14 @@
     </style>
 </head>
 <body onclick="hideDropdown()">
+
+<div id="rotate-hint">
+    <div class="rotate-content">
+        <div class="phone-icon"></div>
+        <p>Landscape view recommended</p>
+        <button onclick="document.getElementById('rotate-hint').style.setProperty('display', 'none', 'important')">Dismiss</button>
+    </div>
+</div>    
 
 <div id="loadingOverlay">
     <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -311,7 +345,6 @@
     <div id="matchupsContainer"></div>
 </div>
 
-<!-- SUPABASE AUTH MODAL -->
 <div id="authModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
@@ -326,7 +359,7 @@
 </div>
 
 <script>
-    // --- SUPABASE CONFIGURATION ---
+    // --- SUPABASE CONFIG ---
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
     const BUCKET_DATA = "kvk-data";
@@ -444,7 +477,6 @@
             
             const timestamp = `?t=${Date.now()}`;
             
-            // TRIPLE SYNC
             const [fRes, sRes, gRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
@@ -461,7 +493,6 @@
             await fetchTeamsFromCloud();
             await fetchAllWinnersFromCloud(); 
             
-            // Initial population showing All Generations
             populateFileSelector('all');
 
         } catch (e) { 
@@ -471,7 +502,6 @@
         }
     };
 
-    // --- FILTERING FUNCTIONS ---
     function handleGenFilterChange(selectedGen) {
         populateFileSelector(selectedGen);
     }
@@ -765,11 +795,11 @@
                     const rowClass = upper.replace(/\s+/g, '-').replace(/[()]/g, '').toLowerCase(); 
                     return `
                         <tr class="row-${rowClass}">
-                            ${isAdmin ? '<td></td><td></td>' : ''}
+                            ${isAdmin ? '<td class="col-del"></td><td class="col-drag"></td>' : ''}
                             <td class="sticky-col-ally" style="color: white !important; font-weight:900; text-align:center !important;">${upper}</td>
                             <td class="sticky-col-kd"></td> 
                             ${!allTbd ? '<td></td>' : ''}
-                            <td></td> <!-- RANK placeholder -->
+                            <td></td> 
                             <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td>
                             <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td>
                             <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td>
@@ -839,7 +869,7 @@
             }).join('');
 
             let winnerUI = '';
-            const zonesWithWinners = ['zone 2', 'zone 3', 'zone 4', 'final'];
+            const zonesWithWinners = ['zone 2', 'zone 2', 'zone 4', 'final'];
             
             if (zonesWithWinners.includes(matchup.zone)) {
                 const cleanKey = selectedFileName.replace(/\.csv/i,'');
@@ -915,6 +945,23 @@
                 ${winnerUI}
                 <div class="table-wrapper">
                     <table>
+                        <colgroup>
+                            ${isAdmin ? '<col style="width:30px;"><col style="width:30px;">' : ''}
+                            <col style="width:160px;"> <!-- ALLIANCE -->
+                            <col style="width:70px;"> <!-- KD -->
+                            ${!allTbd ? '<col style="width:80px;">' : ''} <!-- CLASS -->
+                            <col style="width:80px;"> <!-- RANK -->
+                            <col style="width:120px;"> <!-- POWER -->
+                            <col style="width:120px;"> <!-- MERITS -->
+                            <col style="width:100px;"> <!-- M/P -->
+                            <col style="width:100px;"> <!-- M/P R -->
+                            <col style="width:140px;"> <!-- KILLS -->
+                            <col style="width:140px;"> <!-- DEADS -->
+                            <col style="width:140px;"> <!-- HEALS -->
+                            <col style="width:100px;"> <!-- CH25 -->
+                            <col style="width:120px;"> <!-- CH25 AVG -->
+                            ${activeTroopKeys.map(() => '<col style="width:100px;">').join('')}
+                        </colgroup>
                         <thead>
                             <tr>
                                 ${isAdmin ? '<th></th><th></th>' : ''}
@@ -960,8 +1007,16 @@
                 } 
             } 
         });
-        const statsA = { ...a, mp: a.power > 0 ? a.merits/a.power : 0, ap: a.count > 0 ? a.ap/a.count : 0 };
-        const statsB = { ...b, mp: b.power > 0 ? b.merits/b.power : 0, ap: b.count > 0 ? b.ap/b.count : 0 };
+        const statsA = { 
+            ...a, 
+            mp: a.power > 0 ? a.merits/a.power : 0, 
+            ap: a.count > 0 ? a.ap/a.count : 0 
+        };
+        const statsB = { 
+            ...b, 
+            mp: b.power > 0 ? b.merits/b.power : 0, 
+            ap: b.count > 0 ? b.ap/b.count : 0 
+        };
         const diff = { 
             power: statsA.power - statsB.power, 
             merits: statsA.merits - statsB.merits, 
