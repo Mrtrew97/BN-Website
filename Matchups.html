@@ -150,6 +150,51 @@
         th { text-align: center; padding: 12px 2px; color: var(--muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--glass-border); }
         td { padding: 12px 2px; text-align: center; background: rgba(255,255,255,0.02); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 0.8rem; }
         
+        /* --- SOLID STICKY COLUMN LOGIC --- */
+        
+        /* 1. Alliance Column (1st) */
+        .sticky-col-ally {
+            position: sticky !important;
+            left: 0; 
+            z-index: 30;
+            background-color: #0f172a !important; 
+            width: 140px;
+            min-width: 140px;
+            border-right: 1px solid var(--glass-border) !important;
+            text-align: center !important;
+        }
+
+        /* 2. Kingdom ID Column (2nd) */
+        .sticky-col-kd {
+            position: sticky !important;
+            left: 140px; 
+            z-index: 30; 
+            background-color: #0f172a !important; 
+            width: 70px;
+            min-width: 70px;
+            border-right: 1px solid var(--primary) !important;
+            text-align: center !important;
+        }
+
+        /* Offset for when Admin Buttons (Del/Drag) are visible (60px) */
+        .admin-active .sticky-col-ally { left: 60px !important; }
+        .admin-active .sticky-col-kd { left: 200px !important; }
+
+        th.sticky-col-kd, th.sticky-col-ally {
+            z-index: 31;
+            background-color: #1e293b !important; 
+        }
+
+        /* Themed Solid Colors for Total/Diff Rows */
+        .row-total-a .sticky-col-kd, .row-total-a .sticky-col-ally,
+        .row-total-b .sticky-col-kd, .row-total-b .sticky-col-ally {
+            background-color: #131d33 !important; 
+        }
+
+        .row-differentials-a-b .sticky-col-kd, .row-differentials-a-b .sticky-col-ally {
+            background-color: #191932 !important; 
+        }
+
         .highlight-sort { background: rgba(59, 130, 246, 0.15) !important; color: white !important; font-weight: 950 !important; }
         .row-total-a, .row-total-b { background: rgba(59, 130, 246, 0.1) !important; color: var(--primary) !important; }
         .row-differentials-a-b { background: rgba(168, 85, 247, 0.1) !important; color: var(--accent) !important; }
@@ -164,8 +209,8 @@
         .btn-blue { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.4); color: white; }
         .btn-green { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: white; }
         
-        .col-drag { width: 30px; cursor: grab; opacity: 0.3; color: var(--muted); }
-        .col-del { width: 30px; color: #ef4444; font-weight: 900; cursor: pointer; }
+        .col-drag { width: 30px !important; cursor: grab; opacity: 0.3; color: var(--muted); }
+        .col-del { width: 30px !important; color: #ef4444; font-weight: 900; cursor: pointer; }
         .admin-select { background: rgba(15, 23, 42, 0.9); border: 1px solid var(--glass-border); color: #3b82f6; font-size: 0.65rem; border-radius: 6px; padding: 4px; font-weight: 700; outline: none; cursor: pointer; }
         
         /* --- MODALS & OVERLAYS --- */
@@ -215,7 +260,6 @@
 <div class="unified-container">
     <div class="tools-glass-row">
         <div class="nav-side-box">
-            <!-- NEW GENERATION SELECTOR -->
             <select id="genSelector" onchange="handleGenFilterChange(this.value)">
                 <option value="all">All Gens</option>
                 <option value="G1">G1</option>
@@ -266,7 +310,6 @@
     <div id="matchupsContainer"></div>
 </div>
 
-<!-- SUPABASE AUTH MODAL -->
 <div id="authModal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
@@ -281,7 +324,7 @@
 </div>
 
 <script>
-    // --- SUPABASE CONFIG ---
+    // --- SUPABASE CONFIGURATION ---
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
     const BUCKET_DATA = "kvk-data";
@@ -301,7 +344,6 @@
     let activeTroopKeys = [];
     let sosMap = {};
     
-    // NEW FILTERING STATE
     let gPoolMap = {}; 
     let fullFileList = []; 
 
@@ -314,7 +356,7 @@
     
     const possibleTroopHeaders = [
         "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
-        "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200M+"
+        "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200-250M","250-300M"
     ];
 
     const zoneFileMap = {
@@ -354,6 +396,7 @@
 
     function enableAdminMode() {
         isAdmin = true;
+        document.body.classList.add('admin-active');
         const area = document.getElementById('adminArea');
         const lBtn = document.getElementById('loginBtn');
         
@@ -399,7 +442,6 @@
             
             const timestamp = `?t=${Date.now()}`;
             
-            // TRIPLE SYNC
             const [fRes, sRes, gRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
@@ -416,7 +458,6 @@
             await fetchTeamsFromCloud();
             await fetchAllWinnersFromCloud(); 
             
-            // Initial population showing All Generations
             populateFileSelector('all');
 
         } catch (e) { 
@@ -426,7 +467,6 @@
         }
     };
 
-    // --- NEW FILTERING FUNCTIONS ---
     function handleGenFilterChange(selectedGen) {
         populateFileSelector(selectedGen);
     }
@@ -435,18 +475,15 @@
         const selector = document.getElementById('fileSelector'); 
         selector.innerHTML = '';
         
-        // Filter the master file list based on GPool mapping
         let filteredFiles = fullFileList.filter(file => {
             if (filterGen === 'all') return true;
             const dateKey = file.replace(/\.csv/i, '');
-            const fileGen = gPoolMap[dateKey] || "G2"; // Default fallback
+            const fileGen = gPoolMap[dateKey] || "G2"; 
             return fileGen === filterGen;
         });
 
-        // Make a copy and reverse it so the newest snapshot is always at index [0]
         const displayFiles = [...filteredFiles].reverse();
 
-        // Populate the dropdown
         displayFiles.forEach(file => {
             const opt = document.createElement('option'); 
             opt.value = file;
@@ -455,12 +492,10 @@
             selector.appendChild(opt);
         });
         
-        // Auto-load the first file in the new list if available
         if (displayFiles.length > 0) {
             selector.value = displayFiles[0];
             loadSpecificFile(selector.value);
         } else {
-            // Handle empty state
             masterData.clear();
             currentMatchups = [];
             document.getElementById('matchupsContainer').innerHTML = `
@@ -586,12 +621,10 @@
         allCloudData[cleanKey] = currentMatchups; 
         
         try { 
-            // 1. Rebuild zoneWinners locally to only include existing groups (Cleanup logic)
             const currentGroupNames = new Set(currentMatchups.map(m => m.name));
             for (const zone of Object.keys(zoneWinners)) {
                 if (zoneWinners[zone][cleanKey]) {
                     const winnersForDate = zoneWinners[zone][cleanKey];
-                    // Keep winners only if the group name still exists
                     Object.keys(winnersForDate).forEach(name => {
                         if (!currentGroupNames.has(name)) {
                             delete winnersForDate[name];
@@ -600,10 +633,8 @@
                 }
             }
 
-            // 2. Save Matchups
             await supabaseClient.storage.from(BUCKET_CONFIGS).upload('MatchupsConfig.json', JSON.stringify(allCloudData, null, 2), { upsert: true, contentType: 'application/json' }); 
             
-            // 3. Save zone-specific winners with APPEND logic
             for (const [zone, filename] of Object.entries(zoneFileMap)) {
                 let serverFile = {};
                 try {
@@ -720,8 +751,6 @@
                 return !d || d.class === "TBD" || d.class === "-"; 
             });
             
-            const dataColsSpan = 9 + activeTroopKeys.length + (!allTbd ? 1 : 0);
-            
             let rowsHtml = matchup.ids.map((id, rIdx) => {
                 const upper = String(id).toUpperCase().trim(); 
                 const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper); 
@@ -732,7 +761,10 @@
                     return `
                         <tr class="row-${rowClass}">
                             ${isAdmin ? '<td></td><td></td>' : ''}
-                            <td class="sticky-special-label" colspan="${!allTbd ? 4 : 3}">${upper}</td>
+                            <td class="sticky-col-ally" style="background: inherit !important; color: white !important; font-weight:900; text-align:center !important;">${upper}</td>
+                            <td class="sticky-col-kd"></td> 
+                            ${!allTbd ? '<td></td>' : ''}
+                            <td></td> 
                             <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td>
                             <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td>
                             <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td>
@@ -756,11 +788,22 @@
                     return `
                         <tr>
                             ${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}
-                            <td class="col-small">-</td>
-                            <td class="sticky-col-kd" style="color:var(--primary); font-weight:800;">
+                            <td class="sticky-col-ally" style="color:#ef4444;">ID [${id}] NOT FOUND</td>
+                            <td class="sticky-col-kd">
                                 ${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}
                             </td>
-                            <td colspan="${activeTroopKeys.length + 9}" style="color:#ef4444; text-align:center;">ID [${id}] Not Found</td>
+                            ${!allTbd ? `<td></td>` : ''}
+                            <td>-</td>
+                            <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">0.00%</td>
+                            <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">0</td>
+                            ${activeTroopKeys.map(k => `<td>0</td>`).join('')}
                         </tr>
                     `;
                 }
@@ -768,12 +811,12 @@
                 return `
                     <tr>
                         ${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}
-                        <td>${d.powerRank || '-'}</td>
+                        <td class="sticky-col-ally ${d.isParagon ? 'paragon-text' : ''}" style="font-weight:700;">${d.alliance}</td>
                         <td class="sticky-col-kd" style="color:var(--primary); font-weight:800;">
                             ${isAdmin ? `<input class="id-input" value="${id}" onchange="updateId(${mIdx}, ${rIdx}, this.value)">` : id}
                         </td>
                         ${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}
-                        <td class="sticky-col-ally ${d.isParagon ? 'paragon-text' : ''}" style="text-align:center; font-weight:700;">${d.alliance}</td>
+                        <td>${d.powerRank || '-'}</td>
                         <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
                         <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
                         <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
@@ -870,17 +913,18 @@
                         <thead>
                             <tr>
                                 ${isAdmin ? '<th></th><th></th>' : ''}
-                                <th>RANK</th>
+                                <th class="sticky-col-ally">ALLIANCE</th>
                                 <th class="sticky-col-kd">KD#</th>
                                 ${!allTbd ? '<th>CLASS</th>' : ''}
-                                <th class="sticky-col-ally">ALLIANCE</th>
+                                <th>RANK</th>
                                 <th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>CH25 AVG</th>
                                 ${activeTroopKeys.map(k => `<th>${k.replace('+', '')}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody id="tbody-${mIdx}">${rowsHtml}</tbody>
                     </table>
-                </div>`;
+                </div>
+            `;
             container.appendChild(card);
             if(isAdmin) setupSortable(mIdx);
         });
@@ -893,25 +937,69 @@
         let current = a; 
         ids.forEach(id => { 
             const u = String(id).toUpperCase().trim(); 
-            if (u === "TOTAL A") current = b; 
-            else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { 
+            if (u === "TOTAL A") {
+                current = b; 
+            } else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { 
                 const d = masterData.get(kdClean(id)); 
                 if (d) { 
-                    current.power += d.power; current.merits += d.merits; current.kills += d.kills; current.deads += d.deads; current.heals += d.heals; current.ch25 += d.ch25; current.ap += d.ap; current.count++; current.mpRankSum += (d.mpRank || 0); 
+                    current.power += d.power; 
+                    current.merits += d.merits; 
+                    current.kills += d.kills; 
+                    current.deads += d.deads; 
+                    current.heals += d.heals; 
+                    current.ch25 += d.ch25; 
+                    current.ap += d.ap; 
+                    current.count++; 
+                    current.mpRankSum += (d.mpRank || 0); 
                     activeTroopKeys.forEach(k => current.b[k] += cleanNum(d.raw[k])); 
                 } 
             } 
         });
         const statsA = { ...a, mp: a.power > 0 ? a.merits/a.power : 0, ap: a.count > 0 ? a.ap/a.count : 0 };
         const statsB = { ...b, mp: b.power > 0 ? b.merits/b.power : 0, ap: b.count > 0 ? b.ap/b.count : 0 };
-        const diff = { power: statsA.power - statsB.power, merits: statsA.merits - statsB.merits, kills: statsA.kills - statsB.kills, deads: statsA.deads - statsB.deads, heals: statsA.heals - statsB.heals, ch25: statsA.ch25 - statsB.ch25, ap: statsA.ap - statsB.ap, mp: statsA.mp - statsB.mp, mpRank: statsA.mpRankSum - statsB.mpRankSum, b: {} };
+        const diff = { 
+            power: statsA.power - statsB.power, 
+            merits: statsA.merits - statsB.merits, 
+            kills: statsA.kills - statsB.kills, 
+            deads: statsA.deads - statsB.deads, 
+            heals: statsA.heals - statsB.heals, 
+            ch25: statsA.ch25 - statsB.ch25, 
+            ap: statsA.ap - statsB.ap, 
+            mp: statsA.mp - statsB.mp, 
+            mpRank: statsA.mpRankSum - statsB.mpRankSum, 
+            b: {} 
+        };
         activeTroopKeys.forEach(k => diff.b[k] = statsA.b[k] - statsB.b[k]);
-        return { rows: ids.map(id => { const u = String(id).toUpperCase().trim(); if (u === "TOTAL A") return statsA; if (u === "TOTAL B") return statsB; if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; return {}; }), diff };
+        return { 
+            rows: ids.map(id => { 
+                const u = String(id).toUpperCase().trim(); 
+                if (u === "TOTAL A") return statsA; 
+                if (u === "TOTAL B") return statsB; 
+                if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; 
+                return {}; 
+            }), 
+            diff 
+        };
     }
 
-    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
-    function formatVal(n) { if (!n && n !== 0) return "0.00"; const abs = Math.abs(n); let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
-    function formatValNoDec(n) { if (!n && n !== 0) return "0"; const abs = Math.floor(Math.abs(n)); let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
+    function cleanNum(v) { 
+        if (!v) return 0; 
+        return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; 
+    }
+
+    function formatVal(n) { 
+        if (!n && n !== 0) return "0.00"; 
+        const abs = Math.abs(n); 
+        let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
+        return n < 0 ? "-" + s : s; 
+    }
+
+    function formatValNoDec(n) { 
+        if (!n && n !== 0) return "0"; 
+        const abs = Math.floor(Math.abs(n)); 
+        let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
+        return n < 0 ? "-" + s : s; 
+    }
     
     function setSort(key, btn) { 
         currentSort = key; 
@@ -931,36 +1019,81 @@
         renderAll(); 
     }
 
-    function toggleTroops() { document.getElementById('troopRow').classList.toggle('open'); document.getElementById('troopToggle').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; }
-    function updateSortBar() { const container = document.querySelector('#troopRow .metric-row'); if (container) container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); }
-    function updateId(mIdx, rIdx, val) { currentMatchups[mIdx].ids[rIdx] = val; renderAll(); }
-    function addRowA(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.indexOf("TOTAL A"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
-    function addRowB(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.indexOf("TOTAL B"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
-    function removeRow(mIdx, rIdx) { currentMatchups[mIdx].ids.splice(rIdx, 1); renderAll(); }
+    function toggleTroops() { 
+        document.getElementById('troopRow').classList.toggle('open'); 
+        document.getElementById('troopToggle').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; 
+    }
+
+    function updateSortBar() { 
+        const container = document.querySelector('#troopRow .metric-row'); 
+        if (container) container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); 
+    }
+
+    function updateId(mIdx, rIdx, val) { 
+        currentMatchups[mIdx].ids[rIdx] = val; 
+        renderAll(); 
+    }
+
+    function addRowA(mIdx) { 
+        const ids = currentMatchups[mIdx].ids; 
+        const target = ids.indexOf("TOTAL A"); 
+        ids.splice(target !== -1 ? target : ids.length, 0, "000"); 
+        renderAll(); 
+    }
+
+    function addRowB(mIdx) { 
+        const ids = currentMatchups[mIdx].ids; 
+        const target = ids.indexOf("TOTAL B"); 
+        // Logic changed to target + 1 to insert BELOW TOTAL B
+        ids.splice(target !== -1 ? target + 1 : ids.length, 0, "000"); 
+        renderAll(); 
+    }
+
+    function removeRow(mIdx, rIdx) { 
+        currentMatchups[mIdx].ids.splice(rIdx, 1); 
+        renderAll(); 
+    }
 
     function deleteMatchup(idx) { 
         if(confirm("Delete Group?")) { 
             const matchup = currentMatchups[idx];
             const cleanKey = selectedFileName.replace(/\.csv/i,'');
-            
-            // NEW: Explicitly purge winner data for this group when deleted
             if (zoneWinners[matchup.zone] && zoneWinners[matchup.zone][cleanKey]) {
                 delete zoneWinners[matchup.zone][cleanKey][matchup.name];
             }
-            
             currentMatchups.splice(idx, 1); 
             renderAll(); 
         } 
     }
     
     function addNewMatchup() { 
-        currentMatchups.unshift({ name: "A New Group", zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] }); 
+        currentMatchups.unshift({ 
+            name: "A New Group", 
+            zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, 
+            ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] 
+        }); 
         setSort('name', document.getElementById('btnSortName'));
     }
 
-    function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; if(!v) document.getElementById('loginError').style.display = 'none'; }
+    function toggleModal(v) { 
+        document.getElementById('authModal').style.display = v ? 'flex' : 'none'; 
+        if(!v) document.getElementById('loginError').style.display = 'none'; 
+    }
+
     function hideDropdown() {}
-    function setupSortable(mIdx) { const el = document.getElementById(`tbody-${mIdx}`); if (el) new Sortable(el, { handle: '.col-drag', animation: 150, onEnd: (evt) => { const moved = currentMatchups[mIdx].ids.splice(evt.oldIndex, 1)[0]; currentMatchups[mIdx].ids.splice(evt.newIndex, 0, moved); renderAll(); } }); }
+
+    function setupSortable(mIdx) { 
+        const el = document.getElementById(`tbody-${mIdx}`); 
+        if (el) new Sortable(el, { 
+            handle: '.col-drag', 
+            animation: 150, 
+            onEnd: (evt) => { 
+                const moved = currentMatchups[mIdx].ids.splice(evt.oldIndex, 1)[0]; 
+                currentMatchups[mIdx].ids.splice(evt.newIndex, 0, moved); 
+                renderAll(); 
+            } 
+        }); 
+    }
 </script>
 </body>
 </html>
