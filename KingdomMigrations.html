@@ -785,12 +785,12 @@
 <input type="text" id="kdSearch" class="search-box" placeholder="Search Kingdom# or Alliance Name..." oninput="handleSearch()" autocomplete="off">
 
 <div class="sort-bar">
-    <button id="btn-kd" class="sort-btn" onclick="handleSort('kd')">Kingdom #</button>
-    <button id="btn-count" class="sort-btn active" onclick="handleSort('count')">Players</button>
-    <button id="btn-pwr" class="sort-btn" onclick="handleSort('pwr')">Power</button>
-    <button id="btn-kills" class="sort-btn" onclick="handleSort('kills')">Kills</button>
-    <button id="btn-deads" class="sort-btn" onclick="handleSort('deads')">Deads</button>
-    <button id="btn-heals" class="sort-btn" onclick="handleSort('heals')">Heals</button>
+    <button id="btn-kd" class="sort-btn" onclick="handleSort('kd', this)">Kingdom #</button>
+    <button id="btn-count" class="sort-btn active" onclick="handleSort('count', this)">Players</button>
+    <button id="btn-pwr" class="sort-btn" onclick="handleSort('pwr', this)">Power</button>
+    <button id="btn-kills" class="sort-btn" onclick="handleSort('kills', this)">Kills</button>
+    <button id="btn-deads" class="sort-btn" onclick="handleSort('deads', this)">Deads</button>
+    <button id="btn-heals" class="sort-btn" onclick="handleSort('heals', this)">Heals</button>
 </div>
 
 <div id="status-msg" style="margin-bottom: 20px; font-weight: 800; color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px;"></div>
@@ -854,24 +854,24 @@
     let itemsShown = 30;
     let pageSize = 30;
 
-    // --- CACHE BUSTING FETCH HELPER ---
-    async function fetchLatest(bucket, path) {
-        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?t=${Date.now()}`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Cache-Control': 'no-cache'
-            }
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status} for ${path}`);
-        return response;
+    /**
+     * STANDARDIZED CLEANING LOGIC
+     */
+    function idClean(val) {
+        if (!val) return "";
+        let cleaned = String(val).trim().replace(/["',]/g, '');
+        let num = Math.floor(parseFloat(cleaned));
+        return isNaN(num) ? "" : String(num);
+    }
+
+    function kdClean(val) { 
+        if (!val || val === "N/A") return "N/A"; 
+        return idClean(val);
     }
 
     function cleanNum(val) { 
         if (!val) return 0; 
-        return parseFloat(String(val).replace(/["',]/g, '')) || 0; 
+        return parseFloat(String(val).replace(/["',%]/g, '')) || 0; 
     }
 
     function formatShorthand(v) { 
@@ -883,6 +883,11 @@
         else if (absV >= 1e3) res = (absV / 1e3).toFixed(1) + 'K'; 
         else res = Math.round(absV).toLocaleString(); 
         return (v < 0 ? "-" : "") + res; 
+    }
+
+    async function fetchLatest(bucket, path) {
+        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?t=${Date.now()}`;
+        return await fetch(url, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } });
     }
 
     function updateProgress(pct, text) {
@@ -904,77 +909,46 @@
         }
     }
 
+    window.onload = init;
+
     async function init() {
         try {
             updateProgress(10, "Fetching Metadata...");
-            
-            // TRIPLE SYNC
             const [sRes, fRes, gRes] = await Promise.all([
-                fetchLatest(BUCKET_DATA, 'Players/SosNames.json').catch(() => null),
-                fetchLatest(BUCKET_DATA, 'Players/files.json').catch(() => null),
-                fetchLatest(BUCKET_CONFIGS, 'GPool.json').catch(() => null)
+                fetchLatest(BUCKET_DATA, 'Players/SosNames.json'),
+                fetchLatest(BUCKET_DATA, 'Players/files.json'),
+                fetchLatest(BUCKET_CONFIGS, 'GPool.json')
             ]);
-            
-            if (sRes) sosMap = await sRes.json();
-            if (fRes) fullFilesList = await fRes.json();
-            if (gRes) gPoolMap = await gRes.json();
-            
-            // Apply default G2 filter
-            document.getElementById('genSelector').value = "G2";
+            sosMap = await sRes.json();
+            fullFilesList = await fRes.json();
+            gPoolMap = await gRes.json();
             handleGenChange("G2");
-            
             hideLoading();
-        } catch (err) { 
-            console.error(err); 
-            document.getElementById('status-msg-loading').innerText = "Sync Failed."; 
-        }
+        } catch (err) { console.error(err); }
     }
 
     function handleGenChange(targetGen) {
         const startSelect = document.getElementById('startSelect');
         const endSelect = document.getElementById('endSelect');
-        startSelect.innerHTML = ''; 
-        endSelect.innerHTML = '';
-
-        // Filter files for the selected Generation
-        allFiles = fullFilesList.filter(file => {
-            const dateKey = file.replace('.csv', '');
-            const fileGen = gPoolMap[dateKey] || "G2";
-            return fileGen === targetGen;
-        });
-
-        // Safety check for empty or single-file generations
+        startSelect.innerHTML = ''; endSelect.innerHTML = '';
+        allFiles = fullFilesList.filter(file => (gPoolMap[file.replace('.csv', '')] || "G2") === targetGen).sort();
         if (allFiles.length < 2) {
-            startSelect.add(new Option("No Files Found  For This Gen", ""));
-            endSelect.add(new Option("No Files Found  For This Gen", ""));
-            document.getElementById('analyzeBtn').disabled = true;
-            document.getElementById('status-msg').innerText = `Not enough snapshots found for ${targetGen}. Need at least 2.`;
-            document.getElementById('cardGrid').innerHTML = '';
-            document.getElementById('loadMoreBtn').style.display = 'none';
-            return;
+            startSelect.add(new Option("No Files Found", "")); endSelect.add(new Option("No Files Found", ""));
+            document.getElementById('analyzeBtn').disabled = true; return;
         }
-
         document.getElementById('analyzeBtn').disabled = false;
-        document.getElementById('status-msg').innerText = '';
-
-        // Populate dropdowns
         [...allFiles].reverse().forEach(file => {
             const date = file.replace('.csv','');
-            const name = sosMap[date] || date;
-            startSelect.add(new Option(name, file)); 
-            endSelect.add(new Option(name, file));
+            startSelect.add(new Option(sosMap[date] || date, file)); 
+            endSelect.add(new Option(sosMap[date] || date, file));
         });
-
         if(endSelect.options.length > 1) { 
             endSelect.selectedIndex = 0; 
             startSelect.selectedIndex = 1; 
         }
-
-        // Clear existing grid when switching gens
         migrationData = [];
         filteredData = [];
         document.getElementById('cardGrid').innerHTML = '';
-        document.getElementById('loadMoreBtn').style.display = 'none';
     }
 
     async function fetchCSVFull(filename, progressOffset, progressScale) {
@@ -988,230 +962,136 @@
     function parseCSVChunked(text, onProgress) {
         const lines = text.split('\n');
         const header = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(item => item.trim().replace(/["']/g, ""));
-        
-        const idx = { 
-            id: header.indexOf('Lord ID'), 
-            kd: header.indexOf('KD'), 
-            name: header.indexOf('Name'), 
-            ally: header.indexOf('Ally'), 
-            pwr: header.indexOf('H - Power'), 
-            merits: header.indexOf('Merits'), 
-            kills: header.indexOf('Kills'), 
-            deads: header.indexOf('Deads'), 
-            heals: header.indexOf('Heals') 
-        };
-        
+        const fIdx = (names) => { for(let n of names) { let i = header.indexOf(n); if(i!==-1) return i; } return -1; };
+        const idx = { id: fIdx(['Lord ID', 'LordID', 'ID']), kd: fIdx(['KD', 'KD#']), name: header.indexOf('Name'), ally: header.indexOf('Ally'), pwr: fIdx(['H - Power', 'Power']), merits: header.indexOf('Merits'), kills: header.indexOf('Kills'), deads: header.indexOf('Deads'), heals: header.indexOf('Heals') };
         const dataMap = new Map();
-        const total = lines.length;
-        const chunkSize = 2500;
-        
-        return new Promise((resolve) => {
-            let cur = 1;
-            function process() {
-                const end = Math.min(cur + chunkSize, total);
-                for (let i = cur; i < end; i++) {
-                    const r = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (r.length < 5) continue;
-                    const id = r[idx.id]?.trim().replace(/"/g, '');
-                    if (!id) continue;
-                    dataMap.set(id, { 
-                        id, 
-                        kd: r[idx.kd]?.trim().replace(/"/g, ''), 
-                        name: r[idx.name]?.trim().replace(/"/g, ''), 
-                        ally: r[idx.ally]?.trim().replace(/"/g, ''), 
-                        pwr: cleanNum(r[idx.pwr]), 
-                        merits: cleanNum(r[idx.merits]), 
-                        kills: cleanNum(r[idx.kills]), 
-                        deads: cleanNum(r[idx.deads]), 
-                        heals: cleanNum(r[idx.heals]) 
-                    });
-                }
-                cur = end;
-                if (onProgress) onProgress(Math.floor((cur / total) * 100));
-                if (cur < total) requestAnimationFrame(process); else resolve(dataMap);
-            }
-            process();
-        });
+        for (let i = 1; i < lines.length; i++) {
+            const r = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            if (r.length < 5) continue;
+            const rawID = idClean(r[idx.id]);
+            if (!rawID) continue;
+            dataMap.set(rawID, { 
+                id: rawID, kd: r[idx.kd], name: r[idx.name], ally: r[idx.ally], 
+                pwr: cleanNum(r[idx.pwr]), merits: cleanNum(r[idx.merits]), 
+                kills: cleanNum(r[idx.kills]), deads: cleanNum(r[idx.deads]), heals: cleanNum(r[idx.heals]) 
+            });
+            if (i % 5000 === 0 && onProgress) onProgress(Math.floor((i / lines.length) * 100));
+        }
+        return dataMap;
     }
 
     async function runComparison() {
         const startFile = document.getElementById('startSelect').value;
         const endFile = document.getElementById('endSelect').value;
+        if (!startFile || !endFile || startFile === endFile) return;
+
         const btn = document.getElementById('analyzeBtn'); 
-        
         btn.disabled = true;
-        updateProgress(5, "Analyzing performance snapshots...");
+        updateProgress(5, "Analyzing performance range...");
 
         let startIdx = allFiles.indexOf(startFile);
         let endIdx = allFiles.indexOf(endFile);
-        
         if(startIdx > endIdx) [startIdx, endIdx] = [endIdx, startIdx];
         const rangeFiles = allFiles.slice(startIdx, endIdx + 1);
 
-        latestAllianceMap = {}; 
-        const stats = {};
-        
-        const ensureKD = (kd) => { 
-            if(!stats[kd]) {
-                stats[kd] = { 
-                    kd, 
-                    count:{in:0, out:0}, 
-                    pwr:{in:0, out:0}, 
-                    kills:{in:0, out:0}, 
-                    deads:{in:0, out:0}, 
-                    heals:{in:0, out:0}, 
-                    arrivalsList: [], 
-                    departuresList: [] 
-                }; 
-            }
-        };
-
         try {
             const rangeMaps = []; 
-            const scale = 0.9 / rangeFiles.length;
-            
             for(let i=0; i<rangeFiles.length; i++) {
-                const map = await fetchCSVFull(rangeFiles[i], (i * scale * 100), scale);
-                rangeMaps.push(map);
+                rangeMaps.push(await fetchCSVFull(rangeFiles[i], (i * (0.9/rangeFiles.length) * 100), (0.9/rangeFiles.length)));
             }
 
             updateProgress(95, "Calculating flows...");
-            const startMap = rangeMaps[0];
-            const endMap = rangeMaps[rangeMaps.length-1];
-            
-            endMap.forEach(p => { 
-                if(!latestAllianceMap[p.kd]) latestAllianceMap[p.kd] = p.ally; 
-            });
+            latestAllianceMap = {}; 
+            const stats = {};
+            const ensureKD = (kd) => { 
+                if(!stats[kd]) stats[kd] = { kd, count:{in:0,out:0}, pwr:{in:0,out:0}, kills:{in:0,out:0}, deads:{in:0,out:0}, heals:{in:0,out:0}, arrivalsList:[], departuresList:[] }; 
+            };
 
-            const allIDs = new Set([...startMap.keys(), ...endMap.keys()]);
+            const allIDs = new Set();
+            rangeMaps.forEach(m => m.forEach((v, k) => allIDs.add(k)));
             
             allIDs.forEach(id => {
-                const pS = startMap.get(id);
-                const pE = endMap.get(id);
-                
-                let segmentSummary = { 
-                    inGrowth: {kills:0, deads:0, heals:0}, 
-                    outGrowth: {kills:0, deads:0, heals:0}, 
-                    swaps: [] 
-                };
-                
-                for(let i=0; i < rangeFiles.length - 1; i++){
-                    const curP = rangeMaps[i].get(id);
-                    const nextP = rangeMaps[i+1].get(id);
-                    
-                    if(curP || nextP) {
-                        const growth = { 
-                            kills: (nextP?.kills||0) - (curP?.kills||0), 
-                            deads: (nextP?.deads||0) - (curP?.deads||0), 
-                            heals: (nextP?.heals||0) - (curP?.heals||0) 
-                        };
-                        
-                        if ((curP && nextP && curP.kd !== nextP.kd) || (!curP && nextP) || (curP && !nextP)) {
-                            const curDate = rangeFiles[i].replace('.csv','');
-                            const nextDate = rangeFiles[i+1].replace('.csv','');
-                            
-                            segmentSummary.swaps.push({ 
-                                from: sosMap[curDate]||curDate, 
-                                to: sosMap[nextDate]||nextDate, 
-                                kdStart: curP ? curP.kd : 'N/A', 
-                                kdEnd: nextP ? nextP.kd : 'N/A' 
-                            });
-                            
-                            if(nextP && nextP.kd === pE?.kd) { 
-                                segmentSummary.inGrowth.kills += Math.max(0, growth.kills); 
-                                segmentSummary.inGrowth.deads += Math.max(0, growth.deads); 
-                                segmentSummary.inGrowth.heals += Math.max(0, growth.heals); 
-                            }
-                            if(curP && curP.kd === pS?.kd) { 
-                                segmentSummary.outGrowth.kills += Math.max(0, growth.kills); 
-                                segmentSummary.outGrowth.deads += Math.max(0, growth.deads); 
-                                segmentSummary.outGrowth.heals += Math.max(0, growth.heals); 
-                            }
-                        }
+                const playerTimeline = [];
+                for (let i = 0; i < rangeMaps.length; i++) {
+                    const p = rangeMaps[i].get(id);
+                    const cleanK = kdClean(p?.kd);
+                    playerTimeline.push({ kd: cleanK, data: p, snapIdx: i });
+                }
+
+                // 1. Visual Trail: Always show transitions including N/A
+                let historyTrail = [];
+                for (let k = 0; k < playerTimeline.length - 1; k++) {
+                    if (playerTimeline[k].kd !== playerTimeline[k+1].kd) {
+                        const dP = rangeFiles[k].replace('.csv','');
+                        const dN = rangeFiles[k+1].replace('.csv','');
+                        historyTrail.push({ fromDate: sosMap[dP]||dP, toDate: sosMap[dN]||dN, fromKD: playerTimeline[k].kd, toKD: playerTimeline[k+1].kd });
                     }
                 }
-                
-                if (pE && (!pS || pE.kd !== pS.kd)) {
-                    ensureKD(pE.kd); 
-                    stats[pE.kd].count.in++; 
-                    stats[pE.kd].pwr.in += pE.pwr;
-                    stats[pE.kd].kills.in += segmentSummary.inGrowth.kills; 
-                    stats[pE.kd].deads.in += segmentSummary.inGrowth.deads; 
-                    stats[pE.kd].heals.in += segmentSummary.inGrowth.heals;
-                    stats[pE.kd].arrivalsList.push({ 
-                        p: pE, 
-                        old: pS, 
-                        growth: segmentSummary.inGrowth, 
-                        swaps: segmentSummary.swaps 
-                    });
+
+                // 2. Flicker Filter Logic: Only count moves between different REAL kingdoms
+                const activePoints = playerTimeline.filter(pt => pt.kd !== "N/A");
+                for (let j = 0; j < activePoints.length - 1; j++) {
+                    const prev = activePoints[j];
+                    const next = activePoints[j+1];
+
+                    if (prev.kd !== next.kd) {
+                        const growth = { 
+                            kills: Math.max(0, next.data.kills - prev.data.kills), 
+                            deads: Math.max(0, next.data.deads - prev.data.deads), 
+                            heals: Math.max(0, next.data.heals - prev.data.heals) 
+                        };
+
+                        ensureKD(prev.kd);
+                        stats[prev.kd].count.out++; stats[prev.kd].pwr.out += prev.data.pwr;
+                        stats[prev.kd].departuresList.push({ p: prev.data, info: `to KD ${next.kd}`, growth: {kills:0, deads:0, heals:0}, swaps: historyTrail });
+
+                        ensureKD(next.kd);
+                        stats[next.kd].count.in++; stats[next.kd].pwr.in += next.data.pwr;
+                        stats[next.kd].kills.in += growth.kills; stats[next.kd].deads.in += growth.deads; stats[next.kd].heals.in += growth.heals;
+                        stats[next.kd].arrivalsList.push({ p: next.data, info: `from KD ${prev.kd}`, growth: growth, swaps: historyTrail });
+                        if (!latestAllianceMap[next.kd]) latestAllianceMap[next.kd] = next.data.ally;
+                    }
                 }
-                
-                if (pS && (!pE || pS.kd !== pE.kd)) {
-                    ensureKD(pS.kd); 
-                    stats[pS.kd].count.out++;
-                    stats[pS.kd].pwr.out += pE ? pE.pwr : pS.pwr;
-                    stats[pS.kd].kills.out += segmentSummary.outGrowth.kills; 
-                    stats[pS.kd].deads.out += segmentSummary.outGrowth.deads; 
-                    stats[pS.kd].heals.out += segmentSummary.outGrowth.heals;
-                    stats[pS.kd].departuresList.push({ 
-                        p: pS, 
-                        next: pE, 
-                        growth: segmentSummary.outGrowth, 
-                        swaps: segmentSummary.swaps 
-                    });
+
+                // 3. Keep "New to Rankings" and "Exit Rankings"
+                if (activePoints.length > 0) {
+                    const first = activePoints[0];
+                    const last = activePoints[activePoints.length - 1];
+                    
+                    if (first.snapIdx > 0) {
+                        ensureKD(first.kd);
+                        stats[first.kd].count.in++; stats[first.kd].pwr.in += first.data.pwr;
+                        stats[first.kd].arrivalsList.push({ p: first.data, info: "New to Rankings", growth: {kills:0, deads:0, heals:0}, swaps: historyTrail });
+                    }
+                    if (last.snapIdx < playerTimeline.length - 1) {
+                        ensureKD(last.kd);
+                        stats[last.kd].count.out++; stats[last.kd].pwr.out += last.data.pwr;
+                        stats[last.kd].departuresList.push({ p: last.data, info: "Exit Rankings", growth: {kills:0, deads:0, heals:0}, swaps: historyTrail });
+                    }
                 }
             });
             
-            migrationData = Object.entries(stats).map(([kd, s]) => {
-                return { 
-                    kd, 
-                    count: s.count.in - s.count.out, 
-                    pwr: s.pwr.in - s.pwr.out, 
-                    kills: s.kills.in - s.kills.out, 
-                    deads: s.deads.in - s.deads.out, 
-                    heals: s.heals.in - s.heals.out, 
-                    raw: s 
-                };
-            }).filter(x => Math.abs(x.count) > 0 || Math.abs(x.pwr) > 0);
+            migrationData = Object.entries(stats).map(([kd, s]) => ({
+                kd, count: s.count.in - s.count.out, pwr: s.pwr.in - s.pwr.out, 
+                kills: s.kills.in - s.kills.out, deads: s.deads.in - s.deads.out, heals: s.heals.in - s.heals.out, raw: s 
+            })).filter(x => Math.abs(x.count) > 0 || Math.abs(x.pwr) > 0);
             
-            applySort(); 
-            hideLoading();
-        } catch (err) { 
-            console.error(err); 
-            document.getElementById('status-msg-loading').innerText = "Analysis Failed."; 
-        } finally { 
-            btn.disabled = false; 
-        }
+            applySort(); hideLoading();
+        } catch (err) { console.error(err); } finally { btn.disabled = false; }
     }
 
-    function setSearchType(type) { 
-        searchType = type; 
-        document.querySelectorAll('.st-btn').forEach(b => b.classList.remove('active')); 
-        document.getElementById(`st-${type}`).classList.add('active'); 
-        document.getElementById('kdSearch').placeholder = type === 'kd' ? "Search Kingdom# or Alliance Name..." : "Search Lord ID or Player Name..."; 
-        handleSearch(); 
-    }
-    
     function handleSort(k, btn) { 
-        if(currentSort.key === k) {
-            currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc'; 
-        } else { 
-            currentSort.key = k; 
-            currentSort.direction = 'desc'; 
-        } 
+        if(currentSort.key === k) currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc'; 
+        else { currentSort.key = k; currentSort.direction = 'desc'; } 
         document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); 
-        btn.classList.add('active'); 
+        if(btn) btn.classList.add('active'); 
         applySort(); 
     }
     
     function applySort() { 
         migrationData.sort((a,b) => { 
-            let vA = a[currentSort.key];
-            let vB = b[currentSort.key]; 
-            if(currentSort.key === 'kd') { 
-                vA = parseInt(vA); 
-                vB = parseInt(vB); 
-            } 
+            let vA = a[currentSort.key], vB = b[currentSort.key]; 
+            if(currentSort.key === 'kd') { vA = parseInt(vA); vB = parseInt(vB); } 
             return currentSort.direction === 'asc' ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1); 
         }); 
         handleSearch(); 
@@ -1219,58 +1099,27 @@
     
     function handleSearch() { 
         const q = document.getElementById('kdSearch').value.toLowerCase(); 
-        if (searchType === 'kd') { 
-            filteredData = migrationData.filter(d => 
-                d.kd.toLowerCase().includes(q) || 
-                (latestAllianceMap[d.kd] && latestAllianceMap[d.kd].toLowerCase().includes(q))
-            ); 
-        } else { 
-            filteredData = migrationData.filter(d => 
-                d.raw.arrivalsList.some(entry => entry.p.id.includes(q) || entry.p.name.toLowerCase().includes(q)) || 
-                d.raw.departuresList.some(entry => entry.p.id.includes(q) || entry.p.name.toLowerCase().includes(q))
-            ); 
-        } 
-        itemsShown = pageSize; 
-        renderGrid(); 
+        if (searchType === 'kd') { filteredData = migrationData.filter(d => d.kd.includes(q) || (latestAllianceMap[d.kd]||"").toLowerCase().includes(q)); }
+        else { filteredData = migrationData.filter(d => d.raw.arrivalsList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q)) || d.raw.departuresList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q))); } 
+        itemsShown = pageSize; renderGrid(); 
     }
     
     function renderGrid() {
-        const grid = document.getElementById('cardGrid'); 
-        grid.innerHTML = '';
+        const grid = document.getElementById('cardGrid'); grid.innerHTML = '';
         filteredData.slice(0, itemsShown).forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'kd-card';
+            const card = document.createElement('div'); card.className = 'kd-card';
             card.onclick = () => openModal(item);
             const sig = (n) => (n > 0 ? '+' : '');
             card.innerHTML = `
-                <div class="card-header">
-                    <div class="kd-id">KD ${item.kd}</div>
-                    <div class="kd-ally">${latestAllianceMap[item.kd]||"N/A"}</div>
-                </div>
+                <div class="card-header"><div class="kd-id">KD ${item.kd}</div><div class="kd-ally">${latestAllianceMap[item.kd]||"N/A"}</div></div>
                 <div class="stat-grid">
-                    <div class="stat-box box-players">
-                        <span class="stat-label">Players</span>
-                        <div class="stat-value ${item.count >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.count)}${item.count}</div>
-                    </div>
-                    <div class="stat-box box-pwr">
-                        <span class="stat-label">Power</span>
-                        <div class="stat-value ${item.pwr >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.pwr)}${formatShorthand(item.pwr)}</div>
-                    </div>
-                    <div class="stat-box box-kills">
-                        <span class="stat-label">Kills</span>
-                        <div class="stat-value ${item.kills >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.kills)}${formatShorthand(item.kills)}</div>
-                    </div>
-                    <div class="stat-box box-deads">
-                        <span class="stat-label">Deads</span>
-                        <div class="stat-value ${item.deads >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.deads)}${formatShorthand(item.deads)}</div>
-                    </div>
-                    <div class="stat-box box-heals">
-                        <span class="stat-label">Heals</span>
-                        <div class="stat-value ${item.heals >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.heals)}${formatShorthand(item.heals)}</div>
-                    </div>
+                    <div class="stat-box box-players"><span class="stat-label">Players</span><div class="stat-value ${item.count >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.count)}${item.count}</div></div>
+                    <div class="stat-box box-pwr"><span class="stat-label">Power</span><div class="stat-value ${item.pwr >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.pwr)}${formatShorthand(item.pwr)}</div></div>
+                    <div class="stat-box box-kills"><span class="stat-label">Kills</span><div class="stat-value ${item.kills >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.kills)}${formatShorthand(item.kills)}</div></div>
+                    <div class="stat-box box-deads"><span class="stat-label">Deads</span><div class="stat-value ${item.deads >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.deads)}${formatShorthand(item.deads)}</div></div>
+                    <div class="stat-box box-heals"><span class="stat-label">Heals</span><div class="stat-value ${item.heals >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.heals)}${formatShorthand(item.heals)}</div></div>
                 </div>
-                <div class="card-hint">Click card for detailed list</div>
-            `;
+                <div class="card-hint">Click card for detailed list</div>`;
             grid.appendChild(card);
         });
         document.getElementById('loadMoreBtn').style.display = itemsShown < filteredData.length ? 'inline-block' : 'none';
@@ -1280,105 +1129,40 @@
         const s = item.raw;
         document.getElementById('modalTitle').innerText = `KD ${item.kd}`;
         document.getElementById('modalAlly').innerText = latestAllianceMap[item.kd] || "Unknown Alliance";
-        const body = document.getElementById('modalMetricsBody');
-        body.innerHTML = '';
-        const metrics = [ 
-            { l: 'Player Count', k: 'count' }, 
-            { l: 'Power', k: 'pwr' }, 
-            { l: 'Kills', k: 'kills' }, 
-            { l: 'Deads', k: 'deads' }, 
-            { l: 'Heals', k: 'heals' } 
-        ];
-
-        metrics.forEach(m => {
+        const body = document.getElementById('modalMetricsBody'); body.innerHTML = '';
+        [{l:'Player Count',k:'count'},{l:'Power',k:'pwr'},{l:'Kills',k:'kills'},{l:'Deads',k:'deads'},{l:'Heals',k:'heals'}].forEach(m => {
             const delta = s[m.k].in - s[m.k].out;
-            const sign = (delta > 0 ? '+' : '');
-            body.innerHTML += `
-                <div class="metric-card-row metric-grid-base">
-                    <div class="m-in">+${formatShorthand(s[m.k].in)}</div>
-                    <div class="m-center-stack">
-                        <span class="m-name">${m.l}</span>
-                        <div class="m-delta ${delta >= 0 ? 'pos-text' : 'neg-text'}">${sign}${formatShorthand(delta)}</div>
-                    </div>
-                    <div class="m-out">-${formatShorthand(s[m.k].out)}</div>
-                </div>`;
+            body.innerHTML += `<div class="metric-card-row metric-grid-base"><div class="m-in">+${formatShorthand(s[m.k].in)}</div><div class="m-center-stack"><span class="m-name">${m.l}</span><div class="m-delta ${delta >= 0 ? 'pos-text' : 'neg-text'}">${delta > 0 ? '+' : ''}${formatShorthand(delta)}</div></div><div class="m-out">-${formatShorthand(s[m.k].out)}</div></div>`;
         });
 
-        s.arrivalsList.sort((a,b) => b.p.pwr - a.p.pwr);
-        s.departuresList.sort((a,b) => b.p.pwr - a.p.pwr);
+        const uniqueArr = Array.from(new Map(s.arrivalsList.map(x => [x.p.id + x.info, x])).values()).sort((a,b)=>b.p.pwr-a.p.pwr);
+        const uniqueDep = Array.from(new Map(s.departuresList.map(x => [x.p.id + x.info, x])).values()).sort((a,b)=>b.p.pwr-a.p.pwr);
 
-        document.getElementById('arrivalCount').innerText = s.arrivalsList.length;
-        document.getElementById('departureCount').innerText = s.departuresList.length;
-        document.getElementById('arrivalsList').innerHTML = s.arrivalsList.map(x => generatePlayerChip(x, 'in')).join('');
-        document.getElementById('departuresList').innerHTML = s.departuresList.map(x => generatePlayerChip(x, 'out')).join('');
+        document.getElementById('arrivalCount').innerText = uniqueArr.length;
+        document.getElementById('departureCount').innerText = uniqueDep.length;
+        document.getElementById('arrivalsList').innerHTML = uniqueArr.map(x => generatePlayerChip(x, 'in')).join('');
+        document.getElementById('departuresList').innerHTML = uniqueDep.map(x => generatePlayerChip(x, 'out')).join('');
         document.getElementById('soloModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
     }
 
     function generatePlayerChip(data, type) {
-        const p = data.p;
-        const g = data.growth;
-        const info = type === 'in' ? (data.old ? `from KD ${data.old.kd}` : 'New to Rankings') : (data.next ? `to KD ${data.next.kd}` : 'Exit Rankings');
-        const endPwr = type === 'in' ? p.pwr : (data.next ? data.next.pwr : p.pwr);
-        
-        let whaleClass = 'whale-purple'; 
-        if (endPwr >= 200000000) whaleClass = 'whale-gold'; 
-        else if (endPwr >= 100000000) whaleClass = 'whale-silver'; 
-        else if (endPwr >= 70000000) whaleClass = 'whale-copper';
-        
-        const historyHTML = data.swaps.map(s => `
-            <div class="swap-item">
-                <span class="swap-header">${s.from} ➔ ${s.to}</span>
-                <span class="swap-path">KD ${s.kdStart} ➔ KD ${s.kdEnd}</span>
-            </div>
-        `).join('');
-        
-        return `
-            <div class="player-chip ${whaleClass}" onclick="this.classList.toggle('active')">
-                <div class="chip-main">
-                    <div>
-                        <b>${p.id}</b> | ${p.name} 
-                        <span style="opacity:0.6; font-size:0.7rem;">${info}</span>
-                    </div>
-                    <span class="arrow">⌄</span>
-                </div>
-                <div class="chip-details">
-                    <div class="detail-grid">
-                        <div class="det-box">
-                            <span class="det-label">Snapshot Power</span>
-                            <span class="det-val">${formatShorthand(endPwr)}</span>
-                        </div>
-                        <div class="det-box">
-                            <span class="det-label">Kills Growth</span>
-                            <span class="det-val">${formatShorthand(g.kills)}</span>
-                        </div>
-                        <div class="det-box">
-                            <span class="det-label">Deads Growth</span>
-                            <span class="det-val">${formatShorthand(g.deads)}</span>
-                        </div>
-                        <div class="det-box">
-                            <span class="det-label">Heals Growth</span>
-                            <span class="det-val">${formatShorthand(g.heals)}</span>
-                        </div>
-                    </div>
-                    <div class="swap-history">
-                        ${historyHTML}
-                    </div>
-                </div>
-            </div>`;
+        const p = data.p; const g = data.growth; const endPwr = p.pwr;
+        let whaleClass = 'whale-purple'; if (endPwr >= 200000000) whaleClass = 'whale-gold'; else if (endPwr >= 100000000) whaleClass = 'whale-silver'; else if (endPwr >= 70000000) whaleClass = 'whale-copper';
+        const historyHTML = data.swaps.map(s => `<div class="swap-item"><span class="swap-header">${s.fromDate} ➔ ${s.toDate}</span><span class="swap-path">KD ${s.fromKD} ➔ KD ${s.toKD}</span></div>`).join('');
+        return `<div class="player-chip ${whaleClass}" onclick="this.classList.toggle('active')">
+            <div class="chip-main"><div><b>${p.id}</b> | ${p.name} <span style="opacity:0.6; font-size:0.7rem;">${data.info}</span></div><span class="arrow">⌄</span></div>
+            <div class="chip-details"><div class="detail-grid">
+                <div class="det-box"><span class="det-label">Snapshot Power</span><span class="det-val">${formatShorthand(endPwr)}</span></div>
+                <div class="det-box"><span class="det-label">Kills Growth</span><span class="det-val">${formatShorthand(g?.kills || 0)}</span></div>
+                <div class="det-box"><span class="det-label">Deads Growth</span><span class="det-val">${formatShorthand(g?.deads || 0)}</span></div>
+                <div class="det-box"><span class="det-label">Heals Growth</span><span class="det-val">${formatShorthand(g?.heals || 0)}</span></div>
+            </div><div class="swap-history">${historyHTML}</div></div></div>`;
     }
 
-    function closeModal() { 
-        document.getElementById('soloModal').style.display = 'none'; 
-        document.body.style.overflow = 'auto'; 
-    }
-    
-    function loadMore() { 
-        itemsShown += pageSize; 
-        renderGrid(); 
-    }
-    
-    window.onload = init;
+    function closeModal() { document.getElementById('soloModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
+    function loadMore() { itemsShown += pageSize; renderGrid(); }
+    function setSearchType(type) { searchType = type; document.querySelectorAll('.st-btn').forEach(b => b.classList.remove('active')); document.getElementById(`st-${type}`).classList.add('active'); handleSearch(); }
 </script>
 </body>
 </html>
