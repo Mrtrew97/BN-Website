@@ -337,7 +337,7 @@
 
         /* --- SOLID STICKY COLUMN LOGIC --- */
         
-        /* Alliance Column (1st) */
+        /* 1. Alliance Column (1st) */
         .sticky-col-ally {
             position: sticky !important;
             left: 0; 
@@ -345,11 +345,11 @@
             background-color: #0f172a !important; /* Solid dark color */
             width: 140px;
             min-width: 140px;
-            border-right: 1px solid var(--glass-border) !important;
+            border-right: none !important; /* NO WHITE LINE */
             text-align: center !important;
         }
 
-        /* Kingdom ID Column (2nd) */
+        /* 2. Kingdom ID Column (2nd) */
         .sticky-col-kd {
             position: sticky !important;
             left: 140px; 
@@ -357,7 +357,7 @@
             background-color: #0f172a !important; /* Solid dark color */
             width: 70px;
             min-width: 70px;
-            border-right: 1px solid var(--primary) !important;
+            border-right: none !important; /* NO WHITE LINE */
             text-align: center !important;
         }
 
@@ -394,7 +394,7 @@
             text-decoration: none !important; 
         }
 
-        /* --- THEMED ID INPUT STYLING (FIXED) --- */
+        /* --- THEMED ID INPUT STYLING --- */
         .id-input { 
             width: 100%; 
             max-width: 60px; 
@@ -406,7 +406,7 @@
             border-radius: 6px; 
             outline: none; 
             padding: 5px 0;
-            box-sizing: border-box; /* Prevents stretching outside KD column */
+            box-sizing: border-box; 
             display: inline-block;
         }
         .id-input:focus { border-color: #3b82f6; }
@@ -486,6 +486,7 @@
 <div class="unified-container">
     <div class="tools-glass-row">
         <div class="nav-side-box">
+            <!-- NEW GENERATION SELECTOR -->
             <select id="genSelector" onchange="handleGenFilterChange(this.value)">
                 <option value="all">All Gens</option>
                 <option value="G1">G1</option>
@@ -493,6 +494,7 @@
                 <option value="G3">G3</option>
                 <option value="G4">G4</option>
             </select>
+            <!-- FILE SELECTOR -->
             <select id="fileSelector" onchange="loadSelectedFile(this.value)" style="min-width: 150px;"></select>
         </div>
         <div class="search-center-box">
@@ -1000,7 +1002,7 @@
     function formatVal(n) { 
         if (!n) return "0"; 
         if (n >= 1e9) return (n/1e9).toFixed(2) + 'B'; 
-        if (n >= 1e6) return (n/1e6).toFixed(2) + 'M'; 
+        if (n >= 1e6) return (n/1e6).toFixed(1) + 'M'; 
         return n.toLocaleString(); 
     }
 
