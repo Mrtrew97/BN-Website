@@ -104,6 +104,15 @@
             padding: 0 25px; 
             box-sizing: border-box; 
         }
+
+        @media (max-width: 600px) {
+            .stat-grid {
+                grid-template-columns: repeat(2, 1fr); /* Stacks stats in 2 columns instead of 3 */
+            }
+            .roster-grid {
+                grid-template-columns: repeat(2, 1fr); /* Prevents troop icons from overlapping */
+            }
+        }
         
         .metrics-island { 
             width: 100%; 
