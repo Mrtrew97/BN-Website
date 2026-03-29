@@ -293,7 +293,6 @@
         .box-heals { border-left-color: #10b981; background: rgba(16, 185, 129, 0.05); }
         .box-ch { border-left-color: #06b6d4; background: rgba(6, 182, 212, 0.05); }
 
-        /* ADDED CARD HINT STYLING */
         .card-hint { 
             text-align: center; 
             font-size: 0.7rem; 
@@ -433,14 +432,13 @@
     </div>
 </div>
 
-<a href="index.html" class="home-link">HOME PAGE</a>
+<a href="index.html" class="home-link btn" style="text-decoration:none; padding:10px 20px; border-radius:12px; border:1px solid var(--glass-border); background:var(--glass); color:white; font-weight:800; font-size:0.7rem;">HOME PAGE</a>
 
 <div class="header-container">
     <h1 class="page-title-main">KINGDOM EVOLUTIONS</h1>
 </div>
 
 <div class="search-container" id="searchArea">
-    <!-- NEW GENERATION SELECTOR -->
     <select id="genSelector" class="gen-select" onchange="handleGenChange(this.value)">
         <option value="G1">G1</option>
         <option value="G2" selected>G2</option>
@@ -451,13 +449,13 @@
 </div>
 
 <div class="sort-bar" id="sortBar">
-    <button class="sort-btn active" onclick="handleSort('id', this)">Kingdom #</button>
-    <button class="sort-btn" onclick="handleSort('merits', this)">Merits</button>
-    <button class="sort-btn" onclick="handleSort('mp', this)">M/P Ratio</button>
-    <button class="sort-btn" onclick="handleSort('kills', this)">Kills</button>
-    <button class="sort-btn" onclick="handleSort('deads', this)">Deads</button>
-    <button class="sort-btn" onclick="handleSort('heals', this)">Heals</button>
-    <button class="sort-btn" onclick="handleSort('ch', this)">CH25</button>
+    <button class="sort-btn active" id="btn-id" onclick="handleSort('id', this)">Kingdom #</button>
+    <button class="sort-btn" id="btn-merits" onclick="handleSort('merits', this)">Merits</button>
+    <button class="sort-btn" id="btn-mp" onclick="handleSort('mp', this)">M/P Ratio</button>
+    <button class="sort-btn" id="btn-kills" onclick="handleSort('kills', this)">Kills</button>
+    <button class="sort-btn" id="btn-deads" onclick="handleSort('deads', this)">Deads</button>
+    <button class="sort-btn" id="btn-heals" onclick="handleSort('heals', this)">Heals</button>
+    <button class="sort-btn" id="btn-ch" onclick="handleSort('ch', this)">CH25</button>
 </div>
 
 <div id="status-text">Connecting to Hub...</div>
@@ -498,6 +496,8 @@
     let itemsShown = 30;
     const pageSize = 30;
 
+    const sortLabels = { id: 'Kingdom #', merits: 'Merits', mp: 'M/P Ratio', kills: 'Kills', deads: 'Deads', heals: 'Heals', ch: 'CH25' };
+
     const metricsConfig = [
         { id: 'Power', label: 'Power', key: 'pwr', colName: 'Top 300 Power', index: 2, isPct: false },
         { id: 'Merits', label: 'Merits', key: 'merits', colName: 'Top 300 Merits', index: 3, isPct: false },
@@ -512,10 +512,21 @@
     window.onload = async () => {
         const status = document.getElementById('status-text');
         try {
-            updateProgress(10, "Syncing metadata...");
-            const timestamp = `?t=${Date.now()}`;
+            updateProgress(5, "Syncing Cache...");
             
-            // TRIPLE SYNC (Metadata Only)
+            // 1. FETCH REMOTE VERSION FIRST (Always fresh)
+            let v = "1.0";
+            try {
+                const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
+                const vData = JSON.parse(await vBlob.text());
+                v = vData.v;
+                window.DATA_VERSION = v;
+            } catch(e) { window.DATA_VERSION = "1.0"; }
+
+            updateProgress(15, "Syncing metadata...");
+            const timestamp = `?v=${v}`;
+            
+            // 2. FETCH METADATA USING VERSION
             const [sRes, fRes, gRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download(`Pull/SosNames.json${timestamp}`),
                 supabaseClient.storage.from(BUCKET_DATA).download(`Pull/files.json${timestamp}`),
@@ -544,7 +555,9 @@
 
     async function loadHistoricalData(targetGen) {
         const status = document.getElementById('status-text');
-        
+        const v = window.DATA_VERSION || "1.0";
+        const timestamp = `?v=${v}`;
+
         // Reset State & UI
         kingdomStats = [];
         filteredList = [];
@@ -554,7 +567,7 @@
         // Filter the master list for the selected Generation
         const targetFiles = fullFileList.filter(file => {
             const dateKey = file.replace(/\.csv/i, '');
-            const fileGen = gPoolMap[dateKey] || "G2"; // Fallback to G2
+            const fileGen = gPoolMap[dateKey] || "G2";
             return fileGen === targetGen;
         });
 
@@ -568,12 +581,10 @@
             let downloadedCount = 0;
             updateProgress(5, `Downloading ${targetGen} Data: 0/${targetFiles.length}`);
             
-            const timestamp = `?t=${Date.now()}`;
             const downloadPromises = targetFiles.map(file => 
                 supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${file}${timestamp}`)
                     .then(result => {
                         downloadedCount++;
-                        // Map progress from 5% to 50%
                         updateProgress(5 + (downloadedCount / targetFiles.length) * 45, `Downloading ${targetGen}: ${downloadedCount}/${targetFiles.length}`);
                         return { file, ...result };
                     })
@@ -619,7 +630,6 @@
                 });
                 
                 processedCount++;
-                // Map processing progress from 60% to 100%
                 updateProgress(60 + (processedCount / targetFiles.length) * 40, `Processing ${targetGen}: ${processedCount}/${targetFiles.length}`);
             }
             
@@ -628,7 +638,6 @@
                     const valid = arr.filter(v => v !== null); 
                     return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 0; 
                 };
-                
                 const getMinMax = (arr, dateArr) => {
                     let min = {v: Infinity, s: ""}, max = {v: -Infinity, s: ""};
                     arr.forEach((val, i) => {
@@ -639,14 +648,12 @@
                     });
                     return { min, max };
                 };
-                
                 s.src = {};
                 metricsConfig.forEach(m => {
                     const {min, max} = getMinMax(s[m.key], s.dates);
                     s.src[`${m.key}_min`] = min;
                     s.src[`${m.key}_max`] = max;
                 });
-                
                 s.avgMerits = getAvg(s.merits); s.avgMp = getAvg(s.mp); s.avgKills = getAvg(s.kills);
                 s.avgDeads = getAvg(s.deads); s.avgHeals = getAvg(s.heals); s.avgPwr = getAvg(s.pwr);
                 s.avgCh = getAvg(s.ch); s.avgAp = getAvg(s.ap);
@@ -654,27 +661,19 @@
             }).sort((a,b) => a.id - b.id);
 
             status.textContent = `${kingdomStats.length} Historical Records Processed for ${targetGen}`;
-            
-            setTimeout(() => {
-                document.getElementById('progressContainer').style.display = 'none';
-            }, 500);
-            
+            setTimeout(() => { document.getElementById('progressContainer').style.display = 'none'; }, 500);
             autoInitialise();
-            
         } catch (err) {
             status.style.color = '#ef4444';
             status.textContent = `Error loading data for ${targetGen}.`; 
-            console.error(err);
             document.getElementById('progressContainer').style.display = 'none';
         }
     }
     
     function renderGrid() {
-        const grid = document.getElementById('cardGrid'); 
-        grid.innerHTML = '';
+        const grid = document.getElementById('cardGrid'); grid.innerHTML = '';
         filteredList.slice(0, itemsShown).forEach(s => {
-            const card = document.createElement('div'); 
-            card.className = 'kd-card';
+            const card = document.createElement('div'); card.className = 'kd-card';
             card.onclick = () => openSolo(s.id);
             card.innerHTML = `
                 <div class="card-header"><div style="display: flex; gap: 10px; align-items: baseline;"><div class="kd-id">KD ${s.id}</div><div class="kd-ally">${s.ally}</div></div><div class="snap-count">${s.count} Snaps</div></div>
@@ -693,49 +692,29 @@
     }
 
     function openSolo(id) {
-        const kd = kingdomStats.find(k => k.id === id); 
-        if(!kd) return;
+        const kd = kingdomStats.find(k => k.id === id); if(!kd) return;
         document.getElementById('soloTitle').textContent = `KINGDOM ${kd.id}`;
         document.getElementById('soloAlly').textContent = kd.ally;
         const container = document.getElementById('soloGrid'); container.innerHTML = ''; activeCharts = [];
-        
         const isLandscapeShort = window.innerHeight < 550;
 
         metricsConfig.forEach(m => {
-            const plotLabels = []; 
-            const plotValues = [];
+            const plotLabels = []; const plotValues = [];
             kd.dates.forEach((date, index) => {
                 const val = kd[m.key][index];
-                if (val !== null) {
-                    plotLabels.push(sosMap[date] || date);
-                    plotValues.push(val);
-                }
+                if (val !== null) { plotLabels.push(sosMap[date] || date); plotValues.push(val); }
             });
             if (plotValues.length === 0) return; 
 
-            const card = document.createElement('div'); 
-            card.className = 'chart-card-solo';
+            const card = document.createElement('div'); card.className = 'chart-card-solo';
             const avgKeyMap = { pwr: 'avgPwr', merits: 'avgMerits', mp: 'avgMp', kills: 'avgKills', deads: 'avgDeads', heals: 'avgHeals', ch: 'avgCh', ap: 'avgAp' };
             
             card.innerHTML = `
-                <div class="chart-wrapper-internal">
-                    <canvas id="soloChart-${m.id}"></canvas>
-                </div>
+                <div class="chart-wrapper-internal"><canvas id="soloChart-${m.id}"></canvas></div>
                 <div class="mini-stats-panel">
-                    <div class="mini-stat-box">
-                        <span class="mini-stat-label">Average</span>
-                        <div class="mini-stat-val">${formatMini(kd[avgKeyMap[m.key]], m.isPct)}</div>
-                    </div>
-                    <div class="mini-stat-box">
-                        <span class="mini-stat-label">Min</span>
-                        <div class="mini-stat-val">${formatMini(kd.src[m.key+'_min'].v, m.isPct)}</div>
-                        <div class="mini-stat-date">${sosMap[kd.src[m.key+'_min'].s] || kd.src[m.key+'_min'].s}</div>
-                    </div>
-                    <div class="mini-stat-box">
-                        <span class="mini-stat-label">Max</span>
-                        <div class="mini-stat-val">${formatMini(kd.src[m.key+'_max'].v, m.isPct)}</div>
-                        <div class="mini-stat-date">${sosMap[kd.src[m.key+'_max'].s] || kd.src[m.key+'_max'].s}</div>
-                    </div>
+                    <div class="mini-stat-box"><span class="mini-stat-label">Average</span><div class="mini-stat-val">${formatMini(kd[avgKeyMap[m.key]], m.isPct)}</div></div>
+                    <div class="mini-stat-box"><span class="mini-stat-label">Min</span><div class="mini-stat-val">${formatMini(kd.src[m.key+'_min'].v, m.isPct)}</div><div class="mini-stat-date">${sosMap[kd.src[m.key+'_min'].s] || kd.src[m.key+'_min'].s}</div></div>
+                    <div class="mini-stat-box"><span class="mini-stat-label">Max</span><div class="mini-stat-val">${formatMini(kd.src[m.key+'_max'].v, m.isPct)}</div><div class="mini-stat-date">${sosMap[kd.src[m.key+'_max'].s] || kd.src[m.key+'_max'].s}</div></div>
                 </div>`;
             container.appendChild(card);
             
@@ -744,20 +723,8 @@
                 type: 'line', 
                 data: { labels: plotLabels, datasets: [{ label: m.label, data: plotValues, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.3, pointRadius: isLandscapeShort ? 3 : 5 }] },
                 options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    layout: {
-                        padding: {
-                            left: 15,
-                            right: 25,
-                            top: 10,
-                            bottom: 10
-                        }
-                    },
-                    plugins: { 
-                        title: { display: true, text: m.label, color: '#fff', font: { size: isLandscapeShort ? 12 : 14, weight: '900' } }, 
-                        legend: { display: false }, 
-                    }, 
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { title: { display: true, text: m.label, color: '#fff', font: { size: isLandscapeShort ? 12 : 14, weight: '900' } }, legend: { display: false } }, 
                     scales: { 
                         y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: isLandscapeShort ? 8 : 10 }, callback: function(value) { if (m.isPct) return (value * 100).toFixed(1) + '%'; return formatShorthand(value); } } }, 
                         x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: isLandscapeShort ? 8 : 10 }, maxRotation: 45, minRotation: 45 } } 
@@ -773,25 +740,10 @@
         document.getElementById('progressBar').style.width = pct + '%';
         if (text) document.getElementById('status-text').textContent = text;
     }
-    
-    function autoInitialise() { 
-        document.getElementById('searchArea').style.display = 'flex'; 
-        document.getElementById('sortBar').style.display = 'flex'; 
-        applyFilterAndSort(); 
-    }
-    
-    function getRangeHTML(minObj, maxObj, isPct) { 
-        return `<div class="range-row"><div class="range-item"><span class="range-label">MIN</span><span class="range-val">${isPct ? (minObj.v*100).toFixed(2)+'%' : formatShorthand(minObj.v)}</span><span class="range-date">${sosMap[minObj.s] || minObj.s}</span></div><div class="range-item"><span class="range-label">MAX</span><span class="range-val">${isPct ? (maxObj.v*100).toFixed(2)+'%' : formatShorthand(maxObj.v)}</span><span class="range-date">${sosMap[maxObj.s] || maxObj.s}</span></div></div>`; 
-    }
-    
-    function closeSolo() { 
-        document.getElementById('soloModal').style.display = 'none'; 
-        document.body.style.overflow = 'auto'; 
-        activeCharts.forEach(c => c.destroy()); 
-    }
-    
+    function autoInitialise() { document.getElementById('searchArea').style.display = 'flex'; document.getElementById('sortBar').style.display = 'flex'; applyFilterAndSort(); }
+    function getRangeHTML(minObj, maxObj, isPct) { return `<div class="range-row"><div class="range-item"><span class="range-label">MIN</span><span class="range-val">${isPct ? (minObj.v*100).toFixed(2)+'%' : formatShorthand(minObj.v)}</span><span class="range-date">${sosMap[minObj.s] || minObj.s}</span></div><div class="range-item"><span class="range-label">MAX</span><span class="range-val">${isPct ? (maxObj.v*100).toFixed(2)+'%' : formatShorthand(maxObj.v)}</span><span class="range-date">${sosMap[maxObj.s] || maxObj.s}</span></div></div>`; }
+    function closeSolo() { document.getElementById('soloModal').style.display = 'none'; document.body.style.overflow = 'auto'; activeCharts.forEach(c => c.destroy()); }
     function handleSearch() { applyFilterAndSort(); }
-    
     function applyFilterAndSort() {
         const query = document.getElementById('searchInput').value.toLowerCase();
         filteredList = kingdomStats.filter(s => s.searchText.includes(query));
@@ -801,23 +753,31 @@
             if (currentSort.key === 'id') { valA = parseInt(valA); valB = parseInt(valB); }
             return currentSort.asc ? valA - valB : valB - valA;
         });
-        itemsShown = pageSize; 
-        renderGrid();
+        itemsShown = pageSize; renderGrid();
     }
-    
     function loadMore() { itemsShown += pageSize; renderGrid(); }
     
     function handleSort(key, btn) { 
-        if (currentSort.key === key) currentSort.asc = !currentSort.asc;
-        else currentSort.asc = (key === 'id'); 
-        currentSort.key = key; 
-        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); 
-        if(btn) btn.classList.add('active'); 
+        if (currentSort.key === key) {
+            currentSort.asc = !currentSort.asc;
+        } else {
+            currentSort.key = key;
+            currentSort.asc = (key === 'id'); 
+        } 
+        
+        document.querySelectorAll('.sort-btn').forEach(b => {
+            b.classList.remove('active');
+            const originalKey = b.id.replace('btn-', '');
+            b.textContent = sortLabels[originalKey];
+        });
+
+        btn.classList.add('active');
+        btn.textContent += currentSort.asc ? ' ▲' : ' ▼';
+        
         applyFilterAndSort(); 
     }
-    
+
     function formatShorthand(v) { if (v === null || isNaN(v) || v === Infinity || v === -Infinity) return "-"; if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B'; if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M'; return Math.round(v).toLocaleString(); }
-    function formatRawDots(v) { if (v === null || isNaN(v)) return "-"; return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
     function formatMini(v, isPct) { if (v === null || isNaN(v) || v === Infinity || v === -Infinity) return "-"; if (isPct) return (v * 100).toFixed(2) + '%'; if (v >= 1e6) return formatShorthand(v); return Math.round(v).toLocaleString(); }
 </script>
 </body>

@@ -455,7 +455,7 @@
             opacity: 0.6; 
         }
 
-        /* --- MODERN MODAL --- */
+        /* Modal */
         #soloModal { 
             display: none; 
             position: fixed; 
@@ -523,7 +523,6 @@
             transition: 0.3s; 
         }
 
-        /* --- MODAL METRICS ALIGNMENT --- */
         .modal-metrics-list { 
             display: flex; 
             flex-direction: column; 
@@ -571,7 +570,6 @@
         }
         .m-delta { font-weight: 950; letter-spacing: -1px; font-size: 2.2rem; color: white; line-height: 1; }
 
-        /* --- PLAYER ZONES --- */
         .migration-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .zone-box { 
             background: rgba(0,0,0,0.3); 
@@ -854,6 +852,8 @@
     let itemsShown = 30;
     let pageSize = 30;
 
+    const sortLabels = { kd: 'Kingdom #', count: 'Players', pwr: 'Power', kills: 'Kills', deads: 'Deads', heals: 'Heals' };
+
     /**
      * STANDARDIZED CLEANING LOGIC
      */
@@ -885,9 +885,27 @@
         return (v < 0 ? "-" : "") + res; 
     }
 
-    async function fetchLatest(bucket, path) {
-        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?t=${Date.now()}`;
-        return await fetch(url, { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } });
+    async function fetchLatest(bucket, path, forceFresh = false) {
+        // 1. FETCH REMOTE VERSION FIRST
+        let v = "1.0";
+        try {
+            const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
+            const vData = JSON.parse(await vBlob.text());
+            v = vData.v;
+            window.DATA_VERSION = v;
+        } catch(e) { window.DATA_VERSION = "1.0"; }
+
+        const timestamp = forceFresh ? `?t=${Date.now()}` : `?v=${v}`;
+        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}${timestamp}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status} for ${path}`);
+        return response;
     }
 
     function updateProgress(pct, text) {
@@ -919,36 +937,61 @@
                 fetchLatest(BUCKET_DATA, 'Players/files.json'),
                 fetchLatest(BUCKET_CONFIGS, 'GPool.json')
             ]);
+            
             sosMap = await sRes.json();
             fullFilesList = await fRes.json();
             gPoolMap = await gRes.json();
+            
             handleGenChange("G2");
             hideLoading();
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            console.error(err); 
+            document.getElementById('status-msg-loading').innerText = "Sync Failed."; 
+        }
     }
 
     function handleGenChange(targetGen) {
         const startSelect = document.getElementById('startSelect');
         const endSelect = document.getElementById('endSelect');
-        startSelect.innerHTML = ''; endSelect.innerHTML = '';
-        allFiles = fullFilesList.filter(file => (gPoolMap[file.replace('.csv', '')] || "G2") === targetGen).sort();
+        startSelect.innerHTML = ''; 
+        endSelect.innerHTML = '';
+
+        // FIX: Ensure snapshots are sorted chronologically so "Start" and "End" work as expected
+        allFiles = fullFilesList.filter(file => {
+            const dateKey = file.replace('.csv', '');
+            const fileGen = gPoolMap[dateKey] || "G2";
+            return fileGen === targetGen;
+        }).sort();
+
         if (allFiles.length < 2) {
-            startSelect.add(new Option("No Files Found", "")); endSelect.add(new Option("No Files Found", ""));
-            document.getElementById('analyzeBtn').disabled = true; return;
+            startSelect.add(new Option("No Files Found For This Gen", ""));
+            endSelect.add(new Option("No Files Found For This Gen", ""));
+            document.getElementById('analyzeBtn').disabled = true;
+            document.getElementById('status-msg').innerText = `Not enough snapshots found for ${targetGen}. Need at least 2.`;
+            document.getElementById('cardGrid').innerHTML = '';
+            document.getElementById('loadMoreBtn').style.display = 'none';
+            return;
         }
+
         document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('status-msg').innerText = '';
+
         [...allFiles].reverse().forEach(file => {
             const date = file.replace('.csv','');
-            startSelect.add(new Option(sosMap[date] || date, file)); 
-            endSelect.add(new Option(sosMap[date] || date, file));
+            const name = sosMap[date] || date;
+            startSelect.add(new Option(name, file)); 
+            endSelect.add(new Option(name, file));
         });
+
         if(endSelect.options.length > 1) { 
             endSelect.selectedIndex = 0; 
             startSelect.selectedIndex = 1; 
         }
+
         migrationData = [];
         filteredData = [];
         document.getElementById('cardGrid').innerHTML = '';
+        document.getElementById('loadMoreBtn').style.display = 'none';
     }
 
     async function fetchCSVFull(filename, progressOffset, progressScale) {
@@ -962,22 +1005,51 @@
     function parseCSVChunked(text, onProgress) {
         const lines = text.split('\n');
         const header = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(item => item.trim().replace(/["']/g, ""));
+        
         const fIdx = (names) => { for(let n of names) { let i = header.indexOf(n); if(i!==-1) return i; } return -1; };
-        const idx = { id: fIdx(['Lord ID', 'LordID', 'ID']), kd: fIdx(['KD', 'KD#']), name: header.indexOf('Name'), ally: header.indexOf('Ally'), pwr: fIdx(['H - Power', 'Power']), merits: header.indexOf('Merits'), kills: header.indexOf('Kills'), deads: header.indexOf('Deads'), heals: header.indexOf('Heals') };
+        const idx = { 
+            id: fIdx(['Lord ID', 'LordID', 'ID']), 
+            kd: fIdx(['KD', 'KD#']), 
+            name: header.indexOf('Name'), 
+            ally: header.indexOf('Ally'), 
+            pwr: fIdx(['H - Power', 'Power']), 
+            merits: header.indexOf('Merits'), 
+            kills: header.indexOf('Kills'), 
+            deads: header.indexOf('Deads'), 
+            heals: header.indexOf('Heals') 
+        };
+        
         const dataMap = new Map();
-        for (let i = 1; i < lines.length; i++) {
-            const r = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            if (r.length < 5) continue;
-            const rawID = idClean(r[idx.id]);
-            if (!rawID) continue;
-            dataMap.set(rawID, { 
-                id: rawID, kd: r[idx.kd], name: r[idx.name], ally: r[idx.ally], 
-                pwr: cleanNum(r[idx.pwr]), merits: cleanNum(r[idx.merits]), 
-                kills: cleanNum(r[idx.kills]), deads: cleanNum(r[idx.deads]), heals: cleanNum(r[idx.heals]) 
-            });
-            if (i % 5000 === 0 && onProgress) onProgress(Math.floor((i / lines.length) * 100));
-        }
-        return dataMap;
+        const total = lines.length;
+        const chunkSize = 2500;
+        
+        return new Promise((resolve) => {
+            let cur = 1;
+            function process() {
+                const end = Math.min(cur + chunkSize, total);
+                for (let i = cur; i < end; i++) {
+                    const r = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if (r.length < 5) continue;
+                    const id = idClean(r[idx.id]);
+                    if (!id) continue;
+                    dataMap.set(id, { 
+                        id, 
+                        kd: r[idx.kd]?.trim().replace(/"/g, ''), 
+                        name: r[idx.name]?.trim().replace(/"/g, ''), 
+                        ally: r[idx.ally]?.trim().replace(/"/g, ''), 
+                        pwr: cleanNum(r[idx.pwr]), 
+                        merits: cleanNum(r[idx.merits]), 
+                        kills: cleanNum(r[idx.kills]), 
+                        deads: cleanNum(r[idx.deads]), 
+                        heals: cleanNum(r[idx.heals]) 
+                    });
+                }
+                cur = end;
+                if (onProgress) onProgress(Math.floor((cur / total) * 100));
+                if (cur < total) requestAnimationFrame(process); else resolve(dataMap);
+            }
+            process();
+        });
     }
 
     async function runComparison() {
@@ -987,7 +1059,7 @@
 
         const btn = document.getElementById('analyzeBtn'); 
         btn.disabled = true;
-        updateProgress(5, "Analyzing performance range...");
+        updateProgress(5, "Analyzing snapshots...");
 
         let startIdx = allFiles.indexOf(startFile);
         let endIdx = allFiles.indexOf(endFile);
@@ -1018,7 +1090,7 @@
                     playerTimeline.push({ kd: cleanK, data: p, snapIdx: i });
                 }
 
-                // 1. Visual Trail: Always show transitions including N/A
+                // 1. Visual Trail
                 let historyTrail = [];
                 for (let k = 0; k < playerTimeline.length - 1; k++) {
                     if (playerTimeline[k].kd !== playerTimeline[k+1].kd) {
@@ -1028,7 +1100,7 @@
                     }
                 }
 
-                // 2. Flicker Filter Logic: Only count moves between different REAL kingdoms
+                // 2. Flicker Filter: Moves between different REAL kingdoms
                 const activePoints = playerTimeline.filter(pt => pt.kd !== "N/A");
                 for (let j = 0; j < activePoints.length - 1; j++) {
                     const prev = activePoints[j];
@@ -1053,11 +1125,10 @@
                     }
                 }
 
-                // 3. Keep "New to Rankings" and "Exit Rankings"
+                // 3. Rankings Entry/Exit
                 if (activePoints.length > 0) {
                     const first = activePoints[0];
                     const last = activePoints[activePoints.length - 1];
-                    
                     if (first.snapIdx > 0) {
                         ensureKD(first.kd);
                         stats[first.kd].count.in++; stats[first.kd].pwr.in += first.data.pwr;
@@ -1083,8 +1154,16 @@
     function handleSort(k, btn) { 
         if(currentSort.key === k) currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc'; 
         else { currentSort.key = k; currentSort.direction = 'desc'; } 
-        document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active')); 
-        if(btn) btn.classList.add('active'); 
+        
+        document.querySelectorAll('.sort-bar .sort-btn').forEach(b => {
+            b.classList.remove('active');
+            const key = b.id.replace('btn-', '');
+            b.textContent = sortLabels[key];
+        });
+
+        btn.classList.add('active');
+        btn.textContent += (currentSort.direction === 'desc' ? ' ▼' : ' ▲');
+        
         applySort(); 
     }
     
@@ -1130,6 +1209,7 @@
         document.getElementById('modalTitle').innerText = `KD ${item.kd}`;
         document.getElementById('modalAlly').innerText = latestAllianceMap[item.kd] || "Unknown Alliance";
         const body = document.getElementById('modalMetricsBody'); body.innerHTML = '';
+        
         [{l:'Player Count',k:'count'},{l:'Power',k:'pwr'},{l:'Kills',k:'kills'},{l:'Deads',k:'deads'},{l:'Heals',k:'heals'}].forEach(m => {
             const delta = s[m.k].in - s[m.k].out;
             body.innerHTML += `<div class="metric-card-row metric-grid-base"><div class="m-in">+${formatShorthand(s[m.k].in)}</div><div class="m-center-stack"><span class="m-name">${m.l}</span><div class="m-delta ${delta >= 0 ? 'pos-text' : 'neg-text'}">${delta > 0 ? '+' : ''}${formatShorthand(delta)}</div></div><div class="m-out">-${formatShorthand(s[m.k].out)}</div></div>`;
@@ -1152,12 +1232,15 @@
         const historyHTML = data.swaps.map(s => `<div class="swap-item"><span class="swap-header">${s.fromDate} ➔ ${s.toDate}</span><span class="swap-path">KD ${s.fromKD} ➔ KD ${s.toKD}</span></div>`).join('');
         return `<div class="player-chip ${whaleClass}" onclick="this.classList.toggle('active')">
             <div class="chip-main"><div><b>${p.id}</b> | ${p.name} <span style="opacity:0.6; font-size:0.7rem;">${data.info}</span></div><span class="arrow">⌄</span></div>
-            <div class="chip-details"><div class="detail-grid">
-                <div class="det-box"><span class="det-label">Snapshot Power</span><span class="det-val">${formatShorthand(endPwr)}</span></div>
-                <div class="det-box"><span class="det-label">Kills Growth</span><span class="det-val">${formatShorthand(g?.kills || 0)}</span></div>
-                <div class="det-box"><span class="det-label">Deads Growth</span><span class="det-val">${formatShorthand(g?.deads || 0)}</span></div>
-                <div class="det-box"><span class="det-label">Heals Growth</span><span class="det-val">${formatShorthand(g?.heals || 0)}</span></div>
-            </div><div class="swap-history">${historyHTML}</div></div></div>`;
+            <div class="chip-details">
+                <div class="detail-grid">
+                    <div class="det-box"><span class="det-label">Snapshot Power</span><span class="det-val">${formatShorthand(endPwr)}</span></div>
+                    <div class="det-box"><span class="det-label">Kills Growth</span><span class="det-val">${formatShorthand(g?.kills || 0)}</span></div>
+                    <div class="det-box"><span class="det-label">Deads Growth</span><span class="det-val">${formatShorthand(g?.deads || 0)}</span></div>
+                    <div class="det-box"><span class="det-label">Heals Growth</span><span class="det-val">${formatShorthand(g?.heals || 0)}</span></div>
+                </div>
+                <div class="swap-history">${historyHTML}</div>
+            </div></div>`;
     }
 
     function closeModal() { document.getElementById('soloModal').style.display = 'none'; document.body.style.overflow = 'auto'; }

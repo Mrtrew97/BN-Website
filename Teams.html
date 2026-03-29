@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BN Analytics | Official Teams Dashboard</title>
     
+    <!-- GLOBAL VERSION CONTROL -->
+    <script src="version.js"></script>
+
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="mobile.css">
     
@@ -16,6 +19,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* --- 1. SCROLLBARS --- */
+        html {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        html::-webkit-scrollbar { 
+            display: none; 
+        }
+
         /* --- ROTATE HINT OVERLAY --- */
         #rotate-hint {
             display: none;
@@ -507,15 +519,15 @@
 <div class="sticky-wrapper">
     <div class="metrics-island">
         <div class="metric-row">
-            <button class="metric-btn active" id="nameSort" onclick="setSort('teamName', this)">Team Name</button>
-            <button class="metric-btn" onclick="setSort('power', this)">Power</button>
-            <button class="metric-btn" onclick="setSort('merits', this)">Merits</button>
-            <button class="metric-btn" onclick="setSort('mp', this)">M/P %</button>
-            <button class="metric-btn" onclick="setSort('mpRank', this)">M/P R</button>
-            <button class="metric-btn" onclick="setSort('kills', this)">Kills</button>
-            <button class="metric-btn" onclick="setSort('deads', this)">Deads</button>
-            <button class="metric-btn" onclick="setSort('totalCh25', this)">CH25</button>
-            <button class="metric-btn" onclick="setSort('avgAp', this)">CH25 AVG</button>
+            <button class="metric-btn active" id="btn-teamName" onclick="setSort('teamName', this)">Team Name</button>
+            <button class="metric-btn" id="btn-power" onclick="setSort('power', this)">Power</button>
+            <button class="metric-btn" id="btn-merits" onclick="setSort('merits', this)">Merits</button>
+            <button class="metric-btn" id="btn-mp" onclick="setSort('mp', this)">M/P %</button>
+            <button class="metric-btn" id="btn-mpRank" onclick="setSort('mpRank', this)">M/P R</button>
+            <button class="metric-btn" id="btn-kills" onclick="setSort('kills', this)">Kills</button>
+            <button class="metric-btn" id="btn-deads" onclick="setSort('deads', this)">Deads</button>
+            <button class="metric-btn" id="btn-totalCh25" onclick="setSort('totalCh25', this)">CH25</button>
+            <button class="metric-btn" id="btn-avgAp" onclick="setSort('avgAp', this)">CH25 AVG</button>
         </div>
         <div id="troopRow" class="expand-rows">
             <div class="metric-row"></div>
@@ -554,17 +566,19 @@
     let allTeamsData = {};
     let currentTeams = [];
     let selectedFileName = "";
-    let currentSort = 'teamName';
+    let currentSort = { field: 'teamName', direction: 'desc' };
     let currentRegistrations = {};
     let activeTroopKeys = [];
     let sosMap = {};
     let gPoolMap = {}; 
     let fullFileList = []; 
+
+    const sortLabels = { teamName: 'Team Name', power: 'Power', merits: 'Merits', mp: 'M/P %', mpRank: 'M/P R', kills: 'Kills', deads: 'Deads', totalCh25: 'CH25', avgAp: 'CH25 AVG' };
     
     const possibleTroopHeaders = [
         "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
         "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200-250M","250-300M"
-        ];
+    ];
 
     function kdClean(val) {
         if (!val) return "";
@@ -631,7 +645,17 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) enableAdminMode();
 
-            const timestamp = `?t=${Date.now()}`;
+            // 1. FETCH REMOTE VERSION FIRST (Always fresh)
+            let v = "1.0";
+            try {
+                const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
+                const vData = JSON.parse(await vBlob.text());
+                v = vData.v;
+                window.DATA_VERSION = v;
+            } catch(e) { window.DATA_VERSION = "1.0"; }
+
+            const timestamp = `?v=${v}`;
+
             const [sRes, fRes, gRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
@@ -694,7 +718,8 @@
     async function loadSelectedFile(fileName) {
         selectedFileName = fileName; 
         const jsonName = fileName.replace(/\.csv/i, '.json');
-        const timestamp = `?t=${Date.now()}`;
+        const v = window.DATA_VERSION || "1.0";
+        const timestamp = `?v=${v}`;
         
         try {
             const [regRes, csvRes] = await Promise.all([
@@ -759,7 +784,8 @@
     }
 
     async function fetchTeamsFromCloud() {
-        const timestamp = `?t=${Date.now()}`;
+        const v = window.DATA_VERSION || "1.0";
+        const timestamp = `?v=${v}`;
         try {
             const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('TeamsConfig.json' + timestamp);
             if (error) { 
@@ -802,16 +828,20 @@
             stats: calculateTeamTotals(t) 
         }));
         
-        if (currentSort !== 'teamName') { 
-            displayTeams.sort((a, b) => { 
-                if (currentSort === 'mpRank') {
-                    return (a.stats.totalMpRank || 0) - (b.stats.totalMpRank || 0); 
-                }
-                let valA = a.stats[currentSort] || (a.stats.b && a.stats.b[currentSort]) || 0;
-                let valB = b.stats[currentSort] || (b.stats.b && b.stats.b[currentSort]) || 0; 
-                return valB - valA; 
-            }); 
-        }
+        displayTeams.sort((a, b) => { 
+            if (currentSort.field === 'teamName') {
+                const cmp = a.name.localeCompare(b.name, undefined, { numeric: true });
+                return currentSort.direction === 'asc' ? cmp : -cmp;
+            }
+            if (currentSort.field === 'mpRank') {
+                return currentSort.direction === 'asc' ? 
+                       (a.stats.totalMpRank || 0) - (b.stats.totalMpRank || 0) : 
+                       (b.stats.totalMpRank || 0) - (a.stats.totalMpRank || 0);
+            }
+            let valA = a.stats[currentSort.field] || (a.stats.b && a.stats.b[currentSort.field]) || 0;
+            let valB = b.stats[currentSort.field] || (b.stats.b && b.stats.b[currentSort.field]) || 0; 
+            return currentSort.direction === 'desc' ? valB - valA : valA - valB; 
+        }); 
         
         if (sT) { 
             displayTeams = displayTeams.filter(t => 
@@ -867,16 +897,16 @@
                         </td>
                         ${!allTbd ? `<td>${d.class}</td>` : ''}
                         ${showRankCols ? `<td>${d.powerRank || '-'}</td>` : ''}
-                        <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
-                        <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
-                        <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
-                        ${showRankCols ? `<td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td>` : ''}
-                        <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
-                        <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
-                        <td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
-                        <td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
+                        <td class="${currentSort.field === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
+                        <td class="${currentSort.field === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
+                        <td class="${currentSort.field === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
+                        ${showRankCols ? `<td class="${currentSort.field === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td>` : ''}
+                        <td class="${currentSort.field === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
+                        <td class="${currentSort.field === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
+                        <td class="${currentSort.field === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
+                        <td class="${currentSort.field === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
                         ${activeTroopKeys.map(k => `
-                            <td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>
+                            <td class="${currentSort.field === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>
                         `).join('')}
                     </tr>
                 `;
@@ -934,16 +964,16 @@
                             <td class="sticky-col-kd"></td>
                             ${!allTbd ? `<td></td>` : ''}
                             ${showRankCols ? `<td></td>` : ''}
-                            <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(sums.power)}</td>
-                            <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(sums.merits)}</td>
-                            <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(sums.mp*100).toFixed(2)}%</td>
-                            ${showRankCols ? `<td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td>` : ''}
-                            <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(sums.kills)}</td>
-                            <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td>
-                            <td class="${currentSort === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td>
-                            <td class="${currentSort === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td>
+                            <td class="${currentSort.field === 'power' ? 'highlight-sort' : ''}">${formatVal(sums.power)}</td>
+                            <td class="${currentSort.field === 'merits' ? 'highlight-sort' : ''}">${formatVal(sums.merits)}</td>
+                            <td class="${currentSort.field === 'mp' ? 'highlight-sort' : ''}">${(sums.mp*100).toFixed(2)}%</td>
+                            ${showRankCols ? `<td class="${currentSort.field === 'mpRank' ? 'highlight-sort' : ''}">${sums.totalMpRank || 0}</td>` : ''}
+                            <td class="${currentSort.field === 'kills' ? 'highlight-sort' : ''}">${formatVal(sums.kills)}</td>
+                            <td class="${currentSort.field === 'deads' ? 'highlight-sort' : ''}">${formatVal(sums.deads)}</td>
+                            <td class="${currentSort.field === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(sums.totalCh25)}</td>
+                            <td class="${currentSort.field === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(sums.avgAp)}</td>
                             ${activeTroopKeys.map(k => `
-                                <td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>
+                                <td class="${currentSort.field === k ? 'highlight-sort' : ''}">${formatValNoDec(sums.b[k])}</td>
                             `).join('')}
                         </tr>
                     </table>
@@ -990,7 +1020,7 @@
         const container = document.querySelector('#troopRow .metric-row'); 
         if (!container) return; 
         container.innerHTML = activeTroopKeys.map(k => `
-            <button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>
+            <button class="metric-btn ${currentSort.field === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>
         `).join(''); 
     }
 
@@ -1011,10 +1041,26 @@
     }
 
     function setSort(key, btn) { 
-        currentSort = key; 
-        document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active')); 
-        if (btn) btn.classList.add('active'); 
-        else if (key === 'teamName') document.getElementById('nameSort').classList.add('active'); 
+        if (currentSort.field === key) {
+            currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc';
+        } else {
+            currentSort.field = key;
+            currentSort.direction = 'desc';
+        }
+
+        document.querySelectorAll('.metrics-island .metric-btn').forEach(b => {
+            b.classList.remove('active');
+            const fieldKey = b.id.replace('btn-', '');
+            if (sortLabels[fieldKey]) b.textContent = sortLabels[fieldKey];
+        });
+
+        if (btn) {
+            btn.classList.add('active');
+            btn.textContent += (currentSort.direction === 'desc' ? ' ▼' : ' ▲');
+        } else if (key === 'teamName') {
+            document.getElementById('btn-teamName').classList.add('active');
+        }
+        
         renderAll(); 
     }
 

@@ -321,16 +321,16 @@
 <div class="sticky-wrapper">
     <div class="metrics-island">
         <div class="metric-row">
-            <button class="metric-btn" id="btnSortName" onclick="setSort('name', this)">Group Name</button>
-            <button class="metric-btn active" id="btnSortPower" onclick="setSort('power', this)">Power</button>
-            <button class="metric-btn" onclick="setSort('merits', this)">Merits</button>
-            <button class="metric-btn" onclick="setSort('mp', this)">M/P %</button>
-            <button class="metric-btn" onclick="setSort('mpRank', this)">M/P R</button>
-            <button class="metric-btn" onclick="setSort('kills', this)">Kills</button>
-            <button class="metric-btn" onclick="setSort('deads', this)">Deads</button>
-            <button class="metric-btn" onclick="setSort('heals', this)">Heals</button>
-            <button class="metric-btn" onclick="setSort('ch25', this)">CH25</button>
-            <button class="metric-btn" onclick="setSort('ap', this)">CH25 AVG</button>
+            <button class="metric-btn" id="btn-name" onclick="setSort('name', this)">Group Name</button>
+            <button class="metric-btn active" id="btn-power" onclick="setSort('power', this)">Power</button>
+            <button class="metric-btn" id="btn-merits" onclick="setSort('merits', this)">Merits</button>
+            <button class="metric-btn" id="btn-mp" onclick="setSort('mp', this)">M/P %</button>
+            <button class="metric-btn" id="btn-mpRank" onclick="setSort('mpRank', this)">M/P R</button>
+            <button class="metric-btn" id="btn-kills" onclick="setSort('kills', this)">Kills</button>
+            <button class="metric-btn" id="btn-deads" onclick="setSort('deads', this)">Deads</button>
+            <button class="metric-btn" id="btn-heals" onclick="setSort('heals', this)">Heals</button>
+            <button class="metric-btn" id="btn-ch25" onclick="setSort('ch25', this)">CH25</button>
+            <button class="metric-btn" id="btn-ap" onclick="setSort('ap', this)">CH25 AVG</button>
         </div>
         <div id="troopRow" class="expand-rows">
             <div class="metric-row"></div>
@@ -372,7 +372,7 @@
     let allCloudData = {};
     let allTeamsData = {};
     let currentMatchups = [];
-    let currentSort = 'power';
+    let currentSort = { field: 'power', direction: 'desc' };
     let currentZoneFilter = 'all';
     let currentRegistrations = {};
     let selectedFileName = "";
@@ -381,6 +381,8 @@
     
     let gPoolMap = {}; 
     let fullFileList = []; 
+
+    const sortLabels = { name: 'Group Name', power: 'Power', merits: 'Merits', mp: 'M/P %', mpRank: 'M/P R', kills: 'Kills', deads: 'Deads', heals: 'Heals', ch25: 'CH25', ap: 'CH25 AVG' };
 
     let zoneWinners = {
         "zone 2": {},
@@ -473,9 +475,19 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) enableAdminMode();
 
-            updateProgress(20, "Fetching metadata...");
+            updateProgress(5, "Syncing Cache...");
             
-            const timestamp = `?t=${Date.now()}`;
+            // 1. FETCH REMOTE VERSION FIRST
+            let v = "1.0";
+            try {
+                const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
+                const vData = JSON.parse(await vBlob.text());
+                v = vData.v;
+                window.DATA_VERSION = v;
+            } catch(e) { window.DATA_VERSION = "1.0"; }
+
+            updateProgress(15, "Fetching metadata...");
+            const timestamp = `?v=${v}`;
             
             const [fRes, sRes, gRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
@@ -544,11 +556,12 @@
         selectedFileName = fileName; 
         const cleanName = fileName.replace(/\.csv/i, ''); 
         const jsonName = cleanName + ".json";
+        const v = window.DATA_VERSION || "1.0";
         
         try {
             const [regRes, csvRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}?t=${Date.now()}`),
-                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}?t=${Date.now()}`)
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}?v=${v}`),
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}?v=${v}`)
             ]);
             
             if (regRes.data) {
@@ -609,9 +622,9 @@
     }
 
     async function fetchMatchupsFromCloud() { 
-        const timestamp = Date.now();
+        const v = window.DATA_VERSION || "1.0";
         try { 
-            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`MatchupsConfig.json?t=${timestamp}`); 
+            const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`MatchupsConfig.json?v=${v}`); 
             if (data) allCloudData = JSON.parse(await data.text()); 
         } catch (e) { 
             allCloudData = {}; 
@@ -619,9 +632,9 @@
     }
 
     async function fetchTeamsFromCloud() {
-        const timestamp = Date.now();
+        const v = window.DATA_VERSION || "1.0";
         try { 
-            const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`TeamsConfig.json?t=${timestamp}`); 
+            const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`TeamsConfig.json?v=${v}`); 
             if (error) {
                 allTeamsData = {};
                 return;
@@ -633,10 +646,10 @@
     }
 
     async function fetchAllWinnersFromCloud() {
-        const timestamp = Date.now();
+        const v = window.DATA_VERSION || "1.0";
         const promises = Object.entries(zoneFileMap).map(async ([zone, filename]) => {
             try {
-                const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`${filename}?t=${timestamp}`);
+                const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`${filename}?v=${v}`);
                 if (data) zoneWinners[zone] = JSON.parse(await data.text());
             } catch (e) {
                 zoneWinners[zone] = {};
@@ -763,13 +776,16 @@
             ); 
         }
         
-        if (currentSort === 'name') { 
-            displayList.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })); 
+        if (currentSort.field === 'name') { 
+            displayList.sort((a, b) => {
+                const cmp = a.name.localeCompare(b.name, undefined, { numeric: true });
+                return currentSort.direction === 'asc' ? cmp : -cmp;
+            }); 
         } else { 
             displayList.sort((a, b) => { 
-                let valA = Math.abs(a.stats.diff[currentSort] || (a.stats.diff.b && a.stats.diff.b[currentSort]) || 0);
-                let valB = Math.abs(b.stats.diff[currentSort] || (b.stats.diff.b && b.stats.diff.b[currentSort]) || 0); 
-                return valB - valA; 
+                let valA = Math.abs(a.stats.diff[currentSort.field] || (a.stats.diff.b && a.stats.diff.b[currentSort.field]) || 0);
+                let valB = Math.abs(b.stats.diff[currentSort.field] || (b.stats.diff.b && b.stats.diff.b[currentSort.field]) || 0); 
+                return currentSort.direction === 'desc' ? valB - valA : valA - valB; 
             }); 
         }
         
@@ -800,17 +816,17 @@
                             <td class="sticky-col-kd"></td> 
                             ${!allTbd ? '<td></td>' : ''}
                             <td></td> 
-                            <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td>
-                            <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td>
-                            <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td>
-                            <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${rowData.mpRankSum || 0}</td>
-                            <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowData.kills)}</td>
-                            <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowData.deads)}</td>
-                            <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowData.heals)}</td>
-                            <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowData.ch25)}</td>
-                            <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowData.ap)}</td>
+                            <td class="${currentSort.field === 'power' ? 'highlight-sort' : ''}">${formatVal(rowData.power)}</td>
+                            <td class="${currentSort.field === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowData.merits)}</td>
+                            <td class="${currentSort.field === 'mp' ? 'highlight-sort' : ''}">${(rowData.mp * 100).toFixed(2)}%</td>
+                            <td class="${currentSort.field === 'mpRank' ? 'highlight-sort' : ''}">${rowData.mpRankSum || 0}</td>
+                            <td class="${currentSort.field === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowData.kills)}</td>
+                            <td class="${currentSort.field === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowData.deads)}</td>
+                            <td class="${currentSort.field === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowData.heals)}</td>
+                            <td class="${currentSort.field === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowData.ch25)}</td>
+                            <td class="${currentSort.field === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowData.ap)}</td>
                             ${activeTroopKeys.map(k => `
-                                <td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(rowData.b[k])}</td>
+                                <td class="${currentSort.field === k ? 'highlight-sort' : ''}">${formatValNoDec(rowData.b[k])}</td>
                             `).join('')}
                         </tr>
                     `; 
@@ -829,15 +845,15 @@
                             </td>
                             ${!allTbd ? `<td></td>` : ''}
                             <td>-</td>
-                            <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">0</td>
-                            <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">0</td>
-                            <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">0.00%</td>
-                            <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">0</td>
-                            <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">0</td>
-                            <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">0</td>
-                            <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">0</td>
-                            <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">0</td>
-                            <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort.field === 'power' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort.field === 'merits' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort.field === 'mp' ? 'highlight-sort' : ''}">0.00%</td>
+                            <td class="${currentSort.field === 'mpRank' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort.field === 'kills' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort.field === 'deads' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort.field === 'heals' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort.field === 'ch25' ? 'highlight-sort' : ''}">0</td>
+                            <td class="${currentSort.field === 'ap' ? 'highlight-sort' : ''}">0</td>
                             ${activeTroopKeys.map(k => `<td>0</td>`).join('')}
                         </tr>
                     `;
@@ -852,17 +868,17 @@
                         </td>
                         ${!allTbd ? `<td style="font-weight:900;">${d.class}</td>` : ''}
                         <td>${d.powerRank || '-'}</td>
-                        <td class="${currentSort === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
-                        <td class="${currentSort === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
-                        <td class="${currentSort === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
-                        <td class="${currentSort === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td>
-                        <td class="${currentSort === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
-                        <td class="${currentSort === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
-                        <td class="${currentSort === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td>
-                        <td class="${currentSort === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
-                        <td class="${currentSort === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
+                        <td class="${currentSort.field === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td>
+                        <td class="${currentSort.field === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td>
+                        <td class="${currentSort.field === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td>
+                        <td class="${currentSort.field === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || 0}</td>
+                        <td class="${currentSort.field === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td>
+                        <td class="${currentSort.field === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td>
+                        <td class="${currentSort.field === 'heals' ? 'highlight-sort' : ''}">${formatVal(d.heals)}</td>
+                        <td class="${currentSort.field === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td>
+                        <td class="${currentSort.field === 'ap' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>
                         ${activeTroopKeys.map(k => `
-                            <td class="${currentSort === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>
+                            <td class="${currentSort.field === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>
                         `).join('')}
                     </tr>
                 `;
@@ -1062,13 +1078,24 @@
     }
     
     function setSort(key, btn) { 
-        currentSort = key; 
-        document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active')); 
-        if (btn) btn.classList.add('active'); 
-        else if (key === 'name') { 
-            const b = document.getElementById('btnSortName'); 
-            if(b) b.classList.add('active'); 
-        } 
+        if (currentSort.field === key) {
+            currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc';
+        } else {
+            currentSort.field = key;
+            currentSort.direction = 'desc';
+        }
+
+        document.querySelectorAll('.metrics-island .metric-btn').forEach(b => {
+            b.classList.remove('active');
+            const fieldKey = b.id.replace('btn-', '');
+            if (sortLabels[fieldKey]) b.textContent = sortLabels[fieldKey];
+        });
+
+        if (btn) {
+            btn.classList.add('active');
+            btn.textContent += (currentSort.direction === 'desc' ? ' ▼' : ' ▲');
+        }
+
         renderAll(); 
     }
 
@@ -1086,7 +1113,7 @@
 
     function updateSortBar() { 
         const container = document.querySelector('#troopRow .metric-row'); 
-        if (container) container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); 
+        if (container) container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort.field === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); 
     }
 
     function updateId(mIdx, rIdx, val) { 
@@ -1131,7 +1158,7 @@
             zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, 
             ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] 
         }); 
-        setSort('name', document.getElementById('btnSortName'));
+        setSort('name', document.getElementById('btn-name'));
     }
 
     function toggleModal(v) { 

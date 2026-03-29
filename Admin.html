@@ -82,6 +82,7 @@
             border: 1px solid var(--glass-border);
             border-radius: 20px;
             padding: 30px;
+            margin-bottom: 20px;
         }
 
         .pane h2 {
@@ -169,7 +170,6 @@
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
         }
 
-        /* --- NEW RED TERMINATE BUTTON STYLING --- */
         .terminate-btn {
             margin-top: 10px;
             padding: 14px 35px;
@@ -234,6 +234,20 @@
                 <p style="color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px;">Snapshot & Generation Management</p>
             </div>
 
+            <!-- CACHE CONTROLLER SECTION -->
+            <div class="editor-section">
+                <div class="pane" style="border-color: #fbbf24;">
+                    <h2 style="color: #fbbf24;">Cache Controller</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="versionInput" class="alias-input" placeholder="e.g. v1.1">
+                        <button class="tool-btn" style="flex:1; border-color:#3b82f6; background:rgba(59,130,246,0.1);" onclick="updateRemoteVersion()">PUSH VERSION</button>
+                    </div>
+                    <p style="font-size: 0.6rem; color: var(--muted); margin-top: 10px; text-transform: uppercase; font-weight: 800;">
+                        Current Live Label: <span id="currentVersionLabel" style="color:white;">Loading...</span>
+                    </p>
+                </div>
+            </div>
+
             <div class="editor-section">
                 <div class="pane">
                     <h2>
@@ -257,12 +271,10 @@
             </div>
         </div>
 
-        <!-- NEW TERMINATE BUTTON APPLIED HERE -->
         <button class="terminate-btn" onclick="terminateSession()">Terminate Admin Session</button>
     </div>
 
     <script>
-        // Use separate objects to ensure no data mixing
         let currentAliases = {};
         let currentGPool = {};
 
@@ -273,32 +285,48 @@
             const timestamp = `?t=${Date.now()}`;
             
             try {
-                // 1. Fetch file list from Pull folder
-                const { data: files, error: listError } = await supabaseAdmin.storage
-                    .from('kvk-data')
-                    .list('Pull', { limit: 100 });
+                // 1. Fetch metadata
+                const { data: files } = await supabaseAdmin.storage.from('kvk-data').list('Pull', { limit: 100 });
+                const { data: aliasBlob } = await supabaseAdmin.storage.from('kvk-data').download(`Pull/SosNames.json${timestamp}`);
+                const { data: gPoolBlob } = await supabaseAdmin.storage.from('configs').download(`GPool.json${timestamp}`);
 
-                if (listError) throw listError;
-
-                // 2. Fetch SosNames (Aliases)
-                const { data: aliasBlob } = await supabaseAdmin.storage
-                    .from('kvk-data')
-                    .download(`Pull/SosNames.json${timestamp}`);
+                // 2. Fetch Current Cache Version
+                const { data: versionBlob } = await supabaseAdmin.storage.from('configs').download(`version.json${timestamp}`);
                 
                 currentAliases = aliasBlob ? JSON.parse(await aliasBlob.text()) : {};
-
-                // 3. Fetch GPool Configuration from configs bucket
-                const { data: gPoolBlob } = await supabaseAdmin.storage
-                    .from('configs')
-                    .download(`GPool.json${timestamp}`);
-                
                 currentGPool = gPoolBlob ? JSON.parse(await gPoolBlob.text()) : {};
 
-                // 4. Render the UI
+                if (versionBlob) {
+                    const vData = JSON.parse(await versionBlob.text());
+                    document.getElementById('currentVersionLabel').innerText = vData.v;
+                    document.getElementById('versionInput').value = vData.v;
+                }
+
                 renderGlobalList(files);
 
             } catch (e) {
                 console.error(`Error loading data:`, e);
+            }
+        }
+
+        /**
+         * CACHE VERSION UPDATE
+         */
+        async function updateRemoteVersion() {
+            const newV = document.getElementById('versionInput').value.trim();
+            if(!newV) return alert("Enter a version (e.g. v1.1)");
+
+            if(!confirm(`Push ${newV} to all users? This will force everyone's browser to download fresh data next time they load a page.`)) return;
+
+            try {
+                const { error } = await supabaseAdmin.storage.from('configs')
+                    .upload('version.json', JSON.stringify({ v: newV }), { upsert: true, contentType: 'application/json' });
+                
+                if(error) throw error;
+                document.getElementById('currentVersionLabel').innerText = newV;
+                alert("Cache label updated successfully!");
+            } catch (e) { 
+                alert("Error updating version: " + e.message); 
             }
         }
 
@@ -318,42 +346,23 @@
 
             csvFiles.forEach(file => {
                 const dateKey = file.name.replace(/\.csv/i, '');
-                
-                // Initialize state for this key if it doesn't exist
                 if (currentAliases[dateKey] === undefined) currentAliases[dateKey] = "";
                 if (currentGPool[dateKey] === undefined) currentGPool[dateKey] = "G2";
-
-                const aliasValue = currentAliases[dateKey];
-                const gValue = currentGPool[dateKey];
 
                 const row = document.createElement('div');
                 row.className = 'file-row';
                 row.innerHTML = `
                     <div class="file-date">${dateKey}</div>
-                    
-                    <input type="text" 
-                           class="alias-input" 
-                           placeholder="Display Name" 
-                           value="${aliasValue}"
-                           oninput="updateLocalAlias('${dateKey}', this.value)">
-                    
-                    <select class="gpool-select" onchange="updateLocalGPool('${dateKey}', this.value)">
-                        <option value="G1" ${gValue === 'G1' ? 'selected' : ''}>G1</option>
-                        <option value="G2" ${gValue === 'G2' ? 'selected' : ''}>G2</option>
-                        <option value="G3" ${gValue === 'G3' ? 'selected' : ''}>G3</option>
-                        <option value="G4" ${gValue === 'G4' ? 'selected' : ''}>G4</option>
+                    <input type="text" class="alias-input" placeholder="Display Name" value="${currentAliases[dateKey]}" oninput="currentAliases['${dateKey}']=this.value">
+                    <select class="gpool-select" onchange="currentGPool['${dateKey}']=this.value">
+                        <option value="G1" ${currentGPool[dateKey] === 'G1' ? 'selected' : ''}>G1</option>
+                        <option value="G2" ${currentGPool[dateKey] === 'G2' ? 'selected' : ''}>G2</option>
+                        <option value="G3" ${currentGPool[dateKey] === 'G3' ? 'selected' : ''}>G3</option>
+                        <option value="G4" ${currentGPool[dateKey] === 'G4' ? 'selected' : ''}>G4</option>
                     </select>
                 `;
                 container.appendChild(row);
             });
-        }
-
-        function updateLocalAlias(key, value) {
-            currentAliases[key] = value;
-        }
-
-        function updateLocalGPool(key, value) {
-            currentGPool[key] = value;
         }
 
         /**
@@ -361,47 +370,27 @@
          */
         async function saveMetadataGlobal() {
             const btn = document.getElementById(`saveGlobalBtn`);
-            const originalText = btn.innerText;
-            
-            btn.innerText = "UPLOADING CONFIGURATIONS...";
+            btn.innerText = "UPLOADING...";
             btn.disabled = true;
 
             try {
                 const aliasString = JSON.stringify(currentAliases, null, 2);
                 const gPoolString = JSON.stringify(currentGPool, null, 2);
 
-                // Prepare upload tasks
-                const tasks = [
-                    // Update Aliases in kvk-data bucket
-                    supabaseAdmin.storage.from('kvk-data').upload(`Pull/SosNames.json`, aliasString, { upsert: true, contentType: 'application/json' }),
-                    supabaseAdmin.storage.from('kvk-data').upload(`Players/SosNames.json`, aliasString, { upsert: true, contentType: 'application/json' }),
-                    // Update GPool in configs bucket
-                    supabaseAdmin.storage.from('configs').upload(`GPool.json`, gPoolString, { upsert: true, contentType: 'application/json' })
-                ];
-
-                const results = await Promise.all(tasks);
-                
-                // Check for individual errors
-                for (const res of results) {
-                    if (res.error) throw res.error;
-                }
+                await Promise.all([
+                    supabaseAdmin.storage.from('kvk-data').upload(`Pull/SosNames.json`, aliasString, { upsert: true }),
+                    supabaseAdmin.storage.from('kvk-data').upload(`Players/SosNames.json`, aliasString, { upsert: true }),
+                    supabaseAdmin.storage.from('configs').upload(`GPool.json`, gPoolString, { upsert: true })
+                ]);
 
                 btn.innerText = "ALL SYSTEMS SYNCED!";
-                btn.style.borderColor = "#10b981";
-                btn.style.color = "#10b981";
-
             } catch (e) {
-                console.error(e);
                 btn.innerText = "SYNC FAILED";
-                btn.style.borderColor = "#ef4444";
-                btn.style.color = "#ef4444";
                 alert("Save Failed: " + e.message);
             } finally {
                 setTimeout(() => {
-                    btn.innerText = originalText;
+                    btn.innerText = "Save Global Configuration";
                     btn.disabled = false;
-                    btn.style.borderColor = "";
-                    btn.style.color = "";
                 }, 3000);
             }
         }
