@@ -9,8 +9,6 @@
     <link rel="stylesheet" href="global.css">
     <link rel="stylesheet" href="mobile.css">
     
-    <script src="version.js"></script>
-
     <!-- Supabase & Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -658,32 +656,6 @@
         };
     }
 
-    async function fetchLatest(bucket, path, forceFresh = false) {
-        let v = "1.0";
-        try {
-            if (!forceFresh && window.DATA_VERSION) {
-                v = window.DATA_VERSION;
-            } else {
-                const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
-                const vData = JSON.parse(await vBlob.text());
-                v = vData.v;
-                window.DATA_VERSION = v;
-            }
-        } catch(e) { window.DATA_VERSION = "1.0"; }
-
-        const timestamp = forceFresh ? `?t=${Date.now()}` : `?v=${v}`;
-        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}${timestamp}`;
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status} for ${path}`);
-        return response;
-    }
-
     function cleanNum(v) { 
         if (!v) return 0; 
         return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; 
@@ -696,16 +668,26 @@
         try {
             updateProgress(10, "Syncing Cache...");
             
+            // 1. FETCH REMOTE VERSION FIRST
+            let v = "1.0";
+            try {
+                const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
+                v = JSON.parse(await vBlob.text()).v;
+                window.DATA_VERSION = v;
+            } catch(e) { window.DATA_VERSION = "1.0"; }
+
+            const timestamp = `?v=${v}`;
+            
             // TRIPLE SYNC
             const [sRes, fRes, gRes] = await Promise.all([
-                fetchLatest(BUCKET_DATA, 'Players/SosNames.json'),
-                fetchLatest(BUCKET_DATA, 'Players/files.json'),
-                fetchLatest(BUCKET_CONFIGS, 'GPool.json')
+                supabaseClient.storage.from(BUCKET_DATA).download(`Players/SosNames.json${timestamp}`),
+                supabaseClient.storage.from(BUCKET_DATA).download(`Players/files.json${timestamp}`),
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`GPool.json${timestamp}`)
             ]);
             
-            if (sRes) sosMap = await sRes.json();
-            if (fRes) fullFileList = await fRes.json();
-            if (gRes) gPoolMap = await gRes.json();
+            if (sRes.data) sosMap = JSON.parse(await sRes.data.text());
+            if (fRes.data) fullFileList = JSON.parse(await fRes.data.text());
+            if (gRes.data) gPoolMap = JSON.parse(await gRes.data.text());
             
             handleGenChange('all');
             
@@ -793,17 +775,27 @@
 
         if (overlay) { overlay.style.display = 'flex'; overlay.style.opacity = '1'; }
 
+        const timestamp = `?v=${window.DATA_VERSION || "1.0"}`;
+
         try {
             if (currentMode === 'total') {
                 updateProgress(20, `Loading snapshot...`);
-                const res = await fetchLatest(BUCKET_DATA, `Players/${fileSelect.value}`);
-                processedData = Papa.parse(await res.text(), { header: true, skipEmptyLines: true }).data;
+                const { data: resBlob, error } = await supabaseClient.storage.from(BUCKET_DATA).download(`Players/${fileSelect.value}${timestamp}`);
+                if (error) throw error;
+                processedData = Papa.parse(await resBlob.text(), { header: true, skipEmptyLines: true }).data;
             } else {
                 updateProgress(10, `Loading range...`);
-                const [sRes, eRes] = await Promise.all([ fetchLatest(BUCKET_DATA, `Players/${startSelect.value}`), fetchLatest(BUCKET_DATA, `Players/${fileSelect.value}`) ]);
-                const sData = Papa.parse(await sRes.text(), { header: true, skipEmptyLines: true }).data;
-                const eData = Papa.parse(await eRes.text(), { header: true, skipEmptyLines: true }).data;
+                const [sRes, eRes] = await Promise.all([ 
+                    supabaseClient.storage.from(BUCKET_DATA).download(`Players/${startSelect.value}${timestamp}`), 
+                    supabaseClient.storage.from(BUCKET_DATA).download(`Players/${fileSelect.value}${timestamp}`) 
+                ]);
+                if (sRes.error) throw sRes.error;
+                if (eRes.error) throw eRes.error;
+
+                const sData = Papa.parse(await sRes.data.text(), { header: true, skipEmptyLines: true }).data;
+                const eData = Papa.parse(await eRes.data.text(), { header: true, skipEmptyLines: true }).data;
                 const sMap = new Map(sData.map(p => [p["Lord ID"], p]));
+                
                 processedData = eData.map(pEnd => {
                     let row = { ...pEnd }; 
                     const pStart = sMap.get(pEnd["Lord ID"]);
@@ -890,20 +882,19 @@
         }).join('');
     }
 
-        function setSort(key, btn) {
-                currentSort.field = key;
-                
-                document.querySelectorAll('.metric-btn').forEach(b => {
-                    b.classList.remove('active');
-                    // Simply remove all existing arrows globally to prevent stacking
-                    b.textContent = b.textContent.replace(/ ▼/g, '').trim();
-                });
+    function setSort(key, btn) {
+        currentSort.field = key;
+        
+        document.querySelectorAll('.metric-btn').forEach(b => {
+            b.classList.remove('active');
+            b.textContent = b.textContent.replace(/ ▼/g, '').trim();
+        });
 
-                btn.classList.add('active');
-                btn.textContent += ' ▼';
-                
-                updateTop100();
-            }
+        btn.classList.add('active');
+        btn.textContent += ' ▼';
+        
+        updateTop100();
+    }
 
     function toggleMetrics() {
         const row = document.getElementById('extraMetrics'); const arrow = document.getElementById('arrowIcon');
