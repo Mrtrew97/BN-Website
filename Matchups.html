@@ -295,12 +295,14 @@
 <div class="unified-container">
     <div class="tools-glass-row">
         <div class="nav-side-box">
-            <select id="genSelector" onchange="handleGenFilterChange(this.value)">
-                <option value="all">All Gens</option>
+            <!-- UPDATED GENERATION SELECTOR -->
+            <select id="genSelector" onchange="renderAll()">
+                <option value="all" selected>All Gens</option>
                 <option value="G1">G1</option>
                 <option value="G2">G2</option>
                 <option value="G3">G3</option>
                 <option value="G4">G4</option>
+                <option value="NoG">NoG</option>
             </select>
             <select id="fileSelector" onchange="loadSpecificFile(this.value)" style="min-width: 150px;"></select>
         </div>
@@ -375,11 +377,10 @@
     let currentSort = { field: 'power', direction: 'desc' };
     let currentZoneFilter = 'all';
     let currentRegistrations = {};
+    let currentGenPools = {}; // NEW: Maps KD to Gen for selected file
     let selectedFileName = "";
     let activeTroopKeys = [];
     let sosMap = {};
-    
-    let gPoolMap = {}; 
     let fullFileList = []; 
 
     const sortLabels = { name: 'Group Name', power: 'Power', merits: 'Merits', mp: 'M/P %', mpRank: 'M/P R', kills: 'Kills', deads: 'Deads', heals: 'Heals', ch25: 'CH25', ap: 'CH25 AVG' };
@@ -408,25 +409,12 @@
         return String(parseInt(parseFloat(String(val).trim())));
     }
 
-    function updateProgress(pct, text) {
-        const bar = document.getElementById('progressBar');
-        const container = document.getElementById('progressContainer');
-        const status = document.getElementById('status-msg');
-        
-        if (container) container.style.display = 'block';
-        if (bar) bar.style.width = pct + '%';
-        if (status && text) status.innerText = text;
-    }
-
     function hideLoading() {
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) {
             overlay.style.opacity = '0';
             setTimeout(() => { 
                 overlay.style.display = 'none'; 
-                if(document.getElementById('progressContainer')) {
-                    document.getElementById('progressContainer').style.display = 'none';
-                }
             }, 300);
         }
     }
@@ -436,7 +424,6 @@
         document.body.classList.add('admin-active');
         const area = document.getElementById('adminArea');
         const lBtn = document.getElementById('loginBtn');
-        
         if (area) area.style.display = 'flex';
         if (lBtn) lBtn.style.display = 'none';
         renderAll();
@@ -447,13 +434,10 @@
         const password = document.getElementById('pass').value;
         const errorDiv = document.getElementById('loginError');
         const btn = document.getElementById('loginActionBtn');
-        
         errorDiv.style.display = 'none';
         btn.textContent = "AUTHORIZING...";
         btn.disabled = true;
-        
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        
         if (error) { 
             errorDiv.textContent = error.message; 
             errorDiv.style.display = 'block'; 
@@ -475,9 +459,6 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) enableAdminMode();
 
-            updateProgress(5, "Syncing Cache...");
-            
-            // 1. FETCH REMOTE VERSION FIRST
             let v = "1.0";
             try {
                 const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
@@ -486,26 +467,21 @@
                 window.DATA_VERSION = v;
             } catch(e) { window.DATA_VERSION = "1.0"; }
 
-            updateProgress(15, "Fetching metadata...");
             const timestamp = `?v=${v}`;
-            
-            const [fRes, sRes, gRes] = await Promise.all([
+            const [fRes, sRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp),
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
-                supabaseClient.storage.from(BUCKET_CONFIGS).download('GPool.json' + timestamp)
+                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp)
             ]);
             
             if (fRes.error) throw fRes.error;
-            
             fullFileList = JSON.parse(await fRes.data.text());
             if (sRes.data) sosMap = JSON.parse(await sRes.data.text());
-            if (gRes.data) gPoolMap = JSON.parse(await gRes.data.text());
 
             await fetchMatchupsFromCloud();
             await fetchTeamsFromCloud();
             await fetchAllWinnersFromCloud(); 
             
-            populateFileSelector('all');
+            populateFileSelector();
 
         } catch (e) { 
             console.error("Init Error:", e); 
@@ -514,41 +490,19 @@
         }
     };
 
-    function handleGenFilterChange(selectedGen) {
-        populateFileSelector(selectedGen);
-    }
-
-    function populateFileSelector(filterGen) {
+    function populateFileSelector() {
         const selector = document.getElementById('fileSelector'); 
         selector.innerHTML = '';
-        
-        let filteredFiles = fullFileList.filter(file => {
-            if (filterGen === 'all') return true;
-            const dateKey = file.replace(/\.csv/i, '');
-            const fileGen = gPoolMap[dateKey] || "G2"; 
-            return fileGen === filterGen;
-        });
-
-        const displayFiles = [...filteredFiles].reverse();
-
-        displayFiles.forEach(file => {
+        fullFileList.slice().reverse().forEach(file => {
             const opt = document.createElement('option'); 
             opt.value = file;
             const dateKey = file.replace(/\.csv/i, '');
             opt.textContent = sosMap[dateKey] || dateKey.toUpperCase();
             selector.appendChild(opt);
         });
-        
-        if (displayFiles.length > 0) {
-            selector.value = displayFiles[0];
+        if (fullFileList.length > 0) {
+            selector.value = fullFileList[fullFileList.length - 1];
             loadSpecificFile(selector.value);
-        } else {
-            masterData.clear();
-            currentMatchups = [];
-            document.getElementById('matchupsContainer').innerHTML = `
-                <div style="text-align:center; padding:50px; color:var(--muted); font-weight:800; text-transform:uppercase;">
-                    No snapshots found for ${filterGen}
-                </div>`;
         }
     }
 
@@ -557,11 +511,25 @@
         const cleanName = fileName.replace(/\.csv/i, ''); 
         const jsonName = cleanName + ".json";
         const v = window.DATA_VERSION || "1.0";
+        const timestamp = `?v=${v}`;
         
         try {
+            // LOAD GEN POOLS FOR THIS FILE
+            const gens = ['G1', 'G2', 'G3', 'G4', 'NoG'];
+            currentGenPools = {};
+            await Promise.all(gens.map(async (g) => {
+                try {
+                    const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`Gen Pools/${cleanName}-${g}.json${timestamp}`);
+                    if (data) {
+                        const kdList = JSON.parse(await data.text());
+                        kdList.forEach(kd => { currentGenPools[kdClean(kd)] = g; });
+                    }
+                } catch(e) {}
+            }));
+
             const [regRes, csvRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}?v=${v}`),
-                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}?v=${v}`)
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}${timestamp}`),
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}${timestamp}`)
             ]);
             
             if (regRes.data) {
@@ -584,7 +552,6 @@
                 
                 masterData.clear(); 
                 let rankedPool = [];
-                
                 result.data.forEach(row => {
                     const cleanId = kdClean(row.KD || row['KD#']);
                     const p = cleanNum(row['Top 300 Power'] || row.Power);
@@ -603,13 +570,13 @@
                             class: regInfo ? (regInfo.class || "TBD") : "-", 
                             isParagon: regInfo?.isParagon === true, 
                             alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", 
+                            gen: currentGenPools[cleanId] || 'NoG',
                             raw: row 
                         };
                         masterData.set(cleanId, obj); 
                         if (registeredIDs.has(cleanId)) rankedPool.push(obj);
                     }
                 });
-                
                 rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
                 rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
             }
@@ -626,23 +593,16 @@
         try { 
             const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`MatchupsConfig.json?v=${v}`); 
             if (data) allCloudData = JSON.parse(await data.text()); 
-        } catch (e) { 
-            allCloudData = {}; 
-        } 
+        } catch (e) { allCloudData = {}; } 
     }
 
     async function fetchTeamsFromCloud() {
         const v = window.DATA_VERSION || "1.0";
         try { 
             const { data, error } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`TeamsConfig.json?v=${v}`); 
-            if (error) {
-                allTeamsData = {};
-                return;
-            }
+            if (error) { allTeamsData = {}; return; }
             if (data) allTeamsData = JSON.parse(await data.text()); 
-        } catch (e) { 
-            allTeamsData = {}; 
-        }
+        } catch (e) { allTeamsData = {}; }
     }
 
     async function fetchAllWinnersFromCloud() {
@@ -651,71 +611,54 @@
             try {
                 const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`${filename}?v=${v}`);
                 if (data) zoneWinners[zone] = JSON.parse(await data.text());
-            } catch (e) {
-                zoneWinners[zone] = {};
-            }
+            } catch (e) { zoneWinners[zone] = {}; }
         });
         await Promise.all(promises);
     }
 
     async function saveToCloud() { 
         if (!isAdmin) return; 
-        
         const btn = document.getElementById('saveStatusBtn'); 
         btn.textContent = "SAVING..."; 
         btn.disabled = true;
-        
         const cleanKey = selectedFileName.replace(/\.csv/i,''); 
         allCloudData[cleanKey] = currentMatchups; 
-        
         try { 
             const currentGroupNames = new Set(currentMatchups.map(m => m.name));
             for (const zone of Object.keys(zoneWinners)) {
                 if (zoneWinners[zone][cleanKey]) {
                     const winnersForDate = zoneWinners[zone][cleanKey];
                     Object.keys(winnersForDate).forEach(name => {
-                        if (!currentGroupNames.has(name)) {
-                            delete winnersForDate[name];
-                        }
+                        if (!currentGroupNames.has(name)) delete winnersForDate[name];
                     });
                 }
             }
-
             await supabaseClient.storage.from(BUCKET_CONFIGS).upload('MatchupsConfig.json', JSON.stringify(allCloudData, null, 2), { upsert: true, contentType: 'application/json' }); 
-            
             for (const [zone, filename] of Object.entries(zoneFileMap)) {
                 let serverFile = {};
                 try {
                     const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`${filename}?t=${Date.now()}`);
                     if (data) serverFile = JSON.parse(await data.text());
                 } catch(e) {}
-
                 serverFile[cleanKey] = zoneWinners[zone][cleanKey] || {};
-
                 await supabaseClient.storage.from(BUCKET_CONFIGS).upload(filename, JSON.stringify(serverFile, null, 2), { upsert: true, contentType: 'application/json' });
             }
-            
             btn.textContent = "SAVED!"; 
             setTimeout(() => btn.textContent="SAVE CLOUD", 2000); 
         } catch (e) { 
             btn.textContent = "RETRY"; 
             console.error(e); 
-        } finally { 
-            btn.disabled = false; 
-        }
+        } finally { btn.disabled = false; }
     }
 
     function applyTeamToMatchup(mIdx, side, teamName) {
         if (!teamName) return;
-        
         const fileTeams = allTeamsData[selectedFileName] || [];
         const team = fileTeams.find(t => t.name === teamName);
         if (!team) return;
-
         let ids = [...currentMatchups[mIdx].ids];
         const idxTotalA = ids.indexOf("TOTAL A");
         const idxTotalB = ids.indexOf("TOTAL B");
-
         if (side === 'A') {
             const markersAndB = ids.slice(idxTotalA);
             currentMatchups[mIdx].ids = [...team.ids, ...markersAndB];
@@ -731,9 +674,7 @@
         const matchup = currentMatchups[mIdx];
         const oldName = matchup.name;
         const zone = matchup.zone;
-        
         matchup.name = newName;
-
         if (zoneWinners[zone] && zoneWinners[zone][cleanKey] && zoneWinners[zone][cleanKey][oldName]) {
             zoneWinners[zone][cleanKey][newName] = zoneWinners[zone][cleanKey][oldName];
             delete zoneWinners[zone][cleanKey][oldName];
@@ -744,16 +685,15 @@
         const cleanKey = selectedFileName.replace(/\.csv/i,'');
         const matchup = currentMatchups[mIdx];
         const zone = matchup.zone;
-
         if (!zoneWinners[zone]) zoneWinners[zone] = {};
         if (!zoneWinners[zone][cleanKey]) zoneWinners[zone][cleanKey] = {};
-        
         zoneWinners[zone][cleanKey][matchup.name] = val;
     }
 
     function renderAll() {
         const container = document.getElementById('matchupsContainer');
         const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); 
+        const gF = document.getElementById('genSelector').value;
         container.innerHTML = '';
         
         let displayList = currentMatchups.map((m, idx) => ({ 
@@ -764,6 +704,13 @@
         
         if (currentZoneFilter !== 'all') {
             displayList = displayList.filter(m => m.zone === currentZoneFilter);
+        }
+
+        // APPLY GENERATION FILTER
+        if (gF !== 'all') {
+            displayList = displayList.filter(m => {
+                return m.ids.some(id => currentGenPools[kdClean(id)] === gF);
+            });
         }
         
         if (sT) { 
@@ -796,7 +743,6 @@
             const mIdx = matchup.originalIdx;
             const card = document.createElement('div'); 
             card.className = 'matchup-card';
-            
             const allTbd = matchup.ids.every(id => { 
                 const d = masterData.get(kdClean(id)); 
                 return !d || d.class === "TBD" || d.class === "-"; 
@@ -806,7 +752,6 @@
                 const upper = String(id).toUpperCase().trim(); 
                 const isSpecial = ["TOTAL A", "TOTAL B", "DIFFERENTIALS (A-B)"].includes(upper); 
                 const rowData = matchup.stats.rows[rIdx];
-                
                 if (isSpecial) { 
                     const rowClass = upper.replace(/\s+/g, '-').replace(/[()]/g, '').toLowerCase(); 
                     return `
@@ -831,10 +776,8 @@
                         </tr>
                     `; 
                 }
-                
                 const cleanId = kdClean(id); 
                 const d = masterData.get(cleanId);
-                
                 if (!d) {
                     return `
                         <tr>
@@ -858,7 +801,6 @@
                         </tr>
                     `;
                 }
-                
                 return `
                     <tr>
                         ${isAdmin ? `<td class="col-del" onclick="removeRow(${mIdx}, ${rIdx})">×</td><td class="col-drag">≡</td>` : ''}
@@ -886,17 +828,14 @@
 
             let winnerUI = '';
             const zonesWithWinners = ['zone 2', 'zone 2', 'zone 4', 'final'];
-            
             if (zonesWithWinners.includes(matchup.zone)) {
                 const cleanKey = selectedFileName.replace(/\.csv/i,'');
                 const zone = matchup.zone;
                 const currentWinner = (zoneWinners[zone] && zoneWinners[zone][cleanKey] && zoneWinners[zone][cleanKey][matchup.name]) || "";
-                
                 const isFinal = zone === 'final';
                 const themeColor = isFinal ? '#fbbf24' : '#3b82f6';
                 const themeBg = isFinal ? 'rgba(251, 191, 36, 0.1)' : 'rgba(59, 130, 246, 0.1)';
                 const themeBorder = isFinal ? 'rgba(251, 191, 36, 0.3)' : 'rgba(59, 130, 246, 0.3)';
-
                 if (isAdmin) {
                     winnerUI = `
                         <div style="margin-bottom:15px; background:${themeBg}; border:1px solid ${themeBorder}; padding:10px 15px; border-radius:10px; display:flex; align-items:center; gap:10px;">
@@ -917,7 +856,6 @@
                         </div>`;
                 }
             }
-            
             const adminZoneSelect = isAdmin ? `
                 <select style="background:#0f172a; border:1px solid var(--glass-border); color:white; font-size:0.7rem; border-radius:5px;" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();">
                     <option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>KVK START</option>
@@ -927,7 +865,6 @@
                     <option value="final" ${matchup.zone === 'final' ? 'selected' : ''}>FINAL ZONE</option>
                 </select>
             ` : `<span class="btn" style="font-size:0.6rem; padding:4px 10px;">${matchup.zone.toUpperCase()}</span>`;
-            
             const adminTeamSelects = isAdmin ? `
                 <div style="display:flex; gap:10px; margin-top:10px; margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--glass-border);">
                     <div style="display:flex; flex-direction:column; gap:4px;">
@@ -939,7 +876,6 @@
                         <select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'B', this.value)">${teamOptions}</select>
                     </div>
                 </div>` : '';
-            
             card.innerHTML = `
                 <div class="card-header" style="align-items: flex-start; gap: 20px;">
                     <div style="flex: 1; min-width: 0;">
@@ -1005,181 +941,46 @@
         let current = a; 
         ids.forEach(id => { 
             const u = String(id).toUpperCase().trim(); 
-            if (u === "TOTAL A") {
-                current = b; 
-            } else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { 
+            if (u === "TOTAL A") { current = b; } 
+            else if (!["TOTAL B", "DIFFERENTIALS (A-B)"].includes(u)) { 
                 const d = masterData.get(kdClean(id)); 
                 if (d) { 
-                    current.power += d.power; 
-                    current.merits += d.merits; 
-                    current.kills += d.kills; 
-                    current.deads += d.deads; 
-                    current.heals += d.heals; 
-                    current.ch25 += d.ch25; 
-                    current.ap += d.ap; 
-                    current.count++; 
-                    current.mpRankSum += (d.mpRank || 0); 
+                    current.power += d.power; current.merits += d.merits; current.kills += d.kills; current.deads += d.deads; current.heals += d.heals; current.ch25 += d.ch25; current.ap += d.ap; current.count++; current.mpRankSum += (d.mpRank || 0); 
                     activeTroopKeys.forEach(k => current.b[k] += cleanNum(d.raw[k])); 
                 } 
             } 
         });
-        const statsA = { 
-            ...a, 
-            mp: a.power > 0 ? a.merits/a.power : 0, 
-            ap: a.count > 0 ? a.ap/a.count : 0 
-        };
-        const statsB = { 
-            ...b, 
-            mp: b.power > 0 ? b.merits/b.power : 0, 
-            ap: b.count > 0 ? b.ap/b.count : 0 
-        };
-        const diff = { 
-            power: statsA.power - statsB.power, 
-            merits: statsA.merits - statsB.merits, 
-            kills: statsA.kills - statsB.kills, 
-            deads: statsA.deads - statsB.deads, 
-            heals: statsA.heals - statsB.heals, 
-            ch25: statsA.ch25 - statsB.ch25, 
-            ap: statsA.ap - statsB.ap, 
-            mp: statsA.mp - statsB.mp, 
-            mpRank: statsA.mpRankSum - statsB.mpRankSum, 
-            b: {} 
-        };
+        const statsA = { ...a, mp: a.power > 0 ? a.merits/a.power : 0, ap: a.count > 0 ? a.ap/a.count : 0 };
+        const statsB = { ...b, mp: b.power > 0 ? b.merits/b.power : 0, ap: b.count > 0 ? b.ap/b.count : 0 };
+        const diff = { power: statsA.power - statsB.power, merits: statsA.merits - statsB.merits, kills: statsA.kills - statsB.kills, deads: statsA.deads - statsB.deads, heals: statsA.heals - statsB.heals, ch25: statsA.ch25 - statsB.ch25, ap: statsA.ap - statsB.ap, mp: statsA.mp - statsB.mp, mpRank: statsA.mpRankSum - statsB.mpRankSum, b: {} };
         activeTroopKeys.forEach(k => diff.b[k] = statsA.b[k] - statsB.b[k]);
-        return { 
-            rows: ids.map(id => { 
-                const u = String(id).toUpperCase().trim(); 
-                if (u === "TOTAL A") return statsA; 
-                if (u === "TOTAL B") return statsB; 
-                if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; 
-                return {}; 
-            }), 
-            diff 
-        };
+        return { rows: ids.map(id => { const u = String(id).toUpperCase().trim(); if (u === "TOTAL A") return statsA; if (u === "TOTAL B") return statsB; if (u === "DIFFERENTIALS (A-B)") return { ...diff, mpRankSum: diff.mpRank }; return {}; }), diff };
     }
 
-    function cleanNum(v) { 
-        if (!v) return 0; 
-        return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; 
-    }
-
-    function formatVal(n) { 
-        if (!n && n !== 0) return "0.00"; 
-        const abs = Math.abs(n); 
-        let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
-        return n < 0 ? "-" + s : s; 
-    }
-
-    function formatValNoDec(n) { 
-        if (!n && n !== 0) return "0"; 
-        const abs = Math.floor(Math.abs(n)); 
-        let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); 
-        return n < 0 ? "-" + s : s; 
-    }
+    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
+    function formatVal(n) { if (!n && n !== 0) return "0.00"; const abs = Math.abs(n); let s = abs >= 1e9 ? (abs/1e9).toFixed(2)+'B' : abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
+    function formatValNoDec(n) { if (!n && n !== 0) return "0"; const abs = Math.floor(Math.abs(n)); let s = abs >= 1e6 ? (abs/1e6).toFixed(1)+'M' : abs.toLocaleString(); return n < 0 ? "-" + s : s; }
     
     function setSort(key, btn) { 
-        if (currentSort.field === key) {
-            currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc';
-        } else {
-            currentSort.field = key;
-            currentSort.direction = 'desc';
-        }
-
-        document.querySelectorAll('.metrics-island .metric-btn').forEach(b => {
-            b.classList.remove('active');
-            const fieldKey = b.id.replace('btn-', '');
-            if (sortLabels[fieldKey]) b.textContent = sortLabels[fieldKey];
-        });
-
-        if (btn) {
-            btn.classList.add('active');
-            btn.textContent += (currentSort.direction === 'desc' ? ' ▼' : ' ▲');
-        }
-
+        if (currentSort.field === key) currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc';
+        else { currentSort.field = key; currentSort.direction = 'desc'; }
+        document.querySelectorAll('.metrics-island .metric-btn').forEach(b => { b.classList.remove('active'); const fieldKey = b.id.replace('btn-', ''); if (sortLabels[fieldKey]) b.textContent = sortLabels[fieldKey]; });
+        if (btn) { btn.classList.add('active'); btn.textContent += (currentSort.direction === 'desc' ? ' ▼' : ' ▲'); }
         renderAll(); 
     }
 
-    function setZoneFilter(zone, btn) { 
-        currentZoneFilter = zone; 
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
-        btn.classList.add('active'); 
-        renderAll(); 
-    }
-
-    function toggleTroops() { 
-        document.getElementById('troopRow').classList.toggle('open'); 
-        document.getElementById('troopToggle').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; 
-    }
-
-    function updateSortBar() { 
-        const container = document.querySelector('#troopRow .metric-row'); 
-        if (container) container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort.field === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); 
-    }
-
-    function updateId(mIdx, rIdx, val) { 
-        currentMatchups[mIdx].ids[rIdx] = val; 
-        renderAll(); 
-    }
-
-    function addRowA(mIdx) { 
-        const ids = currentMatchups[mIdx].ids; 
-        const target = ids.indexOf("TOTAL A"); 
-        ids.splice(target !== -1 ? target : ids.length, 0, "000"); 
-        renderAll(); 
-    }
-
-    function addRowB(mIdx) { 
-        const ids = currentMatchups[mIdx].ids; 
-        const target = ids.indexOf("TOTAL B"); 
-        ids.splice(target !== -1 ? target + 1 : ids.length, 0, "000"); 
-        renderAll(); 
-    }
-
-    function removeRow(mIdx, rIdx) { 
-        currentMatchups[mIdx].ids.splice(rIdx, 1); 
-        renderAll(); 
-    }
-
-    function deleteMatchup(idx) { 
-        if(confirm("Delete Group?")) { 
-            const matchup = currentMatchups[idx];
-            const cleanKey = selectedFileName.replace(/\.csv/i,'');
-            if (zoneWinners[matchup.zone] && zoneWinners[matchup.zone][cleanKey]) {
-                delete zoneWinners[matchup.zone][cleanKey][matchup.name];
-            }
-            currentMatchups.splice(idx, 1); 
-            renderAll(); 
-        } 
-    }
-    
-    function addNewMatchup() { 
-        currentMatchups.unshift({ 
-            name: "A New Group", 
-            zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, 
-            ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] 
-        }); 
-        setSort('name', document.getElementById('btn-name'));
-    }
-
-    function toggleModal(v) { 
-        document.getElementById('authModal').style.display = v ? 'flex' : 'none'; 
-        if(!v) document.getElementById('loginError').style.display = 'none'; 
-    }
-
+    function setZoneFilter(zone, btn) { currentZoneFilter = zone; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderAll(); }
+    function toggleTroops() { document.getElementById('troopRow').classList.toggle('open'); document.getElementById('troopToggle').style.transform = document.getElementById('troopRow').classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)'; }
+    function updateSortBar() { const container = document.querySelector('#troopRow .metric-row'); if (container) container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort.field === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); }
+    function updateId(mIdx, rIdx, val) { currentMatchups[mIdx].ids[rIdx] = val; renderAll(); }
+    function addRowA(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.indexOf("TOTAL A"); ids.splice(target !== -1 ? target : ids.length, 0, "000"); renderAll(); }
+    function addRowB(mIdx) { const ids = currentMatchups[mIdx].ids; const target = ids.indexOf("TOTAL B"); ids.splice(target !== -1 ? target + 1 : ids.length, 0, "000"); renderAll(); }
+    function removeRow(mIdx, rIdx) { currentMatchups[mIdx].ids.splice(rIdx, 1); renderAll(); }
+    function deleteMatchup(idx) { if(confirm("Delete Group?")) { const matchup = currentMatchups[idx]; const cleanKey = selectedFileName.replace(/\.csv/i,''); if (zoneWinners[matchup.zone] && zoneWinners[matchup.zone][cleanKey]) delete zoneWinners[matchup.zone][cleanKey][matchup.name]; currentMatchups.splice(idx, 1); renderAll(); } }
+    function addNewMatchup() { currentMatchups.unshift({ name: "A New Group", zone: currentZoneFilter === 'all' ? 'overall' : currentZoneFilter, ids: ["TOTAL A", "DIFFERENTIALS (A-B)", "TOTAL B"] }); setSort('name', document.getElementById('btn-name')); }
+    function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; if(!v) document.getElementById('loginError').style.display = 'none'; }
     function hideDropdown() {}
-
-    function setupSortable(mIdx) { 
-        const el = document.getElementById(`tbody-${mIdx}`); 
-        if (el) new Sortable(el, { 
-            handle: '.col-drag', 
-            animation: 150, 
-            onEnd: (evt) => { 
-                const moved = currentMatchups[mIdx].ids.splice(evt.oldIndex, 1)[0]; 
-                currentMatchups[mIdx].ids.splice(evt.newIndex, 0, moved); 
-                renderAll(); 
-            } 
-        }); 
-    }
+    function setupSortable(mIdx) { const el = document.getElementById(`tbody-${mIdx}`); if (el) new Sortable(el, { handle: '.col-drag', animation: 150, onEnd: (evt) => { const moved = currentMatchups[mIdx].ids.splice(evt.oldIndex, 1)[0]; currentMatchups[mIdx].ids.splice(evt.newIndex, 0, moved); renderAll(); } }); }
 </script>
 </body>
 </html>

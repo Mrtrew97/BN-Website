@@ -756,12 +756,14 @@
 
 <div class="selector-island">
     <div class="select-group">
-        <label>Generation</label>
-        <select id="genSelector" onchange="handleGenChange(this.value)">
+        <label>Generation Filter</label>
+        <select id="genSelector">
+            <option value="all" selected>All Gens</option>
             <option value="G1">G1</option>
-            <option value="G2" selected>G2</option>
+            <option value="G2">G2</option>
             <option value="G3">G3</option>
             <option value="G4">G4</option>
+            <option value="NoG">NoG</option>
         </select>
     </div>
     <div class="select-group">
@@ -843,10 +845,9 @@
     let migrationData = [];
     let filteredData = [];
     let fullFilesList = [];
-    let allFiles = [];
-    let gPoolMap = {};
     let latestAllianceMap = {};
     let sosMap = {};
+    let currentGenPools = {}; // Maps KD to Gen for END snapshot
     let currentSort = { key: 'count', direction: 'desc' };
     let searchType = 'kd';
     let itemsShown = 30;
@@ -854,9 +855,6 @@
 
     const sortLabels = { kd: 'Kingdom #', count: 'Players', pwr: 'Power', kills: 'Kills', deads: 'Deads', heals: 'Heals' };
 
-    /**
-     * STANDARDIZED CLEANING LOGIC
-     */
     function idClean(val) {
         if (!val) return "";
         let cleaned = String(val).trim().replace(/["',]/g, '');
@@ -886,12 +884,10 @@
     }
 
     async function fetchLatest(bucket, path, forceFresh = false) {
-        // 1. FETCH REMOTE VERSION FIRST
         let v = "1.0";
         try {
             const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
-            const vData = JSON.parse(await vBlob.text());
-            v = vData.v;
+            v = JSON.parse(await vBlob.text()).v;
             window.DATA_VERSION = v;
         } catch(e) { window.DATA_VERSION = "1.0"; }
 
@@ -899,10 +895,7 @@
         const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}${timestamp}`;
         const response = await fetch(url, {
             method: 'GET',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
         });
         if (!response.ok) throw new Error(`HTTP ${response.status} for ${path}`);
         return response;
@@ -921,9 +914,7 @@
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) { 
             overlay.style.opacity = '0'; 
-            setTimeout(() => { 
-                overlay.style.display = 'none'; 
-            }, 400); 
+            setTimeout(() => { overlay.style.display = 'none'; }, 400); 
         }
     }
 
@@ -932,17 +923,15 @@
     async function init() {
         try {
             updateProgress(10, "Fetching Metadata...");
-            const [sRes, fRes, gRes] = await Promise.all([
+            const [sRes, fRes] = await Promise.all([
                 fetchLatest(BUCKET_DATA, 'Players/SosNames.json'),
-                fetchLatest(BUCKET_DATA, 'Players/files.json'),
-                fetchLatest(BUCKET_CONFIGS, 'GPool.json')
+                fetchLatest(BUCKET_DATA, 'Players/files.json')
             ]);
             
             sosMap = await sRes.json();
             fullFilesList = await fRes.json();
-            gPoolMap = await gRes.json();
-            
-            handleGenChange("G2");
+
+            populateSelectors();
             hideLoading();
         } catch (err) { 
             console.error(err); 
@@ -950,33 +939,13 @@
         }
     }
 
-    function handleGenChange(targetGen) {
+    function populateSelectors() {
         const startSelect = document.getElementById('startSelect');
         const endSelect = document.getElementById('endSelect');
         startSelect.innerHTML = ''; 
         endSelect.innerHTML = '';
 
-        // FIX: Ensure snapshots are sorted chronologically so "Start" and "End" work as expected
-        allFiles = fullFilesList.filter(file => {
-            const dateKey = file.replace('.csv', '');
-            const fileGen = gPoolMap[dateKey] || "G2";
-            return fileGen === targetGen;
-        }).sort();
-
-        if (allFiles.length < 2) {
-            startSelect.add(new Option("No Files Found For This Gen", ""));
-            endSelect.add(new Option("No Files Found For This Gen", ""));
-            document.getElementById('analyzeBtn').disabled = true;
-            document.getElementById('status-msg').innerText = `Not enough snapshots found for ${targetGen}. Need at least 2.`;
-            document.getElementById('cardGrid').innerHTML = '';
-            document.getElementById('loadMoreBtn').style.display = 'none';
-            return;
-        }
-
-        document.getElementById('analyzeBtn').disabled = false;
-        document.getElementById('status-msg').innerText = '';
-
-        [...allFiles].reverse().forEach(file => {
+        [...fullFilesList].reverse().forEach(file => {
             const date = file.replace('.csv','');
             const name = sosMap[date] || date;
             startSelect.add(new Option(name, file)); 
@@ -987,11 +956,6 @@
             endSelect.selectedIndex = 0; 
             startSelect.selectedIndex = 1; 
         }
-
-        migrationData = [];
-        filteredData = [];
-        document.getElementById('cardGrid').innerHTML = '';
-        document.getElementById('loadMoreBtn').style.display = 'none';
     }
 
     async function fetchCSVFull(filename, progressOffset, progressScale) {
@@ -1061,12 +1025,26 @@
         btn.disabled = true;
         updateProgress(5, "Analyzing snapshots...");
 
-        let startIdx = allFiles.indexOf(startFile);
-        let endIdx = allFiles.indexOf(endFile);
+        // Determine correct range order
+        let files = [...fullFilesList];
+        let startIdx = files.indexOf(startFile);
+        let endIdx = files.indexOf(endFile);
         if(startIdx > endIdx) [startIdx, endIdx] = [endIdx, startIdx];
-        const rangeFiles = allFiles.slice(startIdx, endIdx + 1);
+        const rangeFiles = files.slice(startIdx, endIdx + 1);
 
         try {
+            // LOAD GEN POOLS FOR END SNAPSHOT SPECIFICALLY
+            const cleanEndName = endFile.replace(/\.csv/i, '');
+            const gens = ['G1', 'G2', 'G3', 'G4', 'NoG'];
+            currentGenPools = {};
+            await Promise.all(gens.map(async (g) => {
+                try {
+                    const { data } = await fetchLatest(BUCKET_CONFIGS, `Gen Pools/${cleanEndName}-${g}.json`);
+                    const kdList = await data.json();
+                    kdList.forEach(kd => { currentGenPools[kdClean(kd)] = g; });
+                } catch(e) {}
+            }));
+
             const rangeMaps = []; 
             for(let i=0; i<rangeFiles.length; i++) {
                 rangeMaps.push(await fetchCSVFull(rangeFiles[i], (i * (0.9/rangeFiles.length) * 100), (0.9/rangeFiles.length)));
@@ -1076,7 +1054,7 @@
             latestAllianceMap = {}; 
             const stats = {};
             const ensureKD = (kd) => { 
-                if(!stats[kd]) stats[kd] = { kd, count:{in:0,out:0}, pwr:{in:0,out:0}, kills:{in:0,out:0}, deads:{in:0,out:0}, heals:{in:0,out:0}, arrivalsList:[], departuresList:[] }; 
+                if(!stats[kd]) stats[kd] = { kd, gen: currentGenPools[kd] || 'NoG', count:{in:0,out:0}, pwr:{in:0,out:0}, kills:{in:0,out:0}, deads:{in:0,out:0}, heals:{in:0,out:0}, arrivalsList:[], departuresList:[] }; 
             };
 
             const allIDs = new Set();
@@ -1090,7 +1068,6 @@
                     playerTimeline.push({ kd: cleanK, data: p, snapIdx: i });
                 }
 
-                // 1. Visual Trail
                 let historyTrail = [];
                 for (let k = 0; k < playerTimeline.length - 1; k++) {
                     if (playerTimeline[k].kd !== playerTimeline[k+1].kd) {
@@ -1100,23 +1077,19 @@
                     }
                 }
 
-                // 2. Flicker Filter: Moves between different REAL kingdoms
                 const activePoints = playerTimeline.filter(pt => pt.kd !== "N/A");
                 for (let j = 0; j < activePoints.length - 1; j++) {
                     const prev = activePoints[j];
                     const next = activePoints[j+1];
-
                     if (prev.kd !== next.kd) {
                         const growth = { 
                             kills: Math.max(0, next.data.kills - prev.data.kills), 
                             deads: Math.max(0, next.data.deads - prev.data.deads), 
                             heals: Math.max(0, next.data.heals - prev.data.heals) 
                         };
-
                         ensureKD(prev.kd);
                         stats[prev.kd].count.out++; stats[prev.kd].pwr.out += prev.data.pwr;
                         stats[prev.kd].departuresList.push({ p: prev.data, info: `to KD ${next.kd}`, growth: {kills:0, deads:0, heals:0}, swaps: historyTrail });
-
                         ensureKD(next.kd);
                         stats[next.kd].count.in++; stats[next.kd].pwr.in += next.data.pwr;
                         stats[next.kd].kills.in += growth.kills; stats[next.kd].deads.in += growth.deads; stats[next.kd].heals.in += growth.heals;
@@ -1125,7 +1098,6 @@
                     }
                 }
 
-                // 3. Rankings Entry/Exit
                 if (activePoints.length > 0) {
                     const first = activePoints[0];
                     const last = activePoints[activePoints.length - 1];
@@ -1143,7 +1115,7 @@
             });
             
             migrationData = Object.entries(stats).map(([kd, s]) => ({
-                kd, count: s.count.in - s.count.out, pwr: s.pwr.in - s.pwr.out, 
+                kd, gen: s.gen, count: s.count.in - s.count.out, pwr: s.pwr.in - s.pwr.out, 
                 kills: s.kills.in - s.kills.out, deads: s.deads.in - s.deads.out, heals: s.heals.in - s.heals.out, raw: s 
             })).filter(x => Math.abs(x.count) > 0 || Math.abs(x.pwr) > 0);
             
@@ -1154,16 +1126,13 @@
     function handleSort(k, btn) { 
         if(currentSort.key === k) currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc'; 
         else { currentSort.key = k; currentSort.direction = 'desc'; } 
-        
         document.querySelectorAll('.sort-bar .sort-btn').forEach(b => {
             b.classList.remove('active');
             const key = b.id.replace('btn-', '');
             b.textContent = sortLabels[key];
         });
-
         btn.classList.add('active');
         btn.textContent += (currentSort.direction === 'desc' ? ' ▼' : ' ▲');
-        
         applySort(); 
     }
     
@@ -1178,8 +1147,19 @@
     
     function handleSearch() { 
         const q = document.getElementById('kdSearch').value.toLowerCase(); 
-        if (searchType === 'kd') { filteredData = migrationData.filter(d => d.kd.includes(q) || (latestAllianceMap[d.kd]||"").toLowerCase().includes(q)); }
-        else { filteredData = migrationData.filter(d => d.raw.arrivalsList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q)) || d.raw.departuresList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q))); } 
+        const selectedGen = document.getElementById('genSelector').value;
+        
+        filteredData = migrationData.filter(item => {
+            const matchesGen = (selectedGen === 'all' || item.gen === selectedGen);
+            let matchesQuery = false;
+            if (searchType === 'kd') {
+                matchesQuery = item.kd.includes(q) || (latestAllianceMap[item.kd]||"").toLowerCase().includes(q);
+            } else {
+                matchesQuery = item.raw.arrivalsList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q)) || item.raw.departuresList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q));
+            }
+            return matchesGen && matchesQuery;
+        });
+
         itemsShown = pageSize; renderGrid(); 
     }
     
@@ -1190,7 +1170,13 @@
             card.onclick = () => openModal(item);
             const sig = (n) => (n > 0 ? '+' : '');
             card.innerHTML = `
-                <div class="card-header"><div class="kd-id">KD ${item.kd}</div><div class="kd-ally">${latestAllianceMap[item.kd]||"N/A"}</div></div>
+                <div class="card-header">
+                    <div style="display:flex; flex-direction:column;">
+                        <div class="kd-id">KD ${item.kd}</div>
+                        <div style="font-size:0.6rem; color:var(--primary); font-weight:900; letter-spacing:1px; margin-top:2px;">GEN: ${item.gen}</div>
+                    </div>
+                    <div class="kd-ally">${latestAllianceMap[item.kd]||"N/A"}</div>
+                </div>
                 <div class="stat-grid">
                     <div class="stat-box box-players"><span class="stat-label">Players</span><div class="stat-value ${item.count >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.count)}${item.count}</div></div>
                     <div class="stat-box box-pwr"><span class="stat-label">Power</span><div class="stat-value ${item.pwr >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.pwr)}${formatShorthand(item.pwr)}</div></div>

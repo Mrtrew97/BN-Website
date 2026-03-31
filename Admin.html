@@ -1,3 +1,5 @@
+--- START OF FILE Admin.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -231,7 +233,7 @@
         <div class="admin-card">
             <div class="admin-header">
                 <h1>Admin Hub</h1>
-                <p style="color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px;">Snapshot & Generation Management</p>
+                <p style="color: var(--muted); font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px;">Snapshot & Era Management</p>
             </div>
 
             <!-- CACHE CONTROLLER SECTION -->
@@ -251,7 +253,7 @@
             <div class="editor-section">
                 <div class="pane">
                     <h2>
-                        <span>Master Snapshot Control</span>
+                        <span>Master Snapshot Era Control</span>
                         <span id="fileCount" style="font-size: 0.6rem; opacity: 0.5;">0 Files Found</span>
                     </h2>
                     
@@ -276,7 +278,7 @@
 
     <script>
         let currentAliases = {};
-        let currentGPool = {};
+        let currentEra = {};
 
         /**
          * INITIALIZATION
@@ -288,13 +290,13 @@
                 // 1. Fetch metadata
                 const { data: files } = await supabaseAdmin.storage.from('kvk-data').list('Pull', { limit: 100 });
                 const { data: aliasBlob } = await supabaseAdmin.storage.from('kvk-data').download(`Pull/SosNames.json${timestamp}`);
-                const { data: gPoolBlob } = await supabaseAdmin.storage.from('configs').download(`GPool.json${timestamp}`);
+                const { data: eraBlob } = await supabaseAdmin.storage.from('configs').download(`snapshotera.json${timestamp}`);
 
                 // 2. Fetch Current Cache Version
                 const { data: versionBlob } = await supabaseAdmin.storage.from('configs').download(`version.json${timestamp}`);
                 
                 currentAliases = aliasBlob ? JSON.parse(await aliasBlob.text()) : {};
-                currentGPool = gPoolBlob ? JSON.parse(await gPoolBlob.text()) : {};
+                currentEra = eraBlob ? JSON.parse(await eraBlob.text()) : {};
 
                 if (versionBlob) {
                     const vData = JSON.parse(await versionBlob.text());
@@ -347,18 +349,17 @@
             csvFiles.forEach(file => {
                 const dateKey = file.name.replace(/\.csv/i, '');
                 if (currentAliases[dateKey] === undefined) currentAliases[dateKey] = "";
-                if (currentGPool[dateKey] === undefined) currentGPool[dateKey] = "G2";
+                if (currentEra[dateKey] === undefined) currentEra[dateKey] = "OFF-SEASON";
 
                 const row = document.createElement('div');
                 row.className = 'file-row';
                 row.innerHTML = `
                     <div class="file-date">${dateKey}</div>
                     <input type="text" class="alias-input" placeholder="Display Name" value="${currentAliases[dateKey]}" oninput="currentAliases['${dateKey}']=this.value">
-                    <select class="gpool-select" onchange="currentGPool['${dateKey}']=this.value">
-                        <option value="G1" ${currentGPool[dateKey] === 'G1' ? 'selected' : ''}>G1</option>
-                        <option value="G2" ${currentGPool[dateKey] === 'G2' ? 'selected' : ''}>G2</option>
-                        <option value="G3" ${currentGPool[dateKey] === 'G3' ? 'selected' : ''}>G3</option>
-                        <option value="G4" ${currentGPool[dateKey] === 'G4' ? 'selected' : ''}>G4</option>
+                    <select class="gpool-select" onchange="currentEra['${dateKey}']=this.value">
+                        <option value="START" ${currentEra[dateKey] === 'START' ? 'selected' : ''}>START</option>
+                        <option value="END" ${currentEra[dateKey] === 'END' ? 'selected' : ''}>END</option>
+                        <option value="OFF-SEASON" ${currentEra[dateKey] === 'OFF-SEASON' ? 'selected' : ''}>OFF-SEASON</option>
                     </select>
                 `;
                 container.appendChild(row);
@@ -375,12 +376,12 @@
 
             try {
                 const aliasString = JSON.stringify(currentAliases, null, 2);
-                const gPoolString = JSON.stringify(currentGPool, null, 2);
+                const eraString = JSON.stringify(currentEra, null, 2);
 
                 await Promise.all([
                     supabaseAdmin.storage.from('kvk-data').upload(`Pull/SosNames.json`, aliasString, { upsert: true }),
                     supabaseAdmin.storage.from('kvk-data').upload(`Players/SosNames.json`, aliasString, { upsert: true }),
-                    supabaseAdmin.storage.from('configs').upload(`GPool.json`, gPoolString, { upsert: true })
+                    supabaseAdmin.storage.from('configs').upload(`snapshotera.json`, eraString, { upsert: true })
                 ]);
 
                 btn.innerText = "ALL SYSTEMS SYNCED!";

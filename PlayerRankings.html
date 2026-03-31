@@ -282,11 +282,11 @@
             50% { border-color: #f59e0b; box-shadow: 0 0 35px rgba(217, 119, 6, 0.3); } 
         }
 
-        .rank-1-wrapper .podium-card { height: 300px; animation: glow-1 4s ease-in-out infinite; } 
+        .rank-1-wrapper .podium-card { height: 320px; animation: glow-1 4s ease-in-out infinite; } 
         .rank-1-wrapper .rank-num-display { color: #fbbf24; text-shadow: 0 0 30px rgba(251, 191, 36, 0.5); }
-        .rank-2-wrapper .podium-card { height: 260px; animation: glow-2 4s ease-in-out infinite; } 
+        .rank-2-wrapper .podium-card { height: 280px; animation: glow-2 4s ease-in-out infinite; } 
         .rank-2-wrapper .rank-num-display { color: #e2e8f0; text-shadow: 0 0 20px rgba(226, 232, 240, 0.4); }
-        .rank-3-wrapper .podium-card { height: 230px; animation: glow-3 4s ease-in-out infinite; } 
+        .rank-3-wrapper .podium-card { height: 250px; animation: glow-3 4s ease-in-out infinite; } 
         .rank-3-wrapper .rank-num-display { color: #d97706; text-shadow: 0 0 20px rgba(217, 119, 6, 0.4); }
 
         .pod-name { 
@@ -551,13 +551,14 @@
     </div>
 
     <div class="selectors-row">
-        <!-- NEW GENERATION SELECTOR -->
-        <select id="genSelector" class="gen-select" onchange="handleGenChange(this.value)">
+        <!-- UPDATED GENERATION SELECTOR -->
+        <select id="genSelector" class="gen-select" onchange="refreshData()">
             <option value="all" selected>All Gens</option>
             <option value="G1">G1</option>
             <option value="G2">G2</option>
             <option value="G3">G3</option>
             <option value="G4">G4</option>
+            <option value="NoG">NoG</option>
         </select>
         
         <div id="singleSelectArea">
@@ -576,7 +577,8 @@
 
     <div class="search-row">
         <div class="search-wrapper" onclick="event.stopPropagation()">
-            <input type="text" id="playerSearch" class="search-input" placeholder="Search Rank 1-100 by Name or ID..." oninput="debouncedSearch(this.value)">
+            <!-- AUTOCOMPLETE DISABLED -->
+            <input type="text" id="playerSearch" class="search-input" placeholder="Search Rank 1-100 by Name or ID..." oninput="debouncedSearch(this.value)" autocomplete="off">
             <div id="searchDropdown" class="search-dropdown"></div>
         </div>
     </div>
@@ -633,7 +635,7 @@
     // --- STATE ---
     let currentMode = 'total'; 
     let fullFileList = []; 
-    let gPoolMap = {};
+    let currentGenPools = {}; 
     let sosMap = {}; 
     let processedData = []; 
     let top100Data = []; 
@@ -648,6 +650,11 @@
     /**
      * UTILITIES
      */
+    function idClean(val) {
+        if (!val) return "";
+        return String(parseInt(parseFloat(String(val).trim())));
+    }
+
     function debounce(func, delay) {
         let timeout;
         return function(...args) {
@@ -668,7 +675,6 @@
         try {
             updateProgress(10, "Syncing Cache...");
             
-            // 1. FETCH REMOTE VERSION FIRST
             let v = "1.0";
             try {
                 const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
@@ -678,18 +684,16 @@
 
             const timestamp = `?v=${v}`;
             
-            // TRIPLE SYNC
-            const [sRes, fRes, gRes] = await Promise.all([
+            const [sRes, fRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download(`Players/SosNames.json${timestamp}`),
-                supabaseClient.storage.from(BUCKET_DATA).download(`Players/files.json${timestamp}`),
-                supabaseClient.storage.from(BUCKET_CONFIGS).download(`GPool.json${timestamp}`)
+                supabaseClient.storage.from(BUCKET_DATA).download(`Players/files.json${timestamp}`)
             ]);
             
             if (sRes.data) sosMap = JSON.parse(await sRes.data.text());
             if (fRes.data) fullFileList = JSON.parse(await fRes.data.text());
-            if (gRes.data) gPoolMap = JSON.parse(await gRes.data.text());
             
-            handleGenChange('all');
+            populateSelectors(fullFileList);
+            refreshData();
             
         } catch (e) { 
             console.error(e); 
@@ -717,17 +721,6 @@
                 document.getElementById('status-msg').innerText = '';
             }, 300);
         }
-    }
-
-    function handleGenChange(val) {
-        let activeFiles = [];
-        if (val === 'all') {
-            activeFiles = [...fullFileList];
-        } else {
-            activeFiles = fullFileList.filter(f => (gPoolMap[f.replace('.csv', '')] || "G2") === val);
-        }
-        populateSelectors(activeFiles);
-        setMode(currentMode);
     }
 
     function populateSelectors(files) {
@@ -768,6 +761,7 @@
         const overlay = document.getElementById('loadingOverlay');
         const fileSelect = currentMode === 'total' ? document.getElementById('fileSelector') : document.getElementById('endSelector');
         const startSelect = document.getElementById('startSelector');
+        const selectedGen = document.getElementById('genSelector').value;
 
         if (!fileSelect || !fileSelect.value || (currentMode === 'diff' && (!startSelect || !startSelect.value))) {
             processedData = []; updateTop100(); hideLoading(); return;
@@ -776,13 +770,30 @@
         if (overlay) { overlay.style.display = 'flex'; overlay.style.opacity = '1'; }
 
         const timestamp = `?v=${window.DATA_VERSION || "1.0"}`;
+        const cleanName = fileSelect.value.replace(/\.csv/i, '');
 
         try {
+            // LOAD GEN POOLS FOR THE TARGET (END) SNAPSHOT
+            const gens = ['G1', 'G2', 'G3', 'G4', 'NoG'];
+            currentGenPools = {};
+            
+            await Promise.all(gens.map(async (g) => {
+                try {
+                    const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`Gen Pools/${cleanName}-${g}.json${timestamp}`);
+                    if (data) {
+                        const kdList = JSON.parse(await data.text());
+                        kdList.forEach(kd => { currentGenPools[idClean(kd)] = g; });
+                    }
+                } catch(e) {}
+            }));
+
+            let rawPlayers = [];
+
             if (currentMode === 'total') {
                 updateProgress(20, `Loading snapshot...`);
                 const { data: resBlob, error } = await supabaseClient.storage.from(BUCKET_DATA).download(`Players/${fileSelect.value}${timestamp}`);
                 if (error) throw error;
-                processedData = Papa.parse(await resBlob.text(), { header: true, skipEmptyLines: true }).data;
+                rawPlayers = Papa.parse(await resBlob.text(), { header: true, skipEmptyLines: true }).data;
             } else {
                 updateProgress(10, `Loading range...`);
                 const [sRes, eRes] = await Promise.all([ 
@@ -796,19 +807,27 @@
                 const eData = Papa.parse(await eRes.data.text(), { header: true, skipEmptyLines: true }).data;
                 const sMap = new Map(sData.map(p => [p["Lord ID"], p]));
                 
-                processedData = eData.map(pEnd => {
+                rawPlayers = eData.map(pEnd => {
                     let row = { ...pEnd }; 
                     const pStart = sMap.get(pEnd["Lord ID"]);
                     Object.keys(headerDisplayMap).forEach(h => { row[h] = cleanNum(pEnd[h]) - (pStart ? cleanNum(pStart[h]) : 0); });
                     return row;
                 });
             }
+
+            // FILTER PLAYERS BY KINGDOM GENERATION
+            processedData = rawPlayers.filter(p => {
+                const kd = idClean(p.KD);
+                const pGen = currentGenPools[kd] || 'NoG';
+                return (selectedGen === 'all' || pGen === selectedGen);
+            });
+
             updateTop100();
             updateProgress(100, "Done");
             setTimeout(hideLoading, 500);
         } catch (e) { 
             console.error(e); 
-            document.getElementById('status-msg').innerText = "Error: File missing.";
+            document.getElementById('status-msg').innerText = "Error loading data.";
             hideLoading();
         }
     }
@@ -851,7 +870,7 @@
 
         if (top100Data.length === 0) {
             podium.style.display = 'none';
-            grid.innerHTML = `<div class="no-results"><h3>No Data</h3></div>`;
+            grid.innerHTML = `<div class="no-results"><h3>No Players found for this selection</h3></div>`;
             return;
         }
 
@@ -863,7 +882,19 @@
                 const p = top3[idx]; if(!p) return '';
                 const mainVal = cleanNum(p[currentSort.field]);
                 const formatted = (currentSort.field === "M/P" ? (mainVal * 100).toFixed(2) + '%' : Math.floor(mainVal).toLocaleString());
-                return `<div class="podium-wrapper rank-${idx+1}-wrapper"><div class="podium-card"><div class="rank-num-display">0${idx+1}</div><span class="pod-name">${p.Name}</span><div class="pod-meta">KD ${p.KD || '??'} • ${p.Ally || '??'}</div><div class="pod-stat-box"><span class="pod-val">${formatted}</span><span class="pod-lbl">${headerDisplayMap[currentSort.field]}</span></div></div></div>`;
+                const kd = idClean(p.KD);
+                return `<div class="podium-wrapper rank-${idx+1}-wrapper">
+                    <div class="podium-card">
+                        <div class="rank-num-display">0${idx+1}</div>
+                        <span class="pod-name" title="${p.Name}">${p.Name}</span>
+                        <div class="pod-meta">KD ${kd} • ${p.Ally || '??'}</div>
+                        <div style="font-size:0.55rem; color:var(--primary); font-weight:900; margin-top:4px;">GEN: ${currentGenPools[kd] || 'NoG'}</div>
+                        <div class="pod-stat-box">
+                            <span class="pod-val">${formatted}</span>
+                            <span class="pod-lbl">${headerDisplayMap[currentSort.field]}</span>
+                        </div>
+                    </div>
+                </div>`;
             }).join('');
             renderGrid(top100Data.slice(3, 100), grid);
         } else {
@@ -878,21 +909,19 @@
             const mainVal = cleanNum(p[currentSort.field]);
             const formatted = (currentSort.field === "M/P" ? (mainVal * 100).toFixed(2) + '%' : Math.floor(mainVal).toLocaleString());
             let diffTag = currentMode === 'diff' ? `<span class="diff-tag ${mainVal >= 0 ? 'pos' : 'neg'}">${mainVal >= 0 ? '▲' : '▼'}</span>` : '';
-            return `<div class="player-card"><div class="rank-badge">RANK ${p.globalRank}</div><span class="p-name">${p.Name || 'Unknown'}</span><span class="p-id">LORD ID: ${p["Lord ID"] || 'N/A'}</span><div class="p-meta">KD ${p.KD || '??'} • ${p.Ally || '??'}</div><div class="metric-focus-box"><span class="focus-label">${headerDisplayMap[currentSort.field]}</span><div class="focus-value">${formatted}${diffTag}</div></div></div>`;
+            const kd = idClean(p.KD);
+            return `<div class="player-card"><div class="rank-badge">RANK ${p.globalRank}</div><span class="p-name">${p.Name || 'Unknown'}</span><span class="p-id">LORD ID: ${p["Lord ID"] || 'N/A'}</span><div class="p-meta">KD ${kd} • ${p.Ally || '??'} <span style="margin-left:8px; opacity:0.5;">[${currentGenPools[kd] || 'NoG'}]</span></div><div class="metric-focus-box"><span class="focus-label">${headerDisplayMap[currentSort.field]}</span><div class="focus-value">${formatted}${diffTag}</div></div></div>`;
         }).join('');
     }
 
     function setSort(key, btn) {
         currentSort.field = key;
-        
         document.querySelectorAll('.metric-btn').forEach(b => {
             b.classList.remove('active');
             b.textContent = b.textContent.replace(/ ▼/g, '').trim();
         });
-
         btn.classList.add('active');
         btn.textContent += ' ▼';
-        
         updateTop100();
     }
 

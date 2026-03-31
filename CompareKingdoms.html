@@ -312,13 +312,14 @@
         </div>
         <h1 class="page-title-main">Kingdom Comparison</h1>
         <div class="nav-side-box right">
-            <!-- NEW GENERATION SELECTOR -->
+            <!-- UPDATED GENERATION SELECTOR -->
             <select id="genSelector" class="gen-select" onchange="handleGenChange(this.value)">
                 <option value="all" selected>All Gens</option>
                 <option value="G1">G1</option>
                 <option value="G2">G2</option>
                 <option value="G3">G3</option>
                 <option value="G4">G4</option>
+                <option value="NoG">NoG</option>
             </select>
         </div>
     </div>
@@ -369,8 +370,6 @@
     
     // --- STATE & CONSTANTS ---
     let fullFileList = [];
-    let fileList = [];
-    let gPoolMap = {};
     let charts = { A: {}, B: {} };
     let sosMap = {};
     const palette = ['#3b82f6', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#f43f5e', '#84cc16', '#ec4899', '#6366f1', '#14b8a6'];
@@ -386,20 +385,31 @@
         { id: 'CH25AP', label: 'CH25 AP', index: 9, showRaw: true }
     ];
 
-    // --- DATA SAVER FETCH HELPER ---
-    async function fetchLatest(bucket, path, forceFresh = false) {
-        // Use window.DATA_VERSION if available, otherwise default to a timestamp if specifically forced
-        const v = forceFresh ? Date.now() : (window.DATA_VERSION || "1.0"); 
-        const paramName = forceFresh ? "t" : "v";
+    function idClean(val) {
+        if (!val) return "";
+        return String(parseInt(parseFloat(String(val).trim())));
+    }
 
-        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?${paramName}=${v}`;
-        
+    async function fetchLatest(bucket, path, forceFresh = false) {
+        let v = "1.0";
+        try {
+            const vRes = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET_CONFIGS}/version.json?t=${Date.now()}`, {
+                headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+            });
+            const vData = await vRes.json();
+            v = vData.v;
+            window.DATA_VERSION = v;
+        } catch(e) { window.DATA_VERSION = "1.0"; }
+
+        const paramName = forceFresh ? "t" : "v";
+        const ver = forceFresh ? Date.now() : (window.DATA_VERSION || "1.0");
+
+        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?${paramName}=${ver}`;
         const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                // Cache-Control omitted to allow browser caching on ?v= requests
             }
         });
         
@@ -425,10 +435,7 @@
         const progressBar = document.getElementById('progressBar');
         const statusText = document.getElementById('status-text');
         
-        if (overlay) { 
-            overlay.style.display = 'flex'; 
-            overlay.style.opacity = '1'; 
-        }
+        if (overlay) { overlay.style.display = 'flex'; overlay.style.opacity = '1'; }
         if (progressBar) progressBar.style.width = pct + '%';
         if (statusText && text) statusText.textContent = text;
     }
@@ -437,9 +444,7 @@
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) { 
             overlay.style.opacity = '0'; 
-            setTimeout(() => {
-                overlay.style.display = 'none';
-            }, 300); 
+            setTimeout(() => { overlay.style.display = 'none'; }, 300); 
         }
     }
 
@@ -447,27 +452,13 @@
         try {
             updateProgress(5, "Syncing Cache...");
             
-            // 1. FETCH REMOTE VERSION FIRST
-            try {
-                const vRes = await fetchLatest(BUCKET_CONFIGS, 'version.json', true);
-                const vData = await vRes.json();
-                window.DATA_VERSION = vData.v;
-            } catch(e) {
-                window.DATA_VERSION = "1.0";
-            }
-
-            updateProgress(15, "Fetching Metadata...");
-            
-            // 2. FETCH OTHER METADATA USING VERSION
-            const [sRes, fRes, gRes] = await Promise.all([
+            const [sRes, fRes] = await Promise.all([
                 fetchLatest(BUCKET_DATA, 'Pull/SosNames.json').catch(() => null),
-                fetchLatest(BUCKET_DATA, 'Pull/files.json').catch(() => null),
-                fetchLatest(BUCKET_CONFIGS, 'GPool.json').catch(() => null)
+                fetchLatest(BUCKET_DATA, 'Pull/files.json').catch(() => null)
             ]);
             
             if (sRes) sosMap = await sRes.json();
             if (fRes) fullFileList = (await fRes.json()).sort();
-            if (gRes) gPoolMap = await gRes.json();
 
             updateProgress(35, "Preparing Charts...");
             ['A', 'B'].forEach(group => {
@@ -481,9 +472,6 @@
                 });
             });
             
-            // Apply default "All Gens" filter
-            handleGenChange('all');
-
             updateProgress(100, "Ready");
             setTimeout(hideLoading, 500);
 
@@ -494,49 +482,23 @@
         }
     }
 
-    function handleGenChange(val) {
-        if (val === 'all') {
-            fileList = [...fullFileList];
-        } else {
-            fileList = fullFileList.filter(file => {
-                const dateKey = file.replace(/\.csv/i, '');
-                const fileGen = gPoolMap[dateKey] || "G2";
-                return fileGen === val;
-            });
-        }
-        
-        // Auto-re-run comparisons if inputs already have text
-        if (document.getElementById('inputA').value.trim() !== '') {
-            runComparison('A');
-        }
-        if (document.getElementById('inputB').value.trim() !== '') {
-            runComparison('B');
-        }
+    function handleGenChange() {
+        if (document.getElementById('inputA').value.trim() !== '') runComparison('A');
+        if (document.getElementById('inputB').value.trim() !== '') runComparison('B');
     }
 
     function setupChart(group, m) {
         const ctx = document.getElementById(`chart-${group}-${m.id}`).getContext('2d');
         charts[group][m.id] = new Chart(ctx, {
             type: 'line',
-            data: { 
-                labels: [], 
-                datasets: [] 
-            },
+            data: { labels: [], datasets: [] },
             options: {
-                responsive: true, 
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: { 
-                    title: { 
-                        display: true, 
-                        text: m.label, 
-                        font: { size: 14, weight: '900' }, 
-                        color: '#f8fafc' 
-                    }, 
+                    title: { display: true, text: m.label, font: { size: 14, weight: '900' }, color: '#f8fafc' }, 
                     legend: { display: false },
                     tooltip: {
-                        mode: 'index', 
-                        intersect: false, 
-                        padding: 12,
+                        mode: 'index', intersect: false, padding: 12,
                         backgroundColor: 'rgba(15, 23, 42, 0.95)',
                         callbacks: {
                             label: (context) => {
@@ -551,21 +513,8 @@
                     }
                 },
                 scales: { 
-                    y: { 
-                        grid: { color: 'rgba(255,255,255,0.05)' }, 
-                        ticks: { 
-                            color: '#94a3b8', 
-                            callback: v => formatValue(v, m.isPercent), 
-                            font: { size: 10, weight: '600' } 
-                        } 
-                    },
-                    x: { 
-                        grid: { display: false }, 
-                        ticks: { 
-                            color: '#94a3b8', 
-                            font: { size: 10, weight: '600' } 
-                        } 
-                    }
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', callback: v => formatValue(v, m.isPercent), font: { size: 10, weight: '600' } } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10, weight: '600' } } }
                 }
             }
         });
@@ -574,45 +523,47 @@
     async function runComparison(group) {
         const input = document.getElementById(`input${group}`).value;
         const targetIds = input.split(',').map(s => s.trim()).filter(s => s !== "");
+        const selectedGen = document.getElementById('genSelector').value;
         
-        if (!targetIds.length || !fileList.length) {
-            if (!fileList.length) {
-                metrics.forEach(m => {
-                    const chart = charts[group][m.id];
-                    chart.data.labels = [];
-                    chart.data.datasets = [];
-                    chart.update();
-                });
-                document.getElementById(`legend${group}`).innerHTML = '';
-                document.getElementById(`sticky${group}`).style.display = 'none';
-            }
-            return;
-        }
+        if (!targetIds.length || !fullFileList.length) return;
         
-        updateProgress(5, "Analyzing Snapshots...");
+        updateProgress(5, "Analyzing History...");
         const history = {}; 
         targetIds.forEach(id => history[id] = []);
         const latestNameMap = {};
         
         try {
-            const lastFile = fileList[fileList.length-1];
+            const lastFile = fullFileList[fullFileList.length-1];
             const lastRes = await fetchLatest(BUCKET_DATA, `Pull/${lastFile}`);
             const lastCsv = Papa.parse(await lastRes.text(), {skipEmptyLines: true}).data;
             
             targetIds.forEach(id => { 
-                const row = lastCsv.find(r => String(r[0]).trim() === id); 
+                const row = lastCsv.find(r => idClean(r[0]) === idClean(id)); 
                 latestNameMap[id] = row ? `${row[1]} (${id})` : `ID ${id}`; 
             });
 
             let count = 0;
-            const downloadPromises = fileList.map(async (f) => {
+            const downloadPromises = fullFileList.map(async (f) => {
+                const date = f.replace(/\.csv/i, '');
+                
+                // NEW PER-KINGDOM GEN LOGIC: FETCH GEN POOL FOR THIS SNAPSHOT
+                let validPool = null;
+                if (selectedGen !== 'all') {
+                    try {
+                        const poolRes = await fetchLatest(BUCKET_CONFIGS, `Gen Pools/${date}-${selectedGen}.json`);
+                        validPool = new Set((await poolRes.json()).map(k => idClean(k)));
+                    } catch(e) { validPool = new Set(); }
+                }
+
                 try {
                     const res = await fetchLatest(BUCKET_DATA, `Pull/${f}`);
                     const csvData = Papa.parse(await res.text(), {skipEmptyLines: true}).data;
-                    const date = f.replace(/\.csv/i, '');
                     
                     targetIds.forEach(id => {
-                        const row = csvData.find(r => String(r[0]).trim() === id);
+                        // Skip point if it doesn't belong to the selected Gen in this snapshot
+                        if (validPool && !validPool.has(idClean(id))) return;
+
+                        const row = csvData.find(r => idClean(r[0]) === idClean(id));
                         if(row) {
                             let mData = {};
                             metrics.forEach(m => { 
@@ -621,22 +572,17 @@
                                 if(m.isPercent && n > 1) n /= 100;
                                 mData[m.id] = isNaN(n) ? null : n; 
                             });
-                            history[id].push({ 
-                                date, 
-                                data: mData, 
-                                historicalName: `${row[1]} (${id})` || `ID ${id}` 
-                            });
+                            history[id].push({ date, data: mData, historicalName: `${row[1]} (${id})` || `ID ${id}` });
                         }
                     });
                 } catch (e) { console.warn(`Snapshot fail: ${f}`); }
                 count++;
-                updateProgress(10 + (count/fileList.length)*80, `Processing: ${count}/${fileList.length}`);
+                updateProgress(10 + (count/fullFileList.length)*80, `Processing: ${count}/${fullFileList.length}`);
             });
 
             await Promise.all(downloadPromises);
 
-            const dateKeys = fileList.map(f => f.replace(/\.csv/i, ''));
-            const displayLabels = dateKeys.map(d => sosMap[d] || d);
+            const displayLabels = fullFileList.map(d => sosMap[d.replace(/\.csv/i,'')] || d.replace(/\.csv/i,''));
             const legendDiv = document.getElementById(`legend${group}`);
             legendDiv.innerHTML = '';
             document.getElementById(`sticky${group}`).style.display = 'block';
@@ -655,17 +601,12 @@
                         legendDiv.appendChild(item);
                     }
                     
-                    const points = dateKeys.map(d => history[id].find(pt => pt.date === d));
+                    const points = fullFileList.map(f => history[id].find(pt => pt.date === f.replace(/\.csv/i,'')));
                     return { 
                         label: latestDisplayLabel, 
                         data: points.map(p => p ? p.data[m.id] : null), 
                         historicalAlliances: points.map(p => p ? p.historicalName : '---'), 
-                        borderColor: color, 
-                        backgroundColor: color, 
-                        fill: false, 
-                        tension: 0.2, 
-                        pointRadius: 4, 
-                        borderWidth: 3 
+                        borderColor: color, backgroundColor: color, fill: false, tension: 0.2, pointRadius: 4, borderWidth: 3 
                     };
                 });
                 chart.update();
