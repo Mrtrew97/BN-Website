@@ -1,3 +1,5 @@
+--- START OF FILE CompareKingdoms.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -312,14 +314,12 @@
         </div>
         <h1 class="page-title-main">Kingdom Comparison</h1>
         <div class="nav-side-box right">
-            <!-- UPDATED GENERATION SELECTOR -->
-            <select id="genSelector" class="gen-select" onchange="handleGenChange(this.value)">
-                <option value="all" selected>All Gens</option>
-                <option value="G1">G1</option>
-                <option value="G2">G2</option>
-                <option value="G3">G3</option>
-                <option value="G4">G4</option>
-                <option value="NoG">NoG</option>
+            <!-- ERA SELECTOR -->
+            <select id="eraSelector" class="gen-select" onchange="handleEraChange()">
+                <option value="all" selected>All Files</option>
+                <option value="START">Start</option>
+                <option value="END">End</option>
+                <option value="OFF-SEASON">Off-Season</option>
             </select>
         </div>
     </div>
@@ -370,6 +370,7 @@
     
     // --- STATE & CONSTANTS ---
     let fullFileList = [];
+    let snapshotEraMap = {};
     let charts = { A: {}, B: {} };
     let sosMap = {};
     const palette = ['#3b82f6', '#10b981', '#a855f7', '#f59e0b', '#06b6d4', '#f43f5e', '#84cc16', '#ec4899', '#6366f1', '#14b8a6'];
@@ -385,26 +386,18 @@
         { id: 'CH25AP', label: 'CH25 AP', index: 9, showRaw: true }
     ];
 
-    function idClean(val) {
-        if (!val) return "";
-        return String(parseInt(parseFloat(String(val).trim())));
-    }
-
     async function fetchLatest(bucket, path, forceFresh = false) {
         let v = "1.0";
         try {
             const vRes = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/${BUCKET_CONFIGS}/version.json?t=${Date.now()}`, {
                 headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
             });
-            const vData = await vRes.json();
-            v = vData.v;
+            v = (await vRes.json()).v;
             window.DATA_VERSION = v;
         } catch(e) { window.DATA_VERSION = "1.0"; }
 
-        const paramName = forceFresh ? "t" : "v";
         const ver = forceFresh ? Date.now() : (window.DATA_VERSION || "1.0");
-
-        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?${paramName}=${ver}`;
+        const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path}?v=${ver}`;
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -412,7 +405,6 @@
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
             }
         });
-        
         if (!response.ok) throw new Error(`HTTP ${response.status} for ${path}`);
         return response;
     }
@@ -434,7 +426,6 @@
         const overlay = document.getElementById('loadingOverlay');
         const progressBar = document.getElementById('progressBar');
         const statusText = document.getElementById('status-text');
-        
         if (overlay) { overlay.style.display = 'flex'; overlay.style.opacity = '1'; }
         if (progressBar) progressBar.style.width = pct + '%';
         if (statusText && text) statusText.textContent = text;
@@ -442,25 +433,23 @@
 
     function hideLoading() {
         const overlay = document.getElementById('loadingOverlay');
-        if (overlay) { 
-            overlay.style.opacity = '0'; 
-            setTimeout(() => { overlay.style.display = 'none'; }, 300); 
-        }
+        if (overlay) { overlay.style.opacity = '0'; setTimeout(() => { overlay.style.display = 'none'; }, 300); }
     }
 
     async function init() {
         try {
             updateProgress(5, "Syncing Cache...");
-            
-            const [sRes, fRes] = await Promise.all([
+            const [sRes, fRes, eraRes] = await Promise.all([
                 fetchLatest(BUCKET_DATA, 'Pull/SosNames.json').catch(() => null),
-                fetchLatest(BUCKET_DATA, 'Pull/files.json').catch(() => null)
+                fetchLatest(BUCKET_DATA, 'Pull/files.json').catch(() => null),
+                fetchLatest(BUCKET_CONFIGS, 'snapshotera.json').catch(() => null)
             ]);
             
             if (sRes) sosMap = await sRes.json();
             if (fRes) fullFileList = (await fRes.json()).sort();
+            if (eraRes) snapshotEraMap = await eraRes.json();
+            else snapshotEraMap = {};
 
-            updateProgress(35, "Preparing Charts...");
             ['A', 'B'].forEach(group => {
                 const container = document.getElementById(`charts${group}`);
                 metrics.forEach(m => {
@@ -476,15 +465,9 @@
             setTimeout(hideLoading, 500);
 
         } catch(e) { 
-            console.error("Initialization Error:", e);
+            console.error(e);
             document.getElementById('status-text').textContent = "ERROR: Connection failed.";
-            document.getElementById('status-text').style.color = "#ef4444";
         }
-    }
-
-    function handleGenChange() {
-        if (document.getElementById('inputA').value.trim() !== '') runComparison('A');
-        if (document.getElementById('inputB').value.trim() !== '') runComparison('B');
     }
 
     function setupChart(group, m) {
@@ -520,50 +503,57 @@
         });
     }
 
+    function handleEraChange() {
+        if (document.getElementById('inputA').value.trim() !== '') runComparison('A');
+        if (document.getElementById('inputB').value.trim() !== '') runComparison('B');
+    }
+
     async function runComparison(group) {
         const input = document.getElementById(`input${group}`).value;
         const targetIds = input.split(',').map(s => s.trim()).filter(s => s !== "");
-        const selectedGen = document.getElementById('genSelector').value;
+        let selectedEra = document.getElementById('eraSelector').value;
         
         if (!targetIds.length || !fullFileList.length) return;
         
-        updateProgress(5, "Analyzing History...");
+        // FILTER FILE LIST BY ERA
+        let filteredFiles = fullFileList.filter(f => {
+            if (selectedEra === 'all') return true;
+            const dateKey = f.replace(/\.csv/i, '');
+            return snapshotEraMap[dateKey] === selectedEra;
+        });
+
+        // FALLBACK: IF NO FILES FOUND, RESET TO ALL FILES
+        if (filteredFiles.length === 0 && selectedEra !== 'all') {
+            alert(`No files found for the ${selectedEra} timeline. Returning to default.`);
+            document.getElementById('eraSelector').value = 'all';
+            runComparison(group); // Recursive call with corrected era
+            return;
+        }
+
+        updateProgress(5, "Analyzing Range...");
         const history = {}; 
         targetIds.forEach(id => history[id] = []);
         const latestNameMap = {};
         
         try {
-            const lastFile = fullFileList[fullFileList.length-1];
+            const lastFile = filteredFiles[filteredFiles.length-1];
             const lastRes = await fetchLatest(BUCKET_DATA, `Pull/${lastFile}`);
             const lastCsv = Papa.parse(await lastRes.text(), {skipEmptyLines: true}).data;
             
             targetIds.forEach(id => { 
-                const row = lastCsv.find(r => idClean(r[0]) === idClean(id)); 
+                const row = lastCsv.find(r => String(r[0]).trim() === String(id)); 
                 latestNameMap[id] = row ? `${row[1]} (${id})` : `ID ${id}`; 
             });
 
             let count = 0;
-            const downloadPromises = fullFileList.map(async (f) => {
-                const date = f.replace(/\.csv/i, '');
-                
-                // NEW PER-KINGDOM GEN LOGIC: FETCH GEN POOL FOR THIS SNAPSHOT
-                let validPool = null;
-                if (selectedGen !== 'all') {
-                    try {
-                        const poolRes = await fetchLatest(BUCKET_CONFIGS, `Gen Pools/${date}-${selectedGen}.json`);
-                        validPool = new Set((await poolRes.json()).map(k => idClean(k)));
-                    } catch(e) { validPool = new Set(); }
-                }
-
+            const downloadPromises = filteredFiles.map(async (f) => {
                 try {
                     const res = await fetchLatest(BUCKET_DATA, `Pull/${f}`);
                     const csvData = Papa.parse(await res.text(), {skipEmptyLines: true}).data;
+                    const date = f.replace(/\.csv/i, '');
                     
                     targetIds.forEach(id => {
-                        // Skip point if it doesn't belong to the selected Gen in this snapshot
-                        if (validPool && !validPool.has(idClean(id))) return;
-
-                        const row = csvData.find(r => idClean(r[0]) === idClean(id));
+                        const row = csvData.find(r => String(r[0]).trim() === String(id));
                         if(row) {
                             let mData = {};
                             metrics.forEach(m => { 
@@ -577,12 +567,12 @@
                     });
                 } catch (e) { console.warn(`Snapshot fail: ${f}`); }
                 count++;
-                updateProgress(10 + (count/fullFileList.length)*80, `Processing: ${count}/${fullFileList.length}`);
+                updateProgress(10 + (count/filteredFiles.length)*80, `Syncing: ${count}/${filteredFiles.length}`);
             });
 
             await Promise.all(downloadPromises);
 
-            const displayLabels = fullFileList.map(d => sosMap[d.replace(/\.csv/i,'')] || d.replace(/\.csv/i,''));
+            const displayLabels = filteredFiles.map(f => sosMap[f.replace(/\.csv/i,'')] || f.replace(/\.csv/i,''));
             const legendDiv = document.getElementById(`legend${group}`);
             legendDiv.innerHTML = '';
             document.getElementById(`sticky${group}`).style.display = 'block';
@@ -601,7 +591,7 @@
                         legendDiv.appendChild(item);
                     }
                     
-                    const points = fullFileList.map(f => history[id].find(pt => pt.date === f.replace(/\.csv/i,'')));
+                    const points = filteredFiles.map(f => history[id].find(pt => pt.date === f.replace(/\.csv/i,'')));
                     return { 
                         label: latestDisplayLabel, 
                         data: points.map(p => p ? p.data[m.id] : null), 
@@ -617,7 +607,7 @@
 
         } catch (err) {
             console.error(err);
-            document.getElementById('status-text').textContent = "Process failed. Check connection.";
+            document.getElementById('status-text').textContent = "Process failed.";
         }
     }
 
