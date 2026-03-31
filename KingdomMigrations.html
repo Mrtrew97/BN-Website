@@ -281,7 +281,7 @@
             min-width: 220px; 
         }
 
-        #genSelector {
+        #eraSelector {
             color: var(--primary);
             font-weight: 900;
         }
@@ -756,14 +756,12 @@
 
 <div class="selector-island">
     <div class="select-group">
-        <label>Generation Filter</label>
-        <select id="genSelector">
-            <option value="all" selected>All Gens</option>
-            <option value="G1">G1</option>
-            <option value="G2">G2</option>
-            <option value="G3">G3</option>
-            <option value="G4">G4</option>
-            <option value="NoG">NoG</option>
+        <label>Era Filter</label>
+        <select id="eraSelector" onchange="handleEraChange()">
+            <option value="all" selected>All Files</option>
+            <option value="START">Start</option>
+            <option value="END">End</option>
+            <option value="OFF-SEASON">Off-Season</option>
         </select>
     </div>
     <div class="select-group">
@@ -847,7 +845,7 @@
     let fullFilesList = [];
     let latestAllianceMap = {};
     let sosMap = {};
-    let currentGenPools = {}; // Maps KD to Gen for END snapshot
+    let snapshotEraMap = {};
     let currentSort = { key: 'count', direction: 'desc' };
     let searchType = 'kd';
     let itemsShown = 30;
@@ -860,11 +858,6 @@
         let cleaned = String(val).trim().replace(/["',]/g, '');
         let num = Math.floor(parseFloat(cleaned));
         return isNaN(num) ? "" : String(num);
-    }
-
-    function kdClean(val) { 
-        if (!val || val === "N/A") return "N/A"; 
-        return idClean(val);
     }
 
     function cleanNum(val) { 
@@ -923,13 +916,16 @@
     async function init() {
         try {
             updateProgress(10, "Fetching Metadata...");
-            const [sRes, fRes] = await Promise.all([
+            const [sRes, fRes, eraRes] = await Promise.all([
                 fetchLatest(BUCKET_DATA, 'Players/SosNames.json'),
-                fetchLatest(BUCKET_DATA, 'Players/files.json')
+                fetchLatest(BUCKET_DATA, 'Players/files.json'),
+                fetchLatest(BUCKET_CONFIGS, 'snapshotera.json').catch(() => null)
             ]);
             
             sosMap = await sRes.json();
             fullFilesList = await fRes.json();
+            if (eraRes) snapshotEraMap = await eraRes.json();
+            else snapshotEraMap = {};
 
             populateSelectors();
             hideLoading();
@@ -939,13 +935,34 @@
         }
     }
 
-    function populateSelectors() {
+    function handleEraChange() {
+        const selectedEra = document.getElementById('eraSelector').value;
+        
+        // RE-POPULATE SELECTORS WITH FILTERED LIST
+        const eraFiles = fullFilesList.filter(f => {
+            if (selectedEra === 'all') return true;
+            const dateKey = f.replace('.csv', '');
+            return snapshotEraMap[dateKey] === selectedEra;
+        });
+
+        // FALLBACK: IF NO FILES IN THIS ERA
+        if (eraFiles.length === 0 && selectedEra !== 'all') {
+            alert(`No snapshots found for the ${selectedEra} timeline. Reverting to all files.`);
+            document.getElementById('eraSelector').value = 'all';
+            handleEraChange();
+            return;
+        }
+
+        populateSelectors(eraFiles);
+    }
+
+    function populateSelectors(filesToUse = fullFilesList) {
         const startSelect = document.getElementById('startSelect');
         const endSelect = document.getElementById('endSelect');
         startSelect.innerHTML = ''; 
         endSelect.innerHTML = '';
 
-        [...fullFilesList].reverse().forEach(file => {
+        [...filesToUse].reverse().forEach(file => {
             const date = file.replace('.csv','');
             const name = sosMap[date] || date;
             startSelect.add(new Option(name, file)); 
@@ -1025,7 +1042,6 @@
         btn.disabled = true;
         updateProgress(5, "Analyzing snapshots...");
 
-        // Determine correct range order
         let files = [...fullFilesList];
         let startIdx = files.indexOf(startFile);
         let endIdx = files.indexOf(endFile);
@@ -1033,18 +1049,6 @@
         const rangeFiles = files.slice(startIdx, endIdx + 1);
 
         try {
-            // LOAD GEN POOLS FOR END SNAPSHOT SPECIFICALLY
-            const cleanEndName = endFile.replace(/\.csv/i, '');
-            const gens = ['G1', 'G2', 'G3', 'G4', 'NoG'];
-            currentGenPools = {};
-            await Promise.all(gens.map(async (g) => {
-                try {
-                    const { data } = await fetchLatest(BUCKET_CONFIGS, `Gen Pools/${cleanEndName}-${g}.json`);
-                    const kdList = await data.json();
-                    kdList.forEach(kd => { currentGenPools[kdClean(kd)] = g; });
-                } catch(e) {}
-            }));
-
             const rangeMaps = []; 
             for(let i=0; i<rangeFiles.length; i++) {
                 rangeMaps.push(await fetchCSVFull(rangeFiles[i], (i * (0.9/rangeFiles.length) * 100), (0.9/rangeFiles.length)));
@@ -1054,7 +1058,7 @@
             latestAllianceMap = {}; 
             const stats = {};
             const ensureKD = (kd) => { 
-                if(!stats[kd]) stats[kd] = { kd, gen: currentGenPools[kd] || 'NoG', count:{in:0,out:0}, pwr:{in:0,out:0}, kills:{in:0,out:0}, deads:{in:0,out:0}, heals:{in:0,out:0}, arrivalsList:[], departuresList:[] }; 
+                if(!stats[kd]) stats[kd] = { kd, count:{in:0,out:0}, pwr:{in:0,out:0}, kills:{in:0,out:0}, deads:{in:0,out:0}, heals:{in:0,out:0}, arrivalsList:[], departuresList:[] }; 
             };
 
             const allIDs = new Set();
@@ -1064,7 +1068,7 @@
                 const playerTimeline = [];
                 for (let i = 0; i < rangeMaps.length; i++) {
                     const p = rangeMaps[i].get(id);
-                    const cleanK = kdClean(p?.kd);
+                    const cleanK = p?.kd?.trim().replace(/"/g, '') || "N/A";
                     playerTimeline.push({ kd: cleanK, data: p, snapIdx: i });
                 }
 
@@ -1115,7 +1119,7 @@
             });
             
             migrationData = Object.entries(stats).map(([kd, s]) => ({
-                kd, gen: s.gen, count: s.count.in - s.count.out, pwr: s.pwr.in - s.pwr.out, 
+                kd, count: s.count.in - s.count.out, pwr: s.pwr.in - s.pwr.out, 
                 kills: s.kills.in - s.kills.out, deads: s.deads.in - s.deads.out, heals: s.heals.in - s.heals.out, raw: s 
             })).filter(x => Math.abs(x.count) > 0 || Math.abs(x.pwr) > 0);
             
@@ -1126,11 +1130,7 @@
     function handleSort(k, btn) { 
         if(currentSort.key === k) currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc'; 
         else { currentSort.key = k; currentSort.direction = 'desc'; } 
-        document.querySelectorAll('.sort-bar .sort-btn').forEach(b => {
-            b.classList.remove('active');
-            const key = b.id.replace('btn-', '');
-            b.textContent = sortLabels[key];
-        });
+        document.querySelectorAll('.sort-bar .sort-btn').forEach(b => { b.classList.remove('active'); const key = b.id.replace('btn-', ''); b.textContent = sortLabels[key]; });
         btn.classList.add('active');
         btn.textContent += (currentSort.direction === 'desc' ? ' ▼' : ' ▲');
         applySort(); 
@@ -1147,19 +1147,8 @@
     
     function handleSearch() { 
         const q = document.getElementById('kdSearch').value.toLowerCase(); 
-        const selectedGen = document.getElementById('genSelector').value;
-        
-        filteredData = migrationData.filter(item => {
-            const matchesGen = (selectedGen === 'all' || item.gen === selectedGen);
-            let matchesQuery = false;
-            if (searchType === 'kd') {
-                matchesQuery = item.kd.includes(q) || (latestAllianceMap[item.kd]||"").toLowerCase().includes(q);
-            } else {
-                matchesQuery = item.raw.arrivalsList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q)) || item.raw.departuresList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q));
-            }
-            return matchesGen && matchesQuery;
-        });
-
+        if (searchType === 'kd') { filteredData = migrationData.filter(d => d.kd.includes(q) || (latestAllianceMap[d.kd]||"").toLowerCase().includes(q)); }
+        else { filteredData = migrationData.filter(d => d.raw.arrivalsList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q)) || d.raw.departuresList.some(x => x.p.name.toLowerCase().includes(q) || x.p.id.includes(q))); } 
         itemsShown = pageSize; renderGrid(); 
     }
     
@@ -1170,13 +1159,7 @@
             card.onclick = () => openModal(item);
             const sig = (n) => (n > 0 ? '+' : '');
             card.innerHTML = `
-                <div class="card-header">
-                    <div style="display:flex; flex-direction:column;">
-                        <div class="kd-id">KD ${item.kd}</div>
-                        <div style="font-size:0.6rem; color:var(--primary); font-weight:900; letter-spacing:1px; margin-top:2px;">GEN: ${item.gen}</div>
-                    </div>
-                    <div class="kd-ally">${latestAllianceMap[item.kd]||"N/A"}</div>
-                </div>
+                <div class="card-header"><div class="kd-id">KD ${item.kd}</div><div class="kd-ally">${latestAllianceMap[item.kd]||"N/A"}</div></div>
                 <div class="stat-grid">
                     <div class="stat-box box-players"><span class="stat-label">Players</span><div class="stat-value ${item.count >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.count)}${item.count}</div></div>
                     <div class="stat-box box-pwr"><span class="stat-label">Power</span><div class="stat-value ${item.pwr >= 0 ? 'pos-text' : 'neg-text'}">${sig(item.pwr)}${formatShorthand(item.pwr)}</div></div>
@@ -1200,10 +1183,8 @@
             const delta = s[m.k].in - s[m.k].out;
             body.innerHTML += `<div class="metric-card-row metric-grid-base"><div class="m-in">+${formatShorthand(s[m.k].in)}</div><div class="m-center-stack"><span class="m-name">${m.l}</span><div class="m-delta ${delta >= 0 ? 'pos-text' : 'neg-text'}">${delta > 0 ? '+' : ''}${formatShorthand(delta)}</div></div><div class="m-out">-${formatShorthand(s[m.k].out)}</div></div>`;
         });
-
         const uniqueArr = Array.from(new Map(s.arrivalsList.map(x => [x.p.id + x.info, x])).values()).sort((a,b)=>b.p.pwr-a.p.pwr);
         const uniqueDep = Array.from(new Map(s.departuresList.map(x => [x.p.id + x.info, x])).values()).sort((a,b)=>b.p.pwr-a.p.pwr);
-
         document.getElementById('arrivalCount').innerText = uniqueArr.length;
         document.getElementById('departureCount').innerText = uniqueDep.length;
         document.getElementById('arrivalsList').innerHTML = uniqueArr.map(x => generatePlayerChip(x, 'in')).join('');

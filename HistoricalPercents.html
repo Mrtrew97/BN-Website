@@ -439,13 +439,12 @@
 </div>
 
 <div class="search-container" id="searchArea">
-    <select id="genSelector" class="gen-select" onchange="applyFilterAndSort()">
-        <option value="all" selected>All Gens</option>
-        <option value="G1">G1</option>
-        <option value="G2">G2</option>
-        <option value="G3">G3</option>
-        <option value="G4">G4</option>
-        <option value="NoG">NoG</option>
+    <!-- ERA SELECTOR -->
+    <select id="eraSelector" class="gen-select" onchange="loadHistoricalData()">
+        <option value="all">All Files</option>
+        <option value="START">Start</option>
+        <option value="END" selected>End</option>
+        <option value="OFF-SEASON">Off-Season</option>
     </select>
     <input type="text" id="searchInput" class="search-box" placeholder="Search Kingdom# or Alliance Name..." oninput="handleSearch()" autocomplete="off">
 </div>
@@ -553,16 +552,25 @@
         const status = document.getElementById('status-text');
         const v = window.DATA_VERSION || "1.0";
         const timestamp = `?v=${v}`;
+        const selectedEra = document.getElementById('eraSelector').value;
 
-        // ONLY PROCESS FILES MARKED AS 'END'
-        const targetFiles = fullFileList.filter(file => {
+        // Reset state
+        kingdomStats = [];
+        filteredList = [];
+        document.getElementById('cardGrid').innerHTML = '';
+
+        // FILTER FILES BY ERA
+        let targetFiles = fullFileList.filter(file => {
+            if (selectedEra === 'all') return true;
             const dateKey = file.replace(/\.csv/i, '');
-            return snapshotEraMap[dateKey] === "END";
+            return snapshotEraMap[dateKey] === selectedEra;
         });
 
-        if (targetFiles.length === 0) {
-            status.textContent = "No 'END' snapshots found in history.";
-            document.getElementById('progressContainer').style.display = 'none';
+        // FALLBACK: IF NO FILES IN ERA, RESET TO ALL
+        if (targetFiles.length === 0 && selectedEra !== 'all') {
+            alert(`No snapshots found for the ${selectedEra} selection. Returning to all files.`);
+            document.getElementById('eraSelector').value = 'all';
+            loadHistoricalData();
             return;
         }
 
@@ -571,32 +579,17 @@
             updateProgress(5, `Downloading history: 0/${targetFiles.length}`);
             
             const allCSVs = await Promise.all(targetFiles.map(async (file) => {
-                const cleanName = file.replace(/\.csv/i, '');
                 const { data } = await supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${file}${timestamp}`);
-                
-                // Fetch Gen Pools for this specific file
-                const genPools = {};
-                const gens = ['G1', 'G2', 'G3', 'G4', 'NoG'];
-                await Promise.all(gens.map(async (g) => {
-                    try {
-                        const { data: gData } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`Gen Pools/${cleanName}-${g}.json${timestamp}`);
-                        if (gData) {
-                            const kdList = JSON.parse(await gData.text());
-                            kdList.forEach(kd => { genPools[kdClean(kd)] = g; });
-                        }
-                    } catch(e) {}
-                }));
-
                 downloadedCount++;
                 updateProgress(5 + (downloadedCount / targetFiles.length) * 45, `Syncing: ${downloadedCount}/${targetFiles.length}`);
-                return { file, data, genPools };
+                return { file, data };
             }));
 
             updateProgress(60, "Building historical timelines...");
             const tempKingdoms = {}; 
             let processedCount = 0;
 
-            for (const { file, data, genPools } of allCSVs) {
+            for (const { file, data } of allCSVs) {
                 if (!data) continue;
                 const csvText = await data.text();
                 const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true }).data;
@@ -607,7 +600,7 @@
                     if (!kd) return;
 
                     if (!tempKingdoms[kd]) {
-                        tempKingdoms[kd] = { id: kd, ally: "Unknown", count: 0, dates: [], searchText: kd, gen: "NoG" };
+                        tempKingdoms[kd] = { id: kd, ally: "Unknown", count: 0, dates: [], searchText: kd };
                         metricsConfig.forEach(m => tempKingdoms[kd][m.key] = []);
                     }
                     const kingdom = tempKingdoms[kd];
@@ -615,11 +608,6 @@
                     kingdom.dates.push(date);
                     if (row['#1 Ally']) kingdom.ally = row['#1 Ally'];
                     kingdom.searchText = `${kd} ${kingdom.ally.toLowerCase()}`;
-                    
-                    // Assignment of Generation (latest available END snapshot wins)
-                    if (genPools[kdClean(kd)]) {
-                        kingdom.gen = genPools[kdClean(kd)];
-                    }
 
                     metricsConfig.forEach(m => {
                         let val = row[m.colName];
@@ -682,13 +670,7 @@
             const card = document.createElement('div'); card.className = 'kd-card';
             card.onclick = () => openSolo(s.id);
             card.innerHTML = `
-                <div class="card-header">
-                    <div style="display: flex; flex-direction: column;">
-                        <div style="display: flex; gap: 10px; align-items: baseline;"><div class="kd-id">KD ${s.id}</div><div class="kd-ally">${s.ally}</div></div>
-                        <div style="font-size: 0.6rem; color: var(--primary); font-weight: 900; letter-spacing: 1px; margin-top: 5px;">GEN: ${s.gen}</div>
-                    </div>
-                    <div class="snap-count">${s.count} KVKs</div>
-                </div>
+                <div class="card-header"><div style="display: flex; gap: 10px; align-items: baseline;"><div class="kd-id">KD ${s.id}</div><div class="kd-ally">${s.ally}</div></div><div class="snap-count">${s.count} ${s.count === 1 ? 'File' : 'Files'}</div></div>
                 <div class="stat-grid">
                     <div class="stat-box box-mp"><div><span class="stat-label">M/P Ratio (AVG)</span><div class="stat-value">${(s.avgMp*100).toFixed(2)}%</div></div>${getRangeHTML(s.src.mp_min, s.src.mp_max, true)}</div>
                     <div class="stat-box box-merits"><div><span class="stat-label">Merits (AVG)</span><div class="stat-value">${formatShorthand(s.avgMerits)}</div></div>${getRangeHTML(s.src.merits_min, s.src.merits_max, false)}</div>
@@ -758,14 +740,7 @@
     function handleSearch() { applyFilterAndSort(); }
     function applyFilterAndSort() {
         const query = document.getElementById('searchInput').value.toLowerCase();
-        const genFilter = document.getElementById('genSelector').value;
-        
-        filteredList = kingdomStats.filter(s => {
-            const matchesQuery = s.searchText.includes(query);
-            const matchesGen = (genFilter === "all" || s.gen === genFilter);
-            return matchesQuery && matchesGen;
-        });
-
+        filteredList = kingdomStats.filter(s => s.searchText.includes(query));
         filteredList.sort((a, b) => {
             const avgKeyMap = { id: 'id', merits: 'avgMerits', mp: 'avgMp', kills: 'avgKills', deads: 'avgDeads', heals: 'avgHeals', ch: 'avgCh' };
             let valA = a[avgKeyMap[currentSort.key]], valB = b[avgKeyMap[currentSort.key]];
