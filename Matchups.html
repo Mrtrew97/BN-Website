@@ -201,7 +201,7 @@
             position: sticky !important;
             left: 160px !important; 
             z-index: 30; 
-            background-color: #0f172a !important; 
+            background-color: #1e293b !important; 
             width: 70px !important;
             min-width: 70px !important;
             max-width: 70px !important; 
@@ -258,6 +258,82 @@
         #progressBar { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s ease; }
         #status-msg { text-align: center; font-weight: 800; color: var(--muted); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1px; margin-bottom: 20px; min-height: 1em; }
         
+        /* --- VOTING UI --- */
+        .voting-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .voting-header {
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .voting-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 900;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .voting-stats-row {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .voting-bar-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(239, 68, 68, 0.3); /* Default Team B Red */
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .voting-bar-fill {
+            height: 100%;
+            background: var(--primary); /* Team A Blue */
+            transition: width 0.5s ease-out;
+        }
+        .voting-buttons {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .vote-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+        .vote-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.15);
+        }
+        .vote-btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+        .vote-btn.voted-a { border-color: var(--primary); color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+        .vote-btn.voted-b { border-color: #ef4444; color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
         @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -283,6 +359,8 @@
         <h1 class="page-title-main">Matchups (Official)</h1>
         <div class="nav-side-box right">
             <div id="adminArea" style="display:none; gap:10px;">
+                <button class="btn btn-red" onclick="toggleFilteredPolls(true)">CLOSE THE POLLS</button>
+                <button class="btn btn-blue" onclick="toggleFilteredPolls(false)">OPEN POLLS</button>
                 <button class="btn" style="background:#a855f7;" id="saveStatusBtn" onclick="saveToCloud()">SAVE CLOUD</button>
                 <button class="btn btn-green" onclick="addNewMatchup()">+ NEW MATCHUP</button>
                 <button class="btn btn-red" onclick="logout()">LOGOUT</button>
@@ -382,6 +460,7 @@
     let activeTroopKeys = [];
     let sosMap = {};
     let fullFileList = []; 
+    let allVotes = []; // Holds all votes for the currently selected file
 
     const sortLabels = { name: 'Group Name', power: 'Power', merits: 'Merits', mp: 'M/P %', mpRank: 'M/P R', kills: 'Kills', deads: 'Deads', heals: 'Heals', ch25: 'CH25', ap: 'CH25 AVG' };
 
@@ -581,6 +660,8 @@
                 rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
             }
             
+            await fetchVotes(); // Fetch community prediction votes
+
             currentMatchups = allCloudData[cleanName] || []; 
             renderAll();
         } catch (e) { 
@@ -614,6 +695,84 @@
             } catch (e) { zoneWinners[zone] = {}; }
         });
         await Promise.all(promises);
+    }
+
+    async function fetchVotes() {
+        if (!selectedFileName) return;
+        const cleanKey = selectedFileName.replace(/\.csv/i, '');
+        try {
+            const { data, error } = await supabaseClient
+                .from('matchup_votes')
+                .select('*')
+                .eq('snapshot_id', cleanKey);
+            if (!error) {
+                allVotes = data;
+            }
+        } catch(e) { console.error("Vote fetch error:", e); }
+    }
+
+    async function castVote(mName, side) {
+        if (!selectedFileName) return;
+        const cleanKey = selectedFileName.replace(/\.csv/i, '');
+        const voteKey = `vote_${cleanKey}_${mName}`;
+
+        if (localStorage.getItem(voteKey)) {
+            alert("You have already voted for this matchup!");
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('matchup_votes')
+                .insert([{ 
+                    snapshot_id: cleanKey, 
+                    matchup_name: mName, 
+                    vote_side: side 
+                }]);
+
+            if (!error) {
+                localStorage.setItem(voteKey, side);
+                await fetchVotes();
+                renderAll();
+            } else {
+                console.error("Vote insert error:", error);
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    function toggleFilteredPolls(shouldClose) {
+        if (!isAdmin) return;
+        const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); 
+        const gF = document.getElementById('genSelector').value;
+        
+        let targetMatchups = currentMatchups.map((m, idx) => ({ ...m, originalIdx: idx }));
+
+        if (currentZoneFilter !== 'all') {
+            targetMatchups = targetMatchups.filter(m => m.zone === currentZoneFilter);
+        }
+
+        if (gF !== 'all') {
+            targetMatchups = targetMatchups.filter(m => {
+                return m.ids.some(id => currentGenPools[kdClean(id)] === gF);
+            });
+        }
+        
+        if (sT) { 
+            targetMatchups = targetMatchups.filter(m => 
+                m.name.toLowerCase().includes(sT) || 
+                m.ids.some(id => { 
+                    const d = masterData.get(kdClean(id)); 
+                    return kdClean(id).includes(sT) || (d && d.alliance.toLowerCase().includes(sT)); 
+                })
+            ); 
+        }
+
+        targetMatchups.forEach(m => {
+            currentMatchups[m.originalIdx].pollsClosed = shouldClose;
+        });
+
+        alert(`${shouldClose ? 'CLOSED' : 'OPENED'} polls for ${targetMatchups.length} matchups. Click SAVE CLOUD to persist.`);
+        renderAll();
     }
 
     async function saveToCloud() { 
@@ -827,7 +986,7 @@
             }).join('');
 
             let winnerUI = '';
-            const zonesWithWinners = ['zone 2', 'zone 2', 'zone 4', 'final'];
+            const zonesWithWinners = ['zone 2', 'zone 3', 'zone 4', 'final'];
             if (zonesWithWinners.includes(matchup.zone)) {
                 const cleanKey = selectedFileName.replace(/\.csv/i,'');
                 const zone = matchup.zone;
@@ -856,6 +1015,46 @@
                         </div>`;
                 }
             }
+
+            // --- COMMUNITY PREDICTION LOGIC ---
+            const mName = matchup.name;
+            const cleanKey = selectedFileName.replace(/\.csv/i, '');
+            const matchupVotes = allVotes.filter(v => v.matchup_name === mName);
+            const countA = matchupVotes.filter(v => v.vote_side === 'A').length;
+            const countB = matchupVotes.filter(v => v.vote_side === 'B').length;
+            const totalVotes = countA + countB;
+            const percentA = totalVotes > 0 ? Math.round((countA / totalVotes) * 100) : 50;
+            const percentB = totalVotes > 0 ? (100 - percentA) : 50;
+            const hasVoted = localStorage.getItem(`vote_${cleanKey}_${mName}`);
+            const isClosed = matchup.pollsClosed === true;
+
+            const votingUI = `
+                <div class="voting-section">
+                    <div class="voting-header">
+                        <h4>${isClosed ? 'POLLS CLOSED | FINAL PREDICTIONS' : (totalVotes === 0 ? 'CAST YOUR VOTE' : 'COMMUNITY PREDICTIONS')}</h4>
+                        <div class="voting-stats-row">
+                            TEAM A - ${countA} VOTES - ${percentA}% | TEAM B - ${countB} VOTES - ${percentB}%
+                        </div>
+                    </div>
+                    <div class="voting-bar-container">
+                        <div class="voting-bar-fill" style="width: ${percentA}%"></div>
+                    </div>
+                    ${!isClosed ? `
+                    <div class="voting-buttons">
+                        <button class="vote-btn ${hasVoted === 'A' ? 'voted-a' : ''}" 
+                                ${hasVoted ? 'disabled' : ''} 
+                                onclick="castVote('${mName}', 'A')">
+                            ${hasVoted === 'A' ? '✓ VOTED A' : 'VOTE TEAM A'}
+                        </button>
+                        <button class="vote-btn ${hasVoted === 'B' ? 'voted-b' : ''}" 
+                                ${hasVoted ? 'disabled' : ''} 
+                                onclick="castVote('${mName}', 'B')">
+                            ${hasVoted === 'B' ? '✓ VOTED B' : 'VOTE TEAM B'}
+                        </button>
+                    </div>` : ''}
+                </div>
+            `;
+
             const adminZoneSelect = isAdmin ? `
                 <select style="background:#0f172a; border:1px solid var(--glass-border); color:white; font-size:0.7rem; border-radius:5px;" onchange="currentMatchups[${mIdx}].zone=this.value; renderAll();">
                     <option value="overall" ${matchup.zone === 'overall' ? 'selected' : ''}>KVK START</option>
@@ -865,6 +1064,7 @@
                     <option value="final" ${matchup.zone === 'final' ? 'selected' : ''}>FINAL ZONE</option>
                 </select>
             ` : `<span class="btn" style="font-size:0.6rem; padding:4px 10px;">${matchup.zone.toUpperCase()}</span>`;
+            
             const adminTeamSelects = isAdmin ? `
                 <div style="display:flex; gap:10px; margin-top:10px; margin-bottom:10px; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--glass-border);">
                     <div style="display:flex; flex-direction:column; gap:4px;">
@@ -876,6 +1076,7 @@
                         <select class="admin-select" onchange="applyTeamToMatchup(${mIdx}, 'B', this.value)">${teamOptions}</select>
                     </div>
                 </div>` : '';
+            
             card.innerHTML = `
                 <div class="card-header" style="align-items: flex-start; gap: 20px;">
                     <div style="flex: 1; min-width: 0;">
@@ -895,6 +1096,7 @@
                 </div>
                 ${adminTeamSelects}
                 ${winnerUI}
+                ${votingUI}
                 <div class="table-wrapper">
                     <table>
                         <colgroup>
