@@ -159,6 +159,52 @@
             font-weight: 800;
         }
 
+        /* --- HERO SCROLLS BANNER STYLES --- */
+        .hs-banner {
+            min-height: 120px !important;
+            padding: 15px 40px !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hs-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            width: 100%;
+        }
+
+        .hs-logo {
+            flex: 1; 
+            max-height: 130px;
+            width: auto;
+            max-width: 500px;
+            object-fit: contain;
+        }
+
+        .hs-mascot {
+            max-height: 140px;
+            width: auto;
+            flex: 0 0 auto;
+        }
+
+        .hs-mascot-left {
+            transform: scaleX(-1);
+        }
+
+        .hs-powered-text {
+            color: var(--muted) !important;
+            font-weight: 800 !important;
+            letter-spacing: 2px !important;
+            font-size: 0.7rem !important;
+            margin-top: 8px !important;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
         /* --- ADMIN TRIGGER BUTTON --- */
         .admin-trigger {
             position: fixed;
@@ -221,9 +267,6 @@
         .social-dc:hover { border-color: #5865F2; box-shadow: 0 10px 30px rgba(88, 101, 242, 0.15); }
         .social-dc:hover svg { stroke: #5865F2; }
         
-        .social-hs:hover { border-color: #c084fc; box-shadow: 0 10px 30px rgba(192, 132, 252, 0.15); }
-        .social-hs:hover svg { stroke: #c084fc; }
-
         .social-pt:hover { border-color: #f96854; box-shadow: 0 10px 30px rgba(249, 104, 84, 0.15); }
         .social-pt:hover svg { stroke: #f96854; }
         
@@ -234,7 +277,6 @@
            RESPONSIVE OVERRIDES
            ============================================================ */
 
-        /* Standard Mobile View (Portrait) */
         @media (max-width: 850px) {
             body { 
                 padding: 30px 15px; 
@@ -268,6 +310,12 @@
                 font-size: 0.65rem !important;
                 letter-spacing: 2px;
             }
+
+            /* Mobile Banner Overrides */
+            .hs-banner { min-height: 100px !important; padding: 15px !important; }
+            .hs-mascot { max-height: 50px; }
+            .hs-logo { max-height: 60px; }
+            .hs-banner-content { gap: 15px; }
 
             .admin-trigger {
                 right: 50%;
@@ -336,7 +384,7 @@
             .card-social {
                 min-height: 100px !important;
                 max-width: none;
-                flex: 1 1 18%; /* Fits all 5 better in landscape */
+                flex: 1 1 18%; 
             }
         }
     </style>
@@ -350,22 +398,27 @@
         
         <!-- TOP BRANDING BOX -->
         <div class="bento-card card-header span-full">
-            <!-- Left Branding: BE NASTi Guy -->
             <img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/BE%20NASTi%20Guy.png" 
                  alt="BE NASTi Logo" 
                  class="header-logo">
-            
-            <!-- Title Content -->
             <div class="title-text-group">
                 <p>BN ANALYTICS</p>
                 <h1>Kingdom Hub</h1>
             </div>
-
-            <!-- Right Branding: Dadrew Logo -->
             <img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/dadrew%20logo.png" 
                  alt="Dadrew Logo" 
                  class="header-logo">
         </div>
+
+        <!-- HERO SCROLLS BANNER -->
+        <a href="https://discord.com/invite/heroscrolls" target="_blank" class="bento-card hs-banner span-full">
+            <div class="hs-banner-content">
+                <img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/hs%20masscot.gif" class="hs-mascot hs-mascot-left" alt="Mascot Left">
+                <img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/refs/heads/main/hs%20logo.png" class="hs-logo" alt="Hero Scrolls Logo">
+                <img src="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/hs%20masscot.gif" class="hs-mascot" alt="Mascot Right">
+            </div>
+            <p class="hs-powered-text">Powered by Hero Scrolls</p>
+        </a>
 
         <!-- MAIN NAVIGATION LINKS -->
         <a href="Teams.html" class="bento-card span-4">
@@ -420,19 +473,6 @@
                 <h2>Discord</h2>
             </a>
 
-            <!-- NEW HERO SCROLLS BUTTON -->
-            <a href="https://discord.com/invite/heroscrolls" class="bento-card card-social social-hs" target="_blank">
-                <svg viewBox="0 0 24 24">
-                    <!-- Mage Staff -->
-                    <path d="M16 22L16 6"></path>
-                    <circle cx="16" cy="4" r="2"></circle>
-                    <!-- Scroll -->
-                    <path d="M4 19h8c1 0 2-1 2-2V5c0-1-1-2-2-2H4c-1 0-2 1-2 2v12c0 1 1 2 2 2z"></path>
-                    <path d="M2 7h12"></path>
-                </svg>
-                <h2>Hero Scrolls</h2>
-            </a>
-            
             <a href="https://www.patreon.com/u68144994" class="bento-card card-social social-pt" target="_blank">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="14.5" cy="9.5" r="5.5"></circle>
@@ -464,15 +504,10 @@
     </div>
 
     <script>
-        // --- SUPABASE CONFIG ---
         const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        /**
-         * Checks if a user is already logged in.
-         * Redirects to Admin.html if yes, otherwise opens modal.
-         */
         async function checkAdminStatus() {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
@@ -482,9 +517,6 @@
             }
         }
 
-        /**
-         * Handles Supabase authentication
-         */
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('pass').value;
@@ -503,9 +535,6 @@
             }
         }
 
-        /**
-         * Toggles the visibility of the login modal
-         */
         function toggleModal(show) {
             document.getElementById('authModal').style.display = show ? 'flex' : 'none';
         }
