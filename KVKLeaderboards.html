@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BN Analytics | KVK Leaderboards</title>
+    
+    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="mobile.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 1. SCROLLBARS --- */
+        html {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        html::-webkit-scrollbar { 
+            display: none; 
+        }
+
+        /* --- BASE STYLING --- */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
+            background-attachment: fixed; 
+            color: var(--text); 
+            margin: 0; 
+            padding: 0; 
+            overflow-x: hidden; 
+        }
+        
+        .unified-container { 
+            max-width: 1600px; 
+            margin: 0 auto; 
+            width: 100%; 
+            padding: 0 25px; 
+            box-sizing: border-box; 
+        }
+
+        /* --- HEADER --- */
+        .nav-container { 
+            display: grid; 
+            grid-template-columns: 1fr auto 1fr; 
+            align-items: center; 
+            margin-top: 25px; 
+            margin-bottom: 20px; 
+        }
+        .nav-side-box { display: flex; align-items: center; gap: 10px; }
+        .nav-side-box.right { justify-content: flex-end; gap: 10px; }
+        .nav-container .home-link { position: static; margin: 0; backdrop-filter: none; }
+
+        /* --- ROW 1: SEARCH ROW (CENTERED) --- */
+        .search-glass-row { 
+            background: var(--glass); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 24px; 
+            padding: 15px 20px; 
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px; 
+        }
+        .search-center-box { width: 550px; display: flex; justify-content: center; }
+        .search-input { 
+            width: 100%; 
+            padding: 12px 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--glass-border); 
+            background: rgba(0,0,0,0.3); 
+            color: white; 
+            outline: none; 
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* --- ROW 2: STICKY SORTING ISLAND --- */
+        .sticky-wrapper { 
+            position: sticky; 
+            top: 15px; 
+            z-index: 1000; 
+            width: 100%; 
+            display: flex; 
+            justify-content: center; 
+            margin-bottom: 40px; 
+            padding: 0 25px; 
+            box-sizing: border-box; 
+        }
+        .metrics-island { 
+            width: 100%; 
+            max-width: 1350px; 
+            background: var(--glass); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 28px; 
+            padding: 12px 0; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .metric-row { 
+            display: flex; 
+            gap: 8px; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+            padding: 4px 15px; 
+            width: 100%; 
+        }
+        .metric-btn { 
+            padding: 10px 20px; 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 20px; 
+            cursor: pointer; 
+            font-weight: 800; 
+            font-size: 0.8rem; 
+            text-transform: uppercase; 
+            transition: 0.2s; 
+            color: var(--muted); 
+        }
+        .metric-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .metric-btn.active { 
+            background: var(--primary); 
+            color: white; 
+            border-color: var(--primary); 
+            box-shadow: 0 0 15px var(--primary-glow); 
+        }
+
+        /* --- LEADERBOARD CARDS --- */
+        #leaderboardGrid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); 
+            gap: 25px; 
+            padding-bottom: 60px; 
+        }
+        .kingdom-card { 
+            background: var(--glass); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 24px; 
+            padding: 24px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            transition: 0.3s; 
+        }
+        .kingdom-card:hover { border-color: var(--primary); transform: translateY(-5px); }
+
+        .card-header-main { text-align: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; }
+        .kd-number { font-size: 2.2rem; font-weight: 900; color: var(--primary); margin: 0; line-height: 1; }
+        .kd-name { font-size: 1.1rem; font-weight: 800; color: white; margin: 5px 0 0 0; text-transform: uppercase; letter-spacing: 1px; }
+
+        .win-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+        .win-stat-box { 
+            background: rgba(255,255,255,0.02); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 16px; 
+            padding: 15px; 
+            text-align: center; 
+        }
+        .win-stat-label { font-size: 0.7rem; font-weight: 800; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 5px; }
+        .win-stat-value { font-size: 1.8rem; font-weight: 950; color: white; }
+        .win-stat-value.wins { color: #fbbf24; }
+
+        .history-section { margin-top: 10px; }
+        .history-title { font-size: 0.75rem; font-weight: 900; color: var(--primary); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .win-list { display: flex; flex-direction: column; gap: 6px; }
+        .win-item { 
+            background: rgba(251, 191, 36, 0.1); 
+            border: 1px solid rgba(251, 191, 36, 0.2); 
+            padding: 10px 14px; 
+            border-radius: 10px; 
+            font-size: 0.9rem; 
+            font-weight: 700; 
+            color: #fbbf24;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .win-item:hover {
+            background: rgba(251, 191, 36, 0.2);
+            border-color: #fbbf24;
+            transform: scale(1.02);
+        }
+        .win-tag { font-size: 0.65rem; background: #fbbf24; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; }
+
+        .btn { padding: 10px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; border: 1px solid var(--glass-border); font-size: 0.85rem; background: var(--glass); color: white; text-transform: uppercase; transition: 0.2s; }
+        
+        #loadingOverlay { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body onclick="hideDropdown()">
+
+<div id="loadingOverlay">
+    <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <div style="margin-top: 20px; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px; color: var(--muted);" id="loaderText">Initializing Hub...</div>
+</div>
+
+<div class="unified-container">
+    <div class="nav-container">
+        <div class="nav-side-box"><a href="index.html" class="home-link btn">HOME PAGE</a></div>
+        <h1 class="page-title-main">KVK LEADERBOARDS</h1>
+        <div class="nav-side-box right"></div>
+    </div>
+</div>
+
+<div class="unified-container">
+    <div class="search-glass-row">
+        <div class="search-center-box">
+            <input type="text" id="leaderboardSearch" class="search-input" placeholder="Search Kingdom ID or Alliance..." oninput="handleSearchInput()">
+        </div>
+    </div>
+</div>
+
+<div class="sticky-wrapper">
+    <div class="metrics-island">
+        <div class="metric-row">
+            <button class="metric-btn active" id="btn-wins" onclick="setSort('wins', this)">Most Wins</button>
+            <button class="metric-btn" id="btn-kd" onclick="setSort('kd', this)">Kingdom #</button>
+            <button class="metric-btn" id="btn-name" onclick="setSort('name', this)">Alliance Name</button>
+            <button class="metric-btn" id="btn-participation" onclick="setSort('participation', this)">Experience</button>
+        </div>
+    </div>
+</div>
+
+<div class="unified-container">
+    <div id="leaderboardGrid"></div>
+</div>
+
+<script>
+    // --- SUPABASE CONFIG ---
+    const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
+    const BUCKET_CONFIGS = "configs";
+    const BUCKET_DATA = "kvk-data";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // --- STATE ---
+    let masterLeaderboard = [];
+    let filteredLeaderboard = [];
+    let currentSort = { field: 'wins', direction: 'desc' };
+    let sosMap = {};
+
+    function kdClean(val) { 
+        if (!val) return ""; 
+        return String(parseInt(parseFloat(String(val).trim()))); 
+    }
+
+    function hideLoading() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.style.opacity = '0';
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
+        }
+    }
+
+    // --- DATA AGGREGATION ---
+
+    window.onload = async () => {
+        try {
+            syncSearchFromHash();
+
+            // 1. Fetch current data version
+            let v = "1.0";
+            try {
+                const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
+                if(vBlob) v = JSON.parse(await vBlob.text()).v;
+                window.DATA_VERSION = v;
+            } catch(e) { window.DATA_VERSION = "1.0"; }
+
+            // 2. Fetch base configs and file lists
+            const [sosRes, filesRes, winnersRes] = await Promise.all([
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/SosNames.json?v=${v}`),
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/files.json?v=${v}`),
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`kvkwinners.json?v=${v}`)
+            ]);
+
+            sosMap = sosRes.data ? JSON.parse(await sosRes.data.text()) : {};
+            const winnersData = winnersRes.data ? JSON.parse(await winnersRes.data.text()) : {};
+            const filesList = filesRes.data ? JSON.parse(await filesRes.data.text()) : [];
+
+            // 3. FETCH THE LATEST ALLIANCE NAMES FROM THE MOST RECENT CSV
+            document.getElementById('loaderText').textContent = "Syncing Latest Alliance Names...";
+            const masterNameMap = new Map();
+            if (filesList.length > 0) {
+                const latestFileName = filesList[filesList.length - 1];
+                try {
+                    const { data: latestCsvBlob } = await supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${latestFileName}?v=${v}`);
+                    if (latestCsvBlob) {
+                        const csvText = await latestCsvBlob.text();
+                        const parsedLatest = Papa.parse(csvText, { header: true, skipEmptyLines: 'greedy' });
+                        parsedLatest.data.forEach(row => {
+                            const kd = kdClean(row.KD || row['KD#']);
+                            const ally = (row['#1 Ally'] || row.Alliance || "").trim();
+                            if (kd && ally) {
+                                masterNameMap.set(kd, ally);
+                            }
+                        });
+                    }
+                } catch(e) { console.error("Error fetching latest alliance names:", e); }
+            }
+
+            const kdStats = new Map();
+
+            // 4. Scan participation experience from SavedRegistrations
+            document.getElementById('loaderText').textContent = "Aggregating Experience...";
+            
+            for (const file of filesList) {
+                try {
+                    const cleanName = file.replace(/\.csv/i, '');
+                    const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${cleanName}.json?v=${v}`);
+                    if (data) {
+                        const reg = JSON.parse(await data.text());
+                        const kdsInThisKvK = reg.kingdoms || [];
+                        kdsInThisKvK.forEach(kdRaw => {
+                            const kd = kdClean(kdRaw);
+                            if (!kd) return;
+                            
+                            if (!kdStats.has(kd)) {
+                                kdStats.set(kd, { 
+                                    kd, 
+                                    name: masterNameMap.get(kd) || "Unknown", 
+                                    wins: 0, 
+                                    participation: 0, 
+                                    winDetails: [] 
+                                });
+                            }
+                            
+                            const entry = kdStats.get(kd);
+                            entry.participation++;
+                            
+                            // Fallback name if latest didn't have it
+                            if (entry.name === "Unknown" && reg.data && reg.data[kd] && reg.data[kd].alliance) {
+                                entry.name = reg.data[kd].alliance;
+                            }
+                        });
+                    }
+                } catch(e) {}
+            }
+
+            // 5. Aggregate Wins from kvkwinners.json (SUPPORTING MULTIPLE WINNERS & GROUP NAMES)
+            document.getElementById('loaderText').textContent = "Calculating Victories...";
+            for (const [snapKey, groups] of Object.entries(winnersData)) {
+                const kvkDisplayName = sosMap[snapKey] || snapKey.toUpperCase();
+                for (const [groupName, winnerString] of Object.entries(groups)) {
+                    
+                    // Split the string by comma to support multiple winning kingdoms per group
+                    const winningKDs = winnerString.split(',').map(s => kdClean(s.trim())).filter(k => k !== "");
+                    
+                    winningKDs.forEach(kd => {
+                        if (!kdStats.has(kd)) {
+                            kdStats.set(kd, { 
+                                kd, 
+                                name: masterNameMap.get(kd) || "Unknown", 
+                                wins: 0, 
+                                participation: 0, 
+                                winDetails: [] 
+                            });
+                        }
+                        
+                        const entry = kdStats.get(kd);
+                        entry.wins++;
+                        // We store the Group Name as the hash for the link
+                        entry.winDetails.push({ 
+                            kvkName: kvkDisplayName, 
+                            group: groupName, 
+                            snapKey: snapKey 
+                        });
+                    });
+                }
+            }
+
+            masterLeaderboard = Array.from(kdStats.values());
+            handleSearchInput();
+
+        } catch (e) {
+            console.error("Leaderboard Load Error:", e);
+        } finally {
+            hideLoading();
+        }
+    };
+
+    // --- INTERFACE ---
+
+    function handleSearchInput() {
+        const query = document.getElementById('leaderboardSearch').value.toLowerCase().trim();
+        
+        if (query) {
+            window.location.hash = encodeURIComponent(query);
+        } else {
+            history.replaceState(null, null, ' ');
+        }
+
+        filteredLeaderboard = masterLeaderboard.filter(item => 
+            item.kd.includes(query) || item.name.toLowerCase().includes(query)
+        );
+
+        applySort();
+        render();
+    }
+
+    function syncSearchFromHash() {
+        if (window.location.hash) {
+            const hashVal = decodeURIComponent(window.location.hash.substring(1));
+            document.getElementById('leaderboardSearch').value = hashVal;
+        }
+    }
+
+    window.addEventListener('hashchange', () => {
+        syncSearchFromHash();
+        handleSearchInput();
+    });
+
+    function setSort(field, btn) {
+        if (currentSort.field === field) {
+            currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc';
+        } else {
+            currentSort.field = field;
+            currentSort.direction = 'desc';
+        }
+
+        document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+
+        applySort();
+        render();
+    }
+
+    function applySort() {
+        filteredLeaderboard.sort((a, b) => {
+            let vA, vB;
+            if (currentSort.field === 'wins') { vA = a.wins; vB = b.wins; }
+            else if (currentSort.field === 'kd') { vA = parseInt(a.kd); vB = parseInt(b.kd); }
+            else if (currentSort.field === 'name') { vA = a.name.toLowerCase(); vB = b.name.toLowerCase(); }
+            else { vA = a.participation; vB = b.participation; }
+
+            if (typeof vA === 'string') {
+                return currentSort.direction === 'desc' ? vB.localeCompare(vA) : vA.localeCompare(vB);
+            }
+            return currentSort.direction === 'desc' ? vB - vA : vA - vB;
+        });
+    }
+
+    function render() {
+        const grid = document.getElementById('leaderboardGrid');
+        grid.innerHTML = "";
+
+        filteredLeaderboard.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'kingdom-card';
+
+            // IMPORTANT: The hash # now uses the Group Name (w.group) for precise filtering
+            const winItemsHtml = item.winDetails.map(w => `
+                <a href="Matchups.html?file=${w.snapKey}.csv&zone=final#${encodeURIComponent(w.group)}" class="win-item">
+                    <span>${w.kvkName}</span>
+                    <span class="win-tag">${w.group}</span>
+                </a>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="card-header-main">
+                    <p class="kd-number">KD ${item.kd}</p>
+                    <p class="kd-name">${item.name}</p>
+                </div>
+                <div class="win-stats-grid">
+                    <div class="win-stat-box">
+                        <span class="win-stat-label">Total victories</span>
+                        <span class="win-stat-value wins">${item.wins}</span>
+                    </div>
+                    <div class="win-stat-box">
+                        <span class="win-stat-label">KvKs Entered</span>
+                        <span class="win-stat-value">${item.participation}</span>
+                    </div>
+                </div>
+                <div class="history-section">
+                    <div class="history-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="12 8 12 12 16 14"></polyline></svg>
+                        History of Wins
+                    </div>
+                    <div class="win-list">
+                        ${item.wins > 0 ? winItemsHtml : '<div style="font-size:0.8rem; color:var(--muted); text-align:center; padding:10px;">No wins on record.</div>'}
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function hideDropdown() {}
+</script>
+</body>
+</html>
