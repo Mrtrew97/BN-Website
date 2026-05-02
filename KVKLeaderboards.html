@@ -277,16 +277,18 @@
                 window.DATA_VERSION = v;
             } catch(e) { window.DATA_VERSION = "1.0"; }
 
-            // 2. Fetch base configs and file lists
-            const [sosRes, filesRes, winnersRes] = await Promise.all([
+            // 2. Fetch base configs, file lists, winners, and snapshot eras
+            const [sosRes, filesRes, winnersRes, eraRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_DATA).download(`Pull/SosNames.json?v=${v}`),
                 supabaseClient.storage.from(BUCKET_DATA).download(`Pull/files.json?v=${v}`),
-                supabaseClient.storage.from(BUCKET_CONFIGS).download(`kvkwinners.json?v=${v}`)
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`kvkwinners.json?v=${v}`),
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`snapshotera.json?v=${v}`)
             ]);
 
             sosMap = sosRes.data ? JSON.parse(await sosRes.data.text()) : {};
             const winnersData = winnersRes.data ? JSON.parse(await winnersRes.data.text()) : {};
             const filesList = filesRes.data ? JSON.parse(await filesRes.data.text()) : [];
+            const eraData = eraRes.data ? JSON.parse(await eraRes.data.text()) : {};
 
             // 3. FETCH THE LATEST ALLIANCE NAMES FROM THE MOST RECENT CSV
             document.getElementById('loaderText').textContent = "Syncing Latest Alliance Names...";
@@ -312,11 +314,16 @@
             const kdStats = new Map();
 
             // 4. Scan participation experience from SavedRegistrations
+            // ONLY USE DATA FROM FILES CONSIDERED "END"
             document.getElementById('loaderText').textContent = "Aggregating Experience...";
             
             for (const file of filesList) {
+                const cleanName = file.replace(/\.csv/i, '');
+                
+                // Skip snapshots that are not "END"
+                if (eraData[cleanName] !== "END") continue;
+
                 try {
-                    const cleanName = file.replace(/\.csv/i, '');
                     const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${cleanName}.json?v=${v}`);
                     if (data) {
                         const reg = JSON.parse(await data.text());
@@ -347,9 +354,14 @@
                 } catch(e) {}
             }
 
-            // 5. Aggregate Wins from kvkwinners.json (SUPPORTING MULTIPLE WINNERS & GROUP NAMES)
+            // 5. Aggregate Wins from kvkwinners.json
+            // ONLY USE DATA FROM FILES CONSIDERED "END"
             document.getElementById('loaderText').textContent = "Calculating Victories...";
             for (const [snapKey, groups] of Object.entries(winnersData)) {
+                
+                // Skip winners info from snapshots that are not "END"
+                if (eraData[snapKey] !== "END") continue;
+
                 const kvkDisplayName = sosMap[snapKey] || snapKey.toUpperCase();
                 for (const [groupName, winnerString] of Object.entries(groups)) {
                     
@@ -458,7 +470,6 @@
             const card = document.createElement('div');
             card.className = 'kingdom-card';
 
-            // IMPORTANT: The hash # now uses the Group Name (w.group) for precise filtering
             const winItemsHtml = item.winDetails.map(w => `
                 <a href="Matchups.html?file=${w.snapKey}.csv&zone=final#${encodeURIComponent(w.group)}" class="win-item">
                     <span>${w.kvkName}</span>
