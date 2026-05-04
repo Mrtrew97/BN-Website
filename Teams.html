@@ -1,3 +1,5 @@
+--- START OF FILE Teams.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -68,7 +70,6 @@
             cursor: pointer;
         }
 
-        /* PHONE ROTATION ANIMATION */
         .phone-icon {
             width: 50px;
             height: 80px;
@@ -136,7 +137,6 @@
             gap: 10px; 
         }
 
-        /* TOOLS ROW (COMBINED SELECTORS + SEARCH) */
         .tools-glass-row { 
             background: var(--glass); 
             backdrop-filter: blur(10px); 
@@ -231,7 +231,7 @@
         }
 
         .expand-rows.open { 
-            max-height: 250px; 
+            max-height: 350px; 
             margin-top: 10px; 
             border-top: 1px solid var(--glass-border); 
             padding-top: 10px; 
@@ -317,71 +317,83 @@
         } 
 
         table { 
-            width: 100%; 
+            width: auto; 
             border-collapse: separate; 
             border-spacing: 0 4px; 
-            table-layout: fixed; 
-            min-width: 1950px; 
+            table-layout: fixed !important; 
+            min-width: 2500px; 
         }
 
         th { 
-            text-align: center; 
+            text-align: center !important; 
             padding: 15px 2px; 
             color: var(--muted); 
             font-size: 0.9rem; 
             font-weight: 800; 
             text-transform: uppercase; 
             border-bottom: 1px solid var(--glass-border); 
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+        th:hover {
+            color: var(--primary);
         }
 
         td { 
             padding: 15px 2px; 
-            text-align: center; 
+            text-align: center !important; 
             font-size: 1rem; 
             background: rgba(255,255,255,0.02); 
             border-top: 1px solid var(--glass-border); 
             border-bottom: 1px solid var(--glass-border); 
         }
 
-        /* --- PRO STICKY COLUMN LOGIC --- */
-        
-        /* 1. Universal RANK Column (Sticky 1) */
+        /* --- STICKY COLUMN POSITIONS --- */
+        .col-del, .drag-handle {
+            position: sticky !important;
+            z-index: 40;
+            background-color: #0f172a !important;
+            width: 30px !important;
+            min-width: 30px !important;
+            text-align: center !important;
+        }
+        .col-del { left: 0; }
+        .drag-handle { left: 30px; opacity: 0.3; cursor: grab; }
+
         .sticky-col-rank {
             position: sticky !important;
             left: 0; 
             z-index: 30;
             background-color: #1e293b !important; 
-            width: 60px;
-            min-width: 60px;
+            width: 60px !important;
+            min-width: 60px !important;
             border-right: 1px solid var(--glass-border);
             text-align: center !important;
         }
-
-        /* 2. Alliance Column (Sticky 2) */
         .sticky-col-ally {
             position: sticky !important;
-            left: 60px; 
+            left: 60px !important; 
             z-index: 30;
             background-color: #0f172a !important; 
-            width: 140px;
-            min-width: 140px;
-            border-right: none !important;
+            width: 140px !important;
+            min-width: 140px !important;
             text-align: center !important;
+            border-right: none !important;
         }
-
-        /* 3. Kingdom ID Column (Sticky 3) */
         .sticky-col-kd {
             position: sticky !important;
-            left: 200px; 
+            left: 200px !important; 
             z-index: 30; 
             background-color: #1e293b !important; 
-            width: 70px;
-            min-width: 70px;
+            width: 70px !important;
+            min-width: 70px !important;
             border-right: 1px solid var(--glass-border);
             text-align: center !important;
+            border-left: none !important;
         }
 
-        /* Admin Mode Offsets */
+        /* Admin Mode Offsets (+60px for buttons) */
         .admin-active .sticky-col-rank { left: 60px !important; }
         .admin-active .sticky-col-ally { left: 120px !important; }
         .admin-active .sticky-col-kd { left: 260px !important; }
@@ -389,21 +401,18 @@
         th.sticky-col-rank, th.sticky-col-kd, th.sticky-col-ally {
             z-index: 31;
             background-color: #1e293b !important; 
+            text-align: center !important;
         }
 
         .summary-row td { 
-            background: rgba(168, 85, 247, 0.1); 
-            color: var(--accent); 
+            background: rgba(168, 85, 247, 0.1) !important; 
+            color: var(--accent) !important; 
             font-weight: 950 !important; 
             border-color: rgba(168, 85, 247, 0.2); 
+            text-align: center !important;
         }
 
-        /* Ensure sticky cells in summary row are solid and remove Rank/Alliance line */
-        .summary-row .sticky-col-rank {
-            background-color: #191932 !important;
-            border-right: none !important;
-        }
-        .summary-row .sticky-col-kd, .summary-row .sticky-col-ally {
+        .summary-row .sticky-col-rank, .summary-row .sticky-col-kd, .summary-row .sticky-col-ally {
             background-color: #191932 !important; 
         }
 
@@ -431,11 +440,7 @@
             outline: none; 
             padding: 5px 0;
             box-sizing: border-box; 
-            display: inline-block;
         }
-
-        .drag-handle { cursor: grab; color: var(--muted); width: 30px !important; opacity: 0.3; background-color: #0f172a !important; position: sticky; left: 30px; z-index: 40; }
-        .col-del { width: 30px !important; color: #ef4444; font-weight: 900; cursor: pointer; background-color: #0f172a !important; position: sticky; left: 0; z-index: 40; }
 
         /* --- BUTTONS --- */
         .btn { 
@@ -453,12 +458,10 @@
             text-transform: uppercase; 
             transition: 0.2s; 
         }
-
         .btn:hover { 
             background: var(--primary); 
             transform: translateY(-2px); 
         }
-
         .btn-red { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: white; }
         .btn-green { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: white; }
 
@@ -506,7 +509,6 @@
     </div>
 </div>
 
-<!-- SINGLE TOOLS ROW (SELECTORS + SEARCH) -->
 <div class="unified-container">
     <div class="tools-glass-row">
         <div class="nav-side-box">
@@ -527,7 +529,6 @@
     </div>
 </div>
 
-<!-- STICKY SORTING ISLAND -->
 <div class="sticky-wrapper">
     <div class="metrics-island">
         <div class="metric-row">
@@ -552,27 +553,23 @@
 
 <div id="teamsContainer"></div>
 
-<!-- Supabase Auth Modal -->
 <div id="authModal">
     <div class="modal-content">
         <h2 style="margin-top:0; font-weight:900;">ADMIN ACCESS</h2>
         <input type="email" id="email" class="modal-input" placeholder="Admin Email" style="width: 100%; margin-bottom: 15px; padding: 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white;">
         <input type="password" id="pass" class="modal-input" placeholder="Password" style="width: 100%; margin-bottom: 20px; padding: 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white;" onkeydown="if(event.key==='Enter') login()">
-        <div id="loginError" style="color: #ef4444; font-size: 0.8rem; font-weight: 800; margin-bottom: 15px; display: none;"></div>
         <button id="loginActionBtn" class="btn btn-blue" style="width: 100%; padding: 15px; font-weight: 900;" onclick="login()">AUTHORIZE</button>
         <button onclick="toggleModal(false)" class="btn" style="width:100%; margin-top:10px; background:transparent;">Cancel</button>
     </div>
 </div>
 
 <script>
-    // --- SUPABASE CONFIG ---
     const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
     const BUCKET_DATA = "kvk-data";
     const BUCKET_CONFIGS = "configs";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // --- STATE ---
     let isAdmin = false;
     let masterData = new Map();
     let allTeamsData = {};
@@ -585,27 +582,41 @@
     let sosMap = {};
     let fullFileList = []; 
 
-    const sortLabels = { teamName: 'Team Name', power: 'Power', merits: 'Merits', mp: 'M/P %', mpRank: 'M/P R', kills: 'Kills', deads: 'Deads', totalCh25: 'CH25', avgAp: 'CH25 AVG' };
+    const sortLabels = { 
+        teamName: 'Team Name', power: 'Power', merits: 'Merits', mp: 'M/P %', mpRank: 'M/P R', kills: 'Kills', deads: 'Deads', totalCh25: 'CH25', avgAp: 'CH25 AVG',
+        "10-20M Merits": "10-20M M", "20-30M Merits": "20-30M M", "30-40M Merits": "30-40M M", "40-50M Merits": "40-50M M", "50M+ Merits": "50M+ M",
+        "10M+ Merits": "10M+ M", "20M+ Merits": "20M+ M", "30M+ Merits": "30M+ M", "40M+ Merits": "40M+ M"
+    };
     
     const possibleTroopHeaders = [
         "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
-        "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200-250M","250-300M"
+        "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200-250M","250-300M",
+        "10-20M Merits", "20-30M Merits", "30-40M Merits", "40-50M Merits", "50M+ Merits",
+        "10M+ Merits", "20M+ Merits", "30M+ Merits", "40M+ Merits"
     ];
 
-    // --- UTILITIES & SEARCH ---
-
-    function kdClean(val) {
-        if (!val) return "";
-        return String(parseInt(parseFloat(String(val).trim())));
+    function kdClean(val) { if (!val) return ""; return String(parseInt(parseFloat(String(val).trim()))); }
+    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
+    function formatVal(n) { 
+        if (!n && n !== 0) return "0.00"; 
+        const abs = Math.abs(n); 
+        let s = abs >= 1e9 ? (abs / 1e9).toFixed(2) + 'B' : 
+                abs >= 1e6 ? (abs / 1e6).toFixed(1) + 'M' : 
+                abs.toLocaleString(); 
+        return n < 0 ? "-" + s : s; 
+    }
+    function formatValNoDec(n) { 
+        if (!n && n !== 0) return "0"; 
+        const abs = Math.floor(Math.abs(n)); 
+        let s = abs >= 1e6 ? (abs / 1e6).toFixed(1) + 'M' : 
+                abs.toLocaleString(); 
+        return n < 0 ? "-" + s : s; 
     }
 
     function handleSearchInput() {
-        const searchVal = document.getElementById('teamSearch').value.trim();
-        if (searchVal) {
-            window.location.hash = encodeURIComponent(searchVal);
-        } else {
-            history.replaceState(null, null, ' ');
-        }
+        const val = document.getElementById('teamSearch').value.trim();
+        if (val) window.location.hash = encodeURIComponent(val);
+        else history.replaceState(null, null, ' ');
         renderAll();
     }
 
@@ -613,26 +624,16 @@
         if (window.location.hash) {
             const hashVal = decodeURIComponent(window.location.hash.substring(1));
             const searchInput = document.getElementById('teamSearch');
-            if (searchInput) {
-                searchInput.value = hashVal;
-            }
+            if (searchInput) searchInput.value = hashVal;
         }
     }
 
-    window.addEventListener('hashchange', () => {
-        syncSearchFromHash();
-        renderAll();
-    });
+    window.addEventListener('hashchange', () => { syncSearchFromHash(); renderAll(); });
 
     function hideLoading() {
         const overlay = document.getElementById('loadingOverlay');
-        if (overlay) {
-            overlay.style.opacity = '0';
-            setTimeout(() => { overlay.style.display = 'none'; }, 300);
-        }
+        if (overlay) { overlay.style.opacity = '0'; setTimeout(() => { overlay.style.display = 'none'; }, 300); }
     }
-
-    // --- AUTH ---
 
     function enableAdminMode() {
         isAdmin = true;
@@ -645,31 +646,12 @@
     async function login() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('pass').value;
-        const errorDiv = document.getElementById('loginError');
-        const btn = document.getElementById('loginActionBtn');
-        errorDiv.style.display = 'none';
-        btn.textContent = "AUTHORIZING...";
-        btn.disabled = true;
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { 
-            errorDiv.textContent = error.message; 
-            errorDiv.style.display = 'block'; 
-            btn.disabled = false;
-            btn.textContent = "AUTHORIZE";
-        } else { 
-            enableAdminMode(); 
-            toggleModal(false); 
-        }
+        if (error) alert(error.message); else { enableAdminMode(); toggleModal(false); }
     }
 
-    async function logout() { 
-        await supabaseClient.auth.signOut(); 
-        location.reload(); 
-    }
-
+    async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
     function toggleModal(v) { document.getElementById('authModal').style.display = v ? 'flex' : 'none'; }
-
-    // --- CLOUD DATA ---
 
     window.onload = async () => {
         try {
@@ -680,15 +662,13 @@
             let v = "1.0";
             try {
                 const { data: vBlob } = await supabaseClient.storage.from(BUCKET_CONFIGS).download('version.json?t=' + Date.now());
-                const vData = JSON.parse(await vBlob.text());
-                v = vData.v;
-                window.DATA_VERSION = v;
-            } catch(e) { window.DATA_VERSION = "1.0"; }
+                v = JSON.parse(await vBlob.text()).v;
+            } catch(e) {}
+            window.DATA_VERSION = v;
 
-            const timestamp = `?v=${v}`;
             const [sRes, fRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/SosNames.json' + timestamp),
-                supabaseClient.storage.from(BUCKET_DATA).download('Pull/files.json' + timestamp)
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/SosNames.json?v=${v}`),
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/files.json?v=${v}`)
             ]);
             
             sosMap = JSON.parse(await sRes.data.text());
@@ -696,12 +676,7 @@
             
             await fetchTeamsFromCloud(); 
             populateFileSelector();
-
-        } catch (e) { 
-            console.error(e); 
-        } finally { 
-            hideLoading();
-        }
+        } catch (e) { console.error(e); } finally { hideLoading(); }
     };
 
     function populateFileSelector() {
@@ -723,7 +698,6 @@
     async function loadSelectedFile(fileName) {
         selectedFileName = fileName; 
         const cleanName = fileName.replace(/\.csv/i, '');
-        const jsonName = cleanName + '.json';
         const v = window.DATA_VERSION || "1.0";
         const timestamp = `?v=${v}`;
         
@@ -733,55 +707,42 @@
             await Promise.all(gens.map(async (g) => {
                 try {
                     const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`Gen Pools/${cleanName}-${g}.json${timestamp}`);
-                    if (data) {
-                        const kdList = JSON.parse(await data.text());
-                        kdList.forEach(kd => { currentGenPools[kdClean(kd)] = g; });
-                    }
+                    if (data) JSON.parse(await data.text()).forEach(kd => { currentGenPools[kdClean(kd)] = g; });
                 } catch(e) {}
             }));
 
             const [regRes, csvRes] = await Promise.all([
-                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${jsonName}${timestamp}`),
+                supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${cleanName}.json${timestamp}`),
                 supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}${timestamp}`)
             ]);
             
-            let registeredKDs = new Set();
-            if (regRes.data) {
-                const regWrapper = JSON.parse(await regRes.data.text());
-                currentRegistrations = regWrapper.data || {};
-                if (regWrapper.kingdoms) {
-                    regWrapper.kingdoms.forEach(k => registeredKDs.add(kdClean(k)));
-                }
-            } else {
-                currentRegistrations = {};
-            }
+            if (regRes.data) currentRegistrations = JSON.parse(await regRes.data.text()).data || {};
             
             const result = Papa.parse(await csvRes.data.text(), { header: true, skipEmptyLines: 'greedy' });
             activeTroopKeys = result.meta.fields.filter(h => possibleTroopHeaders.includes(h));
             updateSortBar(); 
             
             masterData.clear(); 
-            let rankedPool = [];
+            let pool = [];
             result.data.forEach(row => {
-                const cleanId = kdClean(row.KD || row['KD#']);
+                const id = kdClean(row.KD || row['KD#']);
                 const p = cleanNum(row['Top 300 Power'] || row.Power);
-                if (cleanId && p > 0) {
-                    const regInfo = currentRegistrations[cleanId];
+                if (id && p > 0) {
+                    const reg = currentRegistrations[id];
                     const obj = { 
-                        kd: cleanId, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits), 
+                        kd: id, power: p, merits: cleanNum(row['Top 300 Merits'] || row.Merits), 
                         kills: cleanNum(row['Top 300 Kills'] || row.Kills), deads: cleanNum(row['Top 300 Deads'] || row.Deads), 
                         heals: cleanNum(row['Top 300 Heals'] || row.Heals), ch25: cleanNum(row['CH25']), ap: cleanNum(row['CH25 AP']), 
                         mp: p > 0 ? (cleanNum(row['Top 300 Merits'] || row.Merits)/p) : 0, 
-                        class: regInfo ? (regInfo.class || "TBD") : "-", isParagon: regInfo?.isParagon === true, 
-                        alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", gen: currentGenPools[cleanId] || 'NoG', raw: row 
+                        class: reg ? (reg.class || "TBD") : "-", isParagon: reg?.isParagon === true, 
+                        alliance: (row['#1 Ally'] || row.Alliance || "").trim() || "-", gen: currentGenPools[id] || 'NoG', raw: row 
                     };
-                    masterData.set(cleanId, obj); 
-                    if (registeredKDs.has(cleanId)) rankedPool.push(obj);
+                    masterData.set(id, obj); pool.push(obj);
                 }
             });
             
-            rankedPool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
-            rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
+            pool.sort((a,b) => b.power - a.power).forEach((d, i) => d.powerRank = i + 1);
+            pool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
             
             currentTeams = allTeamsData[fileName] || []; 
             syncSearchFromHash();
@@ -790,8 +751,8 @@
     }
 
     async function fetchTeamsFromCloud() {
-        const v = window.DATA_VERSION || "1.0";
         try {
+            const v = window.DATA_VERSION || "1.0";
             const { data } = await supabaseClient.storage.from(BUCKET_CONFIGS).download(`TeamsConfig.json?v=${v}`);
             if (data) allTeamsData = JSON.parse(await data.text());
         } catch (e) { allTeamsData = {}; }
@@ -808,17 +769,48 @@
         } catch (e) { btn.textContent="RETRY"; } finally { btn.disabled = false; }
     }
 
-    // --- RENDER ---
+    function sortTeamIds(tIdx, field) {
+        // Capture horizontal scroll of all wrappers
+        const scrollMap = Array.from(document.querySelectorAll('.table-wrapper')).map(el => el.scrollLeft);
+
+        const team = currentTeams[tIdx];
+        const nextDir = team.localSortState && team.localSortState[field] === 'desc' ? 'asc' : 'desc';
+        team.localSortState = {};
+        team.localSortState[field] = nextDir;
+
+        const isDesc = nextDir === 'desc';
+
+        team.ids.sort((a, b) => {
+            const d1 = masterData.get(kdClean(a));
+            const d2 = masterData.get(kdClean(b));
+            if (!d1 || !d2) return 0;
+            let v1, v2;
+            if (field === 'rank') { v1 = d1.powerRank || 99999; v2 = d2.powerRank || 99999; }
+            else if (field === 'kd') { v1 = parseInt(d1.kd); v2 = parseInt(d2.kd); }
+            else if (d1[field] !== undefined) { v1 = d1[field]; v2 = d2[field]; }
+            else { v1 = cleanNum(d1.raw[field]); v2 = cleanNum(d2.raw[field]); }
+            return isDesc ? v2 - v1 : v1 - v2;
+        });
+
+        renderAll();
+
+        // Restore horizontal scroll
+        const newWrappers = document.querySelectorAll('.table-wrapper');
+        newWrappers.forEach((el, idx) => {
+            if (scrollMap[idx] !== undefined) el.scrollLeft = scrollMap[idx];
+        });
+    }
 
     function renderAll() {
+        // Capture scroll positions before rebuilding container
+        const scrollMap = Array.from(document.querySelectorAll('.table-wrapper')).map(el => el.scrollLeft);
+
         const container = document.getElementById('teamsContainer');
-        const searchInputBox = document.getElementById('teamSearch');
-        const sT = searchInputBox ? searchInputBox.value.toLowerCase().trim() : ""; 
+        const sT = document.getElementById('teamSearch').value.toLowerCase().trim(); 
         const gF = document.getElementById('genSelector').value;
         container.innerHTML = '';
         
         let displayTeams = currentTeams.map((t, idx) => ({ ...t, originalIdx: idx, stats: calculateTeamTotals(t) }));
-        
         if (gF !== 'all') displayTeams = displayTeams.filter(t => t.ids.some(id => currentGenPools[kdClean(id)] === gF));
 
         displayTeams.sort((a, b) => { 
@@ -837,6 +829,11 @@
                 return (d && d.alliance.toLowerCase().includes(sT)) || kdClean(id).includes(sT);
             })); 
         }
+
+        function getArrow(team, field) {
+            if (!team.localSortState || team.localSortState[field] === undefined) return "";
+            return team.localSortState[field] === 'asc' ? " ▲" : " ▼";
+        }
         
         displayTeams.forEach(team => {
             const tIdx = team.originalIdx;
@@ -846,7 +843,7 @@
             
             let rowsHtml = team.ids.map((id, rowIdx) => {
                 const cleanId = kdClean(id); const d = masterData.get(cleanId);
-                if (!d) return `<tr>${isAdmin ? `<td class="col-del" onclick="removeRow(${tIdx}, ${rowIdx})">×</td><td class="drag-handle">≡</td>` : ''}<td class="sticky-col-rank">-</td><td class="sticky-col-ally" style="color:#ef4444;">ID [${id}] NOT FOUND</td><td class="sticky-col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" class="id-input">` : id}</td>${!allTbd ? `<td>-</td>` : ''}<td colspan="${activeTroopKeys.length + 8}" style="opacity:0.5;">---</td></tr>`;
+                if (!d) return `<tr>${isAdmin ? `<td class="col-del" onclick="removeRow(${tIdx}, ${rowIdx})">×</td><td class="drag-handle">≡</td>` : ''}<td class="sticky-col-rank">-</td><td class="sticky-col-ally" style="color:#ef4444;">NOT FOUND</td><td class="sticky-col-kd">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" class="id-input">` : id}</td>${!allTbd ? `<td>-</td>` : ''}<td colspan="${activeTroopKeys.length + 8}">---</td></tr>`;
                 
                 return `<tr>${isAdmin ? `<td class="col-del" onclick="removeRow(${tIdx}, ${rowIdx})">×</td><td class="drag-handle">≡</td>` : ''}<td class="sticky-col-rank" style="color:var(--muted); font-weight:800;">${d.powerRank || '-'}</td><td class="sticky-col-ally ${d.isParagon ? 'paragon-text' : ''}" style="font-weight:700;">${d.alliance}</td><td class="sticky-col-kd" style="color:var(--primary); font-weight:800;">${isAdmin ? `<input value="${id}" onchange="updateId(${tIdx}, ${rowIdx}, this.value)" class="id-input">` : id}</td>${!allTbd ? `<td>${d.class}</td>` : ''}<td class="${currentSort.field === 'power' ? 'highlight-sort' : ''}">${formatVal(d.power)}</td><td class="${currentSort.field === 'merits' ? 'highlight-sort' : ''}">${formatVal(d.merits)}</td><td class="${currentSort.field === 'mp' ? 'highlight-sort' : ''}">${(d.mp * 100).toFixed(2)}%</td><td class="${currentSort.field === 'mpRank' ? 'highlight-sort' : ''}">${d.mpRank || '-'}</td><td class="${currentSort.field === 'kills' ? 'highlight-sort' : ''}">${formatVal(d.kills)}</td><td class="${currentSort.field === 'deads' ? 'highlight-sort' : ''}">${formatVal(d.deads)}</td><td class="${currentSort.field === 'totalCh25' ? 'highlight-sort' : ''}">${formatValNoDec(d.ch25)}</td><td class="${currentSort.field === 'avgAp' ? 'highlight-sort' : ''}">${formatVal(d.ap)}</td>${activeTroopKeys.map(k => `<td class="${currentSort.field === k ? 'highlight-sort' : ''}">${formatValNoDec(cleanNum(d.raw[k]))}</td>`).join('')}</tr>`;
             }).join('');
@@ -855,20 +852,35 @@
                 <div class="team-header">
                     <div style="flex: 1;">
                         ${isAdmin ? `<input class="name-input" value="${team.name}" onchange="updateName(${tIdx}, this.value)">` : `<div class="name-input">${team.name}</div>`}
-                        ${!isAdmin && team.note ? `<div class="note-display">${team.note}</div>` : ''}
-                        ${isAdmin ? `<input class="note-input" placeholder="Team note..." value="${team.note || ''}" onchange="updateNote(${tIdx}, this.value)">` : ''}
+                        ${team.note ? `<div class="note-display">${team.note}</div>` : ''}
                     </div>
                     <div style="display:flex; gap:10px;">${isAdmin ? `<button class="btn btn-green" onclick="addRow(${tIdx})">+ ROW</button><button class="btn btn-red" onclick="deleteTeam(${tIdx})">DEL TEAM</button>` : ''}</div>
                 </div>
                 <div class="table-wrapper">
                     <table>
+                        <colgroup>
+                            ${isAdmin ? '<col style="width:30px;"><col style="width:30px;">' : ''}
+                            <col style="width:60px;"><col style="width:140px;"><col style="width:70px;">
+                            ${!allTbd ? '<col style="width:80px;">' : ''}
+                            <col style="width:120px;"><col style="width:120px;"><col style="width:100px;"><col style="width:100px;"><col style="width:140px;"><col style="width:140px;"><col style="width:100px;"><col style="width:120px;">
+                            ${activeTroopKeys.map(() => '<col style="width:100px;">').join('')}
+                        </colgroup>
                         <thead>
                             <tr>
                                 ${isAdmin ? '<th></th><th></th>' : ''}
-                                <th class="sticky-col-rank">RANK</th><th class="sticky-col-ally">ALLIANCE</th><th class="sticky-col-kd">KD#</th>
+                                <th class="sticky-col-rank" onclick="sortTeamIds(${tIdx}, 'rank')">RANK${getArrow(team,'rank')}</th>
+                                <th class="sticky-col-ally">ALLIANCE</th>
+                                <th class="sticky-col-kd" onclick="sortTeamIds(${tIdx}, 'kd')">KD#${getArrow(team,'kd')}</th>
                                 ${!allTbd ? '<th>CLASS</th>' : ''}
-                                <th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>CH25</th><th>AVG</th>
-                                ${activeTroopKeys.map(k => `<th>${k.replace('+', '')}</th>`).join('')}
+                                <th onclick="sortTeamIds(${tIdx}, 'power')">POWER${getArrow(team,'power')}</th>
+                                <th onclick="sortTeamIds(${tIdx}, 'merits')">MERITS${getArrow(team,'merits')}</th>
+                                <th onclick="sortTeamIds(${tIdx}, 'mp')">M/P${getArrow(team,'mp')}</th>
+                                <th onclick="sortTeamIds(${tIdx}, 'mpRank')">M/P R${getArrow(team,'mpRank')}</th>
+                                <th onclick="sortTeamIds(${tIdx}, 'kills')">KILLS${getArrow(team,'kills')}</th>
+                                <th onclick="sortTeamIds(${tIdx}, 'deads')">DEADS${getArrow(team,'deads')}</th>
+                                <th onclick="sortTeamIds(${tIdx}, 'totalCh25')">CH25${getArrow(team,'totalCh25')}</th>
+                                <th onclick="sortTeamIds(${tIdx}, 'avgAp')">AVG${getArrow(team,'avgAp')}</th>
+                                ${activeTroopKeys.map(k => `<th onclick="sortTeamIds(${tIdx}, '${k}')">${k.replace('+', '').replace(' Merits', ' M')}${getArrow(team, k)}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody id="tbody-${tIdx}">${rowsHtml}</tbody>
@@ -891,6 +903,12 @@
             `;
             container.appendChild(card); if(isAdmin) setupSortable(tIdx);
         });
+
+        // Restore horizontal scroll immediately after building
+        const newWrappers = document.querySelectorAll('.table-wrapper');
+        newWrappers.forEach((el, idx) => {
+            if (scrollMap[idx] !== undefined) el.scrollLeft = scrollMap[idx];
+        });
     }
 
     function calculateTeamTotals(team) {
@@ -900,7 +918,7 @@
             const d = masterData.get(kdClean(id)); 
             if (d) { 
                 s.power += d.power; s.merits += d.merits; s.kills += d.kills; s.deads += d.deads; s.totalCh25 += d.ch25; s.ap += d.ap; s.count++; 
-                if (typeof d.mpRank === 'number') s.totalMpRank += d.mpRank; 
+                if (d.mpRank) s.totalMpRank += d.mpRank; 
                 activeTroopKeys.forEach(k => s.b[k] += cleanNum(d.raw[k])); 
             } 
         });
@@ -914,12 +932,8 @@
 
     function updateSortBar() { 
         const container = document.querySelector('#troopRow .metric-row'); if (!container) return; 
-        container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort.field === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); 
+        container.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort.field === k ? 'active' : ''}" onclick="setSort('${k}', this)">${sortLabels[k] || k.replace('+', '')}</button>`).join(''); 
     }
-
-    function cleanNum(v) { if (!v) return 0; return parseFloat(String(v).replace(/,/g, '').replace('%', '')) || 0; }
-    function formatVal(n) { if (!n) return "0"; if (n >= 1e9) return (n/1e9).toFixed(2) + 'B'; if (n >= 1e6) return (n/1e6).toFixed(1) + 'M'; return n.toLocaleString(); }
-    function formatValNoDec(n) { return n ? Math.floor(n).toLocaleString() : "0"; }
 
     function setSort(key, btn) { 
         if (currentSort.field === key) currentSort.direction = currentSort.direction === 'desc' ? 'asc' : 'desc';
@@ -941,12 +955,10 @@
 
     function setupSortable(tIdx) { 
         const el = document.getElementById(`tbody-${tIdx}`);
-        if(el) {
-            new Sortable(el, { handle: '.drag-handle', animation: 150, onEnd: (evt) => { 
-                const moved = currentTeams[tIdx].ids.splice(evt.oldIndex, 1)[0]; 
-                currentTeams[tIdx].ids.splice(evt.newIndex, 0, moved); renderAll(); 
-            }}); 
-        }
+        if(el) new Sortable(el, { handle: '.drag-handle', animation: 150, onEnd: (evt) => { 
+            const moved = currentTeams[tIdx].ids.splice(evt.oldIndex, 1)[0]; 
+            currentTeams[tIdx].ids.splice(evt.newIndex, 0, moved); renderAll(); 
+        }}); 
     }
 
     function hideDropdown() {}
