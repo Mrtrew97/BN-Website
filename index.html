@@ -169,6 +169,13 @@
             align-items: center;
         }
 
+        /* --- END OF SEASON BANNER STYLE --- */
+        .eos-banner {
+            min-height: 115px !important;
+            padding: 20px 30px !important;
+            /* Matches exact styling of standard cards */
+        }
+
         .hs-banner-content {
             display: flex;
             align-items: center;
@@ -313,6 +320,7 @@
 
             /* Mobile Banner Overrides */
             .hs-banner { min-height: 100px !important; padding: 15px !important; }
+            .eos-banner { min-height: 95px !important; }
             .hs-mascot { max-height: 50px; }
             .hs-logo { max-height: 60px; }
             .hs-banner-content { gap: 15px; }
@@ -420,7 +428,7 @@
             <p class="hs-powered-text">Powered by Hero Scrolls</p>
         </a>
 
-        <!-- ROW 1 (TOP) -->
+        <!-- ROW 1 -->
         <a href="Teams.html" class="bento-card span-3">
             <h2>Official Teams</h2>
             <p>Alliance Groupings</p>
@@ -441,7 +449,13 @@
             <p>Kingdoms wins throughout History</p>
         </a>
 
-        <!-- ROW 2 (BOTTOM) -->
+        <!-- NEW ROW: END OF SEASON (FULL WIDTH / SHORTER) -->
+        <a href="EndOfSeason.html" class="bento-card span-full eos-banner">
+            <h2>End of Season Stats</h2>
+            <p>Comprehensive Season Summaries</p>
+        </a>
+
+        <!-- ROW 2 -->
         <a href="HistoricalPercents.html" class="bento-card span-3">
             <h2>Kingdom Histories</h2>
             <p>Kingdom Evolution</p>

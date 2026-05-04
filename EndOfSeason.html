@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Mrtrew97/BN-Website/main/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BN Analytics | End of Season Stats</title>
+    
+    <link rel="stylesheet" href="global.css">
+    <link rel="stylesheet" href="mobile.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
+            background-attachment: fixed; 
+            color: var(--text); 
+            margin: 0; padding: 0; 
+            overflow-x: hidden;
+        }
+
+        .unified-container { max-width: 1600px; margin: 0 auto; padding: 0 25px; width: 100%; box-sizing: border-box; }
+
+        /* --- 1. HEADER ALIGNMENT (SYNCED WITH MATCHUPS.HTML) --- */
+        .header-top-row { 
+            margin-top: 25px; 
+            margin-bottom: 20px; 
+            display: grid; 
+            grid-template-columns: 1fr auto 1fr; 
+            align-items: center; 
+            width: 100%; 
+        }
+        .nav-side-box { display: flex; align-items: center; gap: 10px; }
+        .nav-side-box.right { justify-content: flex-end; gap: 10px; }
+
+        /* --- 2. SEARCH ROW --- */
+        .search-glass-row { 
+            background: var(--glass); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 24px; 
+            padding: 15px 20px; 
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px; 
+        }
+        .search-center-box { width: 550px; display: flex; justify-content: center; }
+        .search-input { 
+            width: 100%; 
+            padding: 12px 20px; 
+            border-radius: 12px; 
+            border: 1px solid var(--glass-border); 
+            background: rgba(0,0,0,0.3); 
+            color: white; 
+            outline: none; 
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .controls-glass {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .season-select {
+            padding: 12px 20px;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--glass-border);
+            color: white;
+            font-weight: 800;
+            outline: none;
+            cursor: pointer;
+            min-width: 250px;
+            text-align: center;
+        }
+
+        /* --- 3. STICKY TABLE SYSTEM --- */
+        .table-wrapper {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            overflow: auto; 
+            max-height: 80vh; 
+            margin-bottom: 100px;
+            position: relative;
+        }
+
+        table { 
+            width: max-content; 
+            border-collapse: separate; 
+            border-spacing: 0;
+            table-layout: fixed;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 120; /* Higher than all columns */
+            background: #1e293b !important; 
+            padding: 12px 5px;
+            font-size: 0.9rem; /* Synced to Matchups */
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--muted);
+            border-bottom: 1px solid var(--glass-border);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        /* FIXED OVERLAP: KD Column (Col 1) gets higher z-index than Alliance */
+        .sticky-col-1 {
+            position: sticky;
+            left: 0;
+            z-index: 100; /* Higher than Col 2 */
+            background-color: #1e293b !important; 
+            width: 70px;
+            min-width: 70px;
+            max-width: 70px;
+            background-clip: padding-box;
+            border-right: none;
+        }
+
+        /* Alliance Column (Col 2) */
+        .sticky-col-2 {
+            position: sticky;
+            left: 70px; 
+            z-index: 90; /* Lower than Col 1 */
+            background-color: #0f172a !important; 
+            width: 140px;
+            min-width: 140px;
+            max-width: 140px;
+            border-right: 1px solid var(--glass-border);
+            text-align: center !important; 
+            background-clip: padding-box;
+        }
+
+        /* Ensure Headers for sticky columns stay on top */
+        thead th.sticky-col-1 { z-index: 130; }
+        thead th.sticky-col-2 { z-index: 125; }
+
+        td { 
+            padding: 12px 5px; 
+            text-align: center; 
+            font-weight: 700; 
+            font-size: 1rem; /* Synced to Matchups */
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: #0f172a; 
+            white-space: nowrap;
+            color: white;
+            width: 95px; 
+            min-width: 95px;
+            max-width: 95px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        tr:hover td, tr:hover .sticky-col-1, tr:hover .sticky-col-2 { 
+            background-color: #262f3f !important; 
+        }
+
+        .kd-cell { color: var(--primary); font-weight: 800; font-size: 1rem; }
+        .gain { color: #10b981; }
+        .loss { color: #ef4444; }
+        .neutral { color: var(--muted); }
+
+        #loadingOverlay { 
+            position: fixed; inset: 0; background: #000; z-index: 9999; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+    <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <p id="status-msg" style="margin-top: 20px; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px;">Syncing Season Data...</p>
+</div>
+
+<div class="unified-container">
+    <!-- SYNCED HEADER WITH MATCHUPS.HTML -->
+    <div class="header-top-row">
+        <div class="nav-side-box">
+            <a href="index.html" class="home-link btn">HOME PAGE</a>
+        </div>
+        <h1 class="page-title-main">End of Season Stats</h1>
+        <div class="nav-side-box right"></div>
+    </div>
+
+    <div class="search-glass-row">
+        <div class="search-center-box">
+            <input type="text" id="statsSearch" class="search-input" placeholder="Search Kingdom ID or Alliance..." oninput="handleSearch()">
+        </div>
+    </div>
+
+    <div class="controls-glass">
+        <div style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+            <span style="font-size:0.65rem; font-weight:900; color:var(--muted); text-transform:uppercase; text-align:center;">Select Season</span>
+            <select id="seasonSelector" class="season-select" onchange="loadSeasonData()">
+                <option value="">-- Choose a Season --</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="statsTable">
+            <thead id="statsHead"></thead>
+            <tbody id="statsBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://rdymqphlkjzvkmtrizqc.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkeW1xcGhsa2p6dmttdHJpenFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyOTk2MTIsImV4cCI6MjA4OTg3NTYxMn0.RG7KkgDihX9nFQ9IR8YEIQ9r8ghTYv4Zf0IyjZ6kOXU";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let pairedSeasons = {};
+    let currentSeasonData = []; 
+    let dynamicFields = []; 
+    let currentSort = { field: 'Merits', direction: 'desc' };
+    let searchTerm = "";
+
+    window.onload = async () => {
+        try {
+            const [sosRes, eraRes] = await Promise.all([
+                supabaseClient.storage.from('kvk-data').download('Pull/SosNames.json'),
+                supabaseClient.storage.from('configs').download('snapshotera.json')
+            ]);
+            const sosNames = JSON.parse(await sosRes.data.text());
+            const eraData = JSON.parse(await eraRes.data.text());
+            for (const [date, fullName] of Object.entries(sosNames)) {
+                const match = fullName.match(/SoS(\d+)/);
+                if (!match) continue;
+                const sosNum = match[1];
+                const era = eraData[date];
+                if (!pairedSeasons[sosNum]) pairedSeasons[sosNum] = { start: null, end: null };
+                if (era === "START") pairedSeasons[sosNum].start = date;
+                if (era === "END") pairedSeasons[sosNum].end = date;
+            }
+            const selector = document.getElementById('seasonSelector');
+            Object.keys(pairedSeasons).sort((a,b) => b-a).forEach(num => {
+                const s = pairedSeasons[num];
+                if (s.start && s.end) {
+                    const opt = document.createElement('option');
+                    opt.value = num;
+                    opt.textContent = `SoS ${num} (Season Stats)`;
+                    selector.appendChild(opt);
+                }
+            });
+        } catch (e) { console.error(e); }
+        finally { document.getElementById('loadingOverlay').style.display = 'none'; }
+    };
+
+    function handleSearch() {
+        searchTerm = document.getElementById('statsSearch').value.toLowerCase().trim();
+        renderTable();
+    }
+
+    async function loadSeasonData() {
+        const num = document.getElementById('seasonSelector').value;
+        if (!num) return;
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.style.display = 'flex';
+        const season = pairedSeasons[num];
+        currentSeasonData = [];
+        dynamicFields = [];
+        try {
+            const regRes = await supabaseClient.storage.from('configs').download(`SavedRegistrations/${season.start}.json`);
+            const registeredKDs = JSON.parse(await regRes.data.text()).kingdoms || [];
+            const [startCsvRes, endCsvRes] = await Promise.all([
+                supabaseClient.storage.from('kvk-data').download(`Pull/${season.start}.csv`),
+                supabaseClient.storage.from('kvk-data').download(`Pull/${season.end}.csv`)
+            ]);
+            const startRaw = Papa.parse(await startCsvRes.data.text(), { header: true, skipEmptyLines: true }).data;
+            const endRaw = Papa.parse(await endCsvRes.data.text(), { header: true, skipEmptyLines: true }).data;
+            const startMap = new Map();
+            startRaw.forEach(r => startMap.set(kdClean(r.KD || r['KD#']), r));
+            if (endRaw.length > 0) {
+                const sampleRow = endRaw[0];
+                const skipList = ['KD', 'KD#', 'Alliance', '#1 Ally', 'Name', 'Class', 'M/P', 'MP'];
+                Object.keys(sampleRow).forEach(key => {
+                    if (skipList.some(s => key.includes(s))) return;
+                    if (!isNaN(parseFloat(String(sampleRow[key]).replace(/,/g, '').replace('%','')))) dynamicFields.push(key);
+                });
+            }
+            registeredKDs.forEach(kdId => {
+                const kd = kdClean(kdId);
+                const sRow = startMap.get(kd);
+                const eRow = endRaw.find(r => kdClean(r.KD || r['KD#']) === kd);
+                if (!sRow || !eRow) return;
+                let entry = { KD: parseInt(kd), Alliance: eRow['#1 Ally'] || eRow['Alliance'] || "---", deltas: {} };
+                dynamicFields.forEach(f => {
+                    entry.deltas[f] = cleanNum(eRow[f]) - cleanNum(sRow[f]);
+                });
+                currentSeasonData.push(entry);
+            });
+            renderTable();
+        } catch (e) { alert("Error loading files."); }
+        finally { overlay.style.display = 'none'; }
+    }
+
+    function setSort(field) {
+        if (currentSort.field === field) currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        else { currentSort.field = field; currentSort.direction = 'desc'; }
+        renderTable();
+    }
+
+    function renderTable() {
+        const head = document.getElementById('statsHead');
+        const body = document.getElementById('statsBody');
+        let headHtml = `<tr>
+            <th class="sticky-col-1" onclick="setSort('KD')">KD ${currentSort.field==='KD'?(currentSort.direction==='asc'?'▲':'▼'):''}</th>
+            <th class="sticky-col-2" onclick="setSort('Alliance')">Alliance ${currentSort.field==='Alliance'?(currentSort.direction==='asc'?'▲':'▼'):''}</th>`;
+        dynamicFields.forEach(f => {
+            const label = f.replace('Top 300 ', '').replace(' (End)', '');
+            headHtml += `<th onclick="setSort('${f}')">${label} ${currentSort.field===f?(currentSort.direction==='asc'?'▲':'▼'):''}</th>`;
+        });
+        head.innerHTML = headHtml + `</tr>`;
+
+        let filtered = currentSeasonData;
+        if (searchTerm) filtered = currentSeasonData.filter(r => r.KD.toString().includes(searchTerm) || r.Alliance.toLowerCase().includes(searchTerm));
+        
+        filtered.sort((a,b) => {
+            let vA = a.deltas[currentSort.field] ?? a[currentSort.field];
+            let vB = b.deltas[currentSort.field] ?? b[currentSort.field];
+            return currentSort.direction === 'asc' ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
+        });
+
+        body.innerHTML = filtered.map(row => `
+            <tr>
+                <td class="sticky-col-1 kd-cell">${row.KD}</td>
+                <td class="sticky-col-2" style="font-size:0.95rem;">${row.Alliance}</td>
+                ${dynamicFields.map(f => `<td class="${getClass(row.deltas[f])}">${formatVal(row.deltas[f])}</td>`).join('')}
+            </tr>
+        `).join('');
+    }
+
+    function kdClean(v) { return v ? String(parseInt(parseFloat(String(v).trim()))) : ""; }
+    function cleanNum(v) { return v ? parseFloat(String(v).replace(/,/g, '').replace('%','')) || 0 : 0; }
+    function formatVal(n) {
+        if (n === 0) return "0";
+        const abs = Math.abs(n);
+        let s = abs >= 1e9 ? (abs / 1e9).toFixed(2) + 'B' : abs >= 1e6 ? (abs / 1e6).toFixed(1) + 'M' : abs.toLocaleString();
+        return (n > 0 ? "+" : "-") + s;
+    }
+    function getClass(n) { return n > 0 ? "gain" : (n < 0 ? "loss" : "neutral"); }
+</script>
+</body>
+</html>
