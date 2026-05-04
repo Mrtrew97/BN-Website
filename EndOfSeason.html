@@ -15,6 +15,87 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* --- 1. MOBILE & SCROLLBAR OVERRIDES --- */
+        html {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        html::-webkit-scrollbar { 
+            display: none; 
+        }
+
+        /* --- ROTATE HINT OVERLAY (SYNCED WITH MATCHUPS) --- */
+        #rotate-hint {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(15px);
+            z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 900px) and (orientation: portrait) {
+            #rotate-hint { 
+                display: flex; 
+            }
+        }
+
+        .rotate-content p {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+            margin: 20px 0;
+            color: var(--primary);
+        }
+
+        .rotate-content button {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--muted);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .phone-icon {
+            width: 50px;
+            height: 80px;
+            border: 3px solid white;
+            border-radius: 6px;
+            position: relative;
+            margin: 0 auto;
+            animation: rotatePhone 3s ease-in-out infinite;
+        }
+
+        .phone-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+
+        @keyframes rotatePhone {
+            0%, 20% { transform: rotate(0deg); }
+            40%, 60% { transform: rotate(90deg); }
+            80%, 100% { transform: rotate(0deg); }
+        }
+
+        /* --- BASE STYLING --- */
         body { 
             font-family: 'Inter', sans-serif; 
             background: radial-gradient(circle at top right, #1e293b, #0f172a, #000); 
@@ -26,7 +107,6 @@
 
         .unified-container { max-width: 1600px; margin: 0 auto; padding: 0 25px; width: 100%; box-sizing: border-box; }
 
-        /* --- 1. HEADER ALIGNMENT (SYNCED WITH MATCHUPS.HTML) --- */
         .header-top-row { 
             margin-top: 25px; 
             margin-bottom: 20px; 
@@ -38,7 +118,6 @@
         .nav-side-box { display: flex; align-items: center; gap: 10px; }
         .nav-side-box.right { justify-content: flex-end; gap: 10px; }
 
-        /* --- 2. SEARCH ROW --- */
         .search-glass-row { 
             background: var(--glass); 
             backdrop-filter: blur(10px); 
@@ -63,16 +142,16 @@
         }
 
         .controls-glass {
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 20px;
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
+            background: var(--glass); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 24px; 
+            padding: 20px; 
+            display: flex; 
+            gap: 20px; 
+            align-items: center; 
+            justify-content: center; 
+            margin-bottom: 30px; 
         }
 
         .season-select {
@@ -88,7 +167,7 @@
             text-align: center;
         }
 
-        /* --- 3. STICKY TABLE SYSTEM --- */
+        /* --- STICKY TABLE SYSTEM --- */
         .table-wrapper {
             background: var(--glass);
             border: 1px solid var(--glass-border);
@@ -109,10 +188,10 @@
         thead th {
             position: sticky;
             top: 0;
-            z-index: 120; /* Higher than all columns */
+            z-index: 120;
             background: #1e293b !important; 
             padding: 12px 5px;
-            font-size: 0.9rem; /* Synced to Matchups */
+            font-size: 0.9rem; 
             font-weight: 800;
             text-transform: uppercase;
             color: var(--muted);
@@ -122,11 +201,10 @@
             white-space: nowrap;
         }
 
-        /* FIXED OVERLAP: KD Column (Col 1) gets higher z-index than Alliance */
         .sticky-col-1 {
             position: sticky;
             left: 0;
-            z-index: 100; /* Higher than Col 2 */
+            z-index: 100;
             background-color: #1e293b !important; 
             width: 70px;
             min-width: 70px;
@@ -135,11 +213,10 @@
             border-right: none;
         }
 
-        /* Alliance Column (Col 2) */
         .sticky-col-2 {
             position: sticky;
             left: 70px; 
-            z-index: 90; /* Lower than Col 1 */
+            z-index: 90;
             background-color: #0f172a !important; 
             width: 140px;
             min-width: 140px;
@@ -149,7 +226,6 @@
             background-clip: padding-box;
         }
 
-        /* Ensure Headers for sticky columns stay on top */
         thead th.sticky-col-1 { z-index: 130; }
         thead th.sticky-col-2 { z-index: 125; }
 
@@ -157,7 +233,7 @@
             padding: 12px 5px; 
             text-align: center; 
             font-weight: 700; 
-            font-size: 1rem; /* Synced to Matchups */
+            font-size: 1rem; 
             border-bottom: 1px solid rgba(255,255,255,0.05);
             background: #0f172a; 
             white-space: nowrap;
@@ -185,7 +261,16 @@
         @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
+<body onclick="hideDropdown()">
+
+<!-- ROTATE HINT OVERLAY -->
+<div id="rotate-hint">
+    <div class="rotate-content">
+        <div class="phone-icon"></div>
+        <p>Landscape view recommended</p>
+        <button onclick="document.getElementById('rotate-hint').style.setProperty('display', 'none', 'important')">Dismiss</button>
+    </div>
+</div>
 
 <div id="loadingOverlay">
     <div style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -193,7 +278,6 @@
 </div>
 
 <div class="unified-container">
-    <!-- SYNCED HEADER WITH MATCHUPS.HTML -->
     <div class="header-top-row">
         <div class="nav-side-box">
             <a href="index.html" class="home-link btn">HOME PAGE</a>
@@ -360,6 +444,7 @@
         return (n > 0 ? "+" : "-") + s;
     }
     function getClass(n) { return n > 0 ? "gain" : (n < 0 ? "loss" : "neutral"); }
+    function hideDropdown() {}
 </script>
 </body>
 </html>
