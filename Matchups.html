@@ -275,7 +275,7 @@
             width: 100%; 
         }
         .expand-rows.open { 
-            max-height: 250px; 
+            max-height: 350px; 
             margin-top: 10px; 
             border-top: 1px solid var(--glass-border); 
             padding-top: 10px; 
@@ -339,7 +339,7 @@
             border-collapse: separate; 
             border-spacing: 0 4px; 
             table-layout: fixed !important; 
-            min-width: 2200px; 
+            min-width: 2500px; 
         }
 
         th { 
@@ -349,8 +349,15 @@
             font-size: 0.9rem; 
             font-weight: 800; 
             text-transform: uppercase; 
-            border-bottom: 1px solid var(--glass-border); 
+            border-bottom: 1px solid var(--glass-border);
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
         }
+        th:hover {
+            color: var(--primary);
+        }
+
         td { 
             padding: 15px 2px; 
             text-align: center; 
@@ -443,6 +450,11 @@
             background: rgba(59, 130, 246, 0.15) !important; 
             color: white !important; 
             font-weight: 950 !important; 
+        }
+        .winning-val {
+            color: #10b981 !important; /* EMERALD GREEN */
+            font-weight: 900 !important;
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
         }
         .row-total-a, .row-total-b { 
             background: rgba(59, 130, 246, 0.1) !important; 
@@ -792,7 +804,16 @@
         deads: 'Deads', 
         heals: 'Heals', 
         ch25: 'CH25', 
-        ap: 'CH25 AVG' 
+        ap: 'CH25 AVG',
+        "10-20M Merits": "10-20M M",
+        "20-30M Merits": "20-30M M",
+        "30-40M Merits": "30-40M M",
+        "40-50M Merits": "40-50M M",
+        "50M+ Merits": "50M+ M",
+        "10M+ Merits": "10M+ M",
+        "20M+ Merits": "20M+ M",
+        "30M+ Merits": "30M+ M",
+        "40M+ Merits": "40M+ M"
     };
 
     let zoneWinners = { 
@@ -804,7 +825,9 @@
     
     const possibleTroopHeaders = [
         "10M","20M","30M","40M","50M","60M+","80M+","100M+","125M+","150M+","200M+","250M+","300M+",
-        "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200-250M","250-300M"
+        "10-20M","20-40M","40-60M","60-80M","80-100M","100-125M","125-150M","150-200M","200-250M","250-300M",
+        "10-20M Merits", "20-30M Merits", "30-40M Merits", "40-50M Merits", "50M+ Merits",
+        "10M+ Merits", "20M+ Merits", "30M+ Merits", "40M+ Merits"
     ];
 
     const zoneFileMap = { 
@@ -1073,7 +1096,8 @@
 
             const [regRes, csvRes] = await Promise.all([
                 supabaseClient.storage.from(BUCKET_CONFIGS).download(`SavedRegistrations/${cleanName}.json${timestamp}`),
-                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}${timestamp}`)
+                supabaseClient.storage.from(BUCKET_DATA).download(`Pull/${fileName}${timestamp}`),
+                fetchVotes()
             ]);
             
             if (regRes.data) {
@@ -1121,7 +1145,6 @@
                 rankedPool.sort((a,b) => b.mp - a.mp).forEach((d, i) => d.mpRank = i + 1);
             }
             
-            await fetchVotes(); 
             currentMatchups = allCloudData[cleanName] || allCloudData[fileName] || []; 
             syncSearchFromHash();
             renderAll();
@@ -1287,6 +1310,56 @@
         zoneWinners[zone][cleanKey][matchup.name] = val;
     }
 
+    function sortMatchupIds(mIdx, field) {
+        const m = currentMatchups[mIdx];
+        const ids = m.ids;
+        
+        const idxA = ids.indexOf("TOTAL A");
+        const idxB = ids.indexOf("TOTAL B");
+        
+        if (idxA === -1 || idxB === -1) return;
+
+        let teamA = ids.slice(0, idxA);
+        let middle = ids.slice(idxA, idxB + 1); 
+        let teamB = ids.slice(idxB + 1);
+
+        if (!m.localSortState) m.localSortState = {};
+        const isCurrentlyDesc = m.localSortState[field] !== 'asc';
+        m.localSortState[field] = isCurrentlyDesc ? 'asc' : 'desc';
+
+        const sortFn = (id1, id2) => {
+            const d1 = masterData.get(kdClean(id1));
+            const d2 = masterData.get(kdClean(id2));
+            if (!d1 || !d2) return 0;
+
+            let v1, v2;
+            if (field === 'rank') {
+                v1 = d1.powerRank || 99999;
+                v2 = d2.powerRank || 99999;
+            } else if (field === 'kd') {
+                v1 = parseInt(d1.kd) || 0;
+                v2 = parseInt(d2.kd) || 0;
+            } else if (field === 'mpRank') {
+                v1 = d1.mpRank || 0;
+                v2 = d2.mpRank || 0;
+            } else if (d1[field] !== undefined) {
+                v1 = d1[field];
+                v2 = d2[field];
+            } else {
+                v1 = cleanNum(d1.raw[field]);
+                v2 = cleanNum(d2.raw[field]);
+            }
+
+            return isCurrentlyDesc ? v2 - v1 : v1 - v2;
+        };
+
+        teamA.sort(sortFn);
+        teamB.sort(sortFn);
+
+        m.ids = [...teamA, ...middle, ...teamB];
+        renderAll();
+    }
+
     // --- RENDERING CORE ---
 
     function renderAll() {
@@ -1363,12 +1436,36 @@
                 const data = masterData.get(kdClean(id)); 
                 return !data || data.class === "TBD" || data.class === "-"; 
             });
+
+            // Helper for individual matchup sorting indicators
+            function getArrow(m, field) {
+                if (!m.localSortState || m.localSortState[field] === undefined) return "";
+                return m.localSortState[field] === 'asc' ? " ▲" : " ▼";
+            }
             
             let rowsHtml = matchup.ids.map((id, rowIdx) => {
                 const upperId = String(id).toUpperCase().trim(); 
-                // Updated to recognize both old and new names
+                const isTotalA = upperId === "TOTAL A";
+                const isTotalB = upperId === "TOTAL B";
                 const isSpecialRow = ["TOTAL A", "TOTAL B", "TEAM A - TEAM B", "DIFFERENTIALS (A-B)"].includes(upperId); 
                 const rowStats = matchup.stats.rows[rowIdx];
+                const statsA = matchup.stats.rows[matchup.ids.indexOf("TOTAL A")];
+                const statsB = matchup.stats.rows[matchup.ids.indexOf("TOTAL B")];
+
+                function getWinClass(field, val, subField = null) {
+                    if (!statsA || !statsB || !["TOTAL A", "TOTAL B"].includes(upperId)) return "";
+                    let valA, valB;
+                    if (subField) {
+                        valA = statsA.b?.[subField] || 0;
+                        valB = statsB.b?.[subField] || 0;
+                    } else {
+                        valA = statsA[field] || 0;
+                        valB = statsB[field] || 0;
+                    }
+                    if (valA === valB) return "";
+                    const isWinning = (isTotalA && valA > valB) || (isTotalB && valB > valA);
+                    return isWinning ? "winning-val" : "";
+                }
                 
                 if (isSpecialRow) { 
                     const displayName = ["TEAM A - TEAM B", "DIFFERENTIALS (A-B)"].includes(upperId) ? "TEAM A - TEAM B" : upperId;
@@ -1380,17 +1477,17 @@
                             <td class="sticky-col-ally" style="color: white !important; font-weight:900; text-align:center !important;">${displayName}</td>
                             <td class="sticky-col-kd"></td> 
                             ${!areAllKingdomsTbd ? '<td></td>' : ''}
-                            <td class="${currentSort.field === 'power' ? 'highlight-sort' : ''}">${formatVal(rowStats.power)}</td>
-                            <td class="${currentSort.field === 'merits' ? 'highlight-sort' : ''}">${formatVal(rowStats.merits)}</td>
-                            <td class="${currentSort.field === 'mp' ? 'highlight-sort' : ''}">${(rowStats.mp * 100).toFixed(2)}%</td>
-                            <td class="${currentSort.field === 'mpRank' ? 'highlight-sort' : ''}">${rowStats.mpRankSum || 0}</td>
-                            <td class="${currentSort.field === 'kills' ? 'highlight-sort' : ''}">${formatVal(rowStats.kills)}</td>
-                            <td class="${currentSort.field === 'deads' ? 'highlight-sort' : ''}">${formatVal(rowStats.deads)}</td>
-                            <td class="${currentSort.field === 'heals' ? 'highlight-sort' : ''}">${formatVal(rowStats.heals)}</td>
-                            <td class="${currentSort.field === 'ch25' ? 'highlight-sort' : ''}">${formatValNoDec(rowStats.ch25)}</td>
-                            <td class="${currentSort.field === 'ap' ? 'highlight-sort' : ''}">${formatVal(rowStats.ap)}</td>
+                            <td class="${currentSort.field === 'power' ? 'highlight-sort' : ''} ${getWinClass('power', rowStats.power)}">${formatVal(rowStats.power)}</td>
+                            <td class="${currentSort.field === 'merits' ? 'highlight-sort' : ''} ${getWinClass('merits', rowStats.merits)}">${formatVal(rowStats.merits)}</td>
+                            <td class="${currentSort.field === 'mp' ? 'highlight-sort' : ''} ${getWinClass('mp', rowStats.mp)}">${(rowStats.mp * 100).toFixed(2)}%</td>
+                            <td class="${currentSort.field === 'mpRank' ? 'highlight-sort' : ''} ${getWinClass('mpRankSum', rowStats.mpRankSum)}">${rowStats.mpRankSum || 0}</td>
+                            <td class="${currentSort.field === 'kills' ? 'highlight-sort' : ''} ${getWinClass('kills', rowStats.kills)}">${formatVal(rowStats.kills)}</td>
+                            <td class="${currentSort.field === 'deads' ? 'highlight-sort' : ''} ${getWinClass('deads', rowStats.deads)}">${formatVal(rowStats.deads)}</td>
+                            <td class="${currentSort.field === 'heals' ? 'highlight-sort' : ''} ${getWinClass('heals', rowStats.heals)}">${formatVal(rowStats.heals)}</td>
+                            <td class="${currentSort.field === 'ch25' ? 'highlight-sort' : ''} ${getWinClass('ch25', rowStats.ch25)}">${formatValNoDec(rowStats.ch25)}</td>
+                            <td class="${currentSort.field === 'ap' ? 'highlight-sort' : ''} ${getWinClass('ap', rowStats.ap)}">${formatVal(rowStats.ap)}</td>
                             ${activeTroopKeys.map(k => `
-                                <td class="${currentSort.field === k ? 'highlight-sort' : ''}">${formatValNoDec(rowStats.b[k])}</td>
+                                <td class="${currentSort.field === k ? 'highlight-sort' : ''} ${getWinClass(null, rowStats.b[k], k)}">${formatValNoDec(rowStats.b[k])}</td>
                             `).join('')}
                         </tr>
                     `; 
@@ -1448,35 +1545,25 @@
                 `;
             }).join('');
 
-            // --- WINNER LOOKUP FIX ---
             let winnerUiSection = '';
             const eligibleZoneNames = ['zone 2', 'zone 3', 'zone 4', 'final'];
             if (eligibleZoneNames.includes(matchup.zone)) {
                 const dateKey = selectedFileName.replace(/\.csv/i,'');
                 const zoneKey = matchup.zone;
-                
                 let curWinVal = "";
                 if (zoneWinners[zoneKey] && zoneWinners[zoneKey][dateKey]) {
                     const winnersForDate = zoneWinners[zoneKey][dateKey];
-                    // Direct match
-                    if (winnersForDate[matchup.name]) {
-                        curWinVal = winnersForDate[matchup.name];
-                    } else {
-                        // Fuzzy match (starts with)
+                    if (winnersForDate[matchup.name]) curWinVal = winnersForDate[matchup.name];
+                    else {
                         for (let winnerId in winnersForDate) {
-                            if (matchup.name.startsWith(winnerId)) {
-                                curWinVal = winnersForDate[winnerId];
-                                break;
-                            }
+                            if (matchup.name.startsWith(winnerId)) { curWinVal = winnersForDate[winnerId]; break; }
                         }
                     }
                 }
-                
                 const isFinalZoneType = zoneKey === 'final';
                 const clr = isFinalZoneType ? '#fbbf24' : '#3b82f6';
                 const bg = isFinalZoneType ? 'rgba(251, 191, 36, 0.1)' : 'rgba(59, 130, 246, 0.1)';
                 const brd = isFinalZoneType ? 'rgba(251, 191, 36, 0.3)' : 'rgba(59, 130, 246, 0.3)';
-                
                 if (isAdmin) {
                     winnerUiSection = `
                         <div style="margin-bottom:15px; background:${bg}; border:1px solid ${brd}; padding:12px 15px; border-radius:12px; display:flex; align-items:center; gap:12px;">
@@ -1527,7 +1614,7 @@
                     <option value="final" ${matchup.zone === 'final' ? 'selected' : ''}>FINAL ZONE</option>
                 </select>
             ` : `<span class="btn" style="font-size:0.7rem; padding:4px 12px;">${matchup.zone.toUpperCase()}</span>`;
-            
+
             card.innerHTML = `
                 <div class="card-header">
                     <div style="flex: 1;">
@@ -1553,10 +1640,22 @@
                         <thead>
                             <tr>
                                 ${isAdmin ? '<th></th><th></th>' : ''}
-                                <th class="sticky-col-rank">RANK</th><th class="sticky-col-ally">ALLIANCE</th><th class="sticky-col-kd">KD#</th>
+                                <th class="sticky-col-rank" onclick="sortMatchupIds(${matchupIndex}, 'rank')">RANK${getArrow(matchup, 'rank')}</th>
+                                <th class="sticky-col-ally">ALLIANCE</th>
+                                <th class="sticky-col-kd" onclick="sortMatchupIds(${matchupIndex}, 'kd')">KD#${getArrow(matchup, 'kd')}</th>
                                 ${!areAllKingdomsTbd ? '<th>CLASS</th>' : ''}
-                                <th>POWER</th><th>MERITS</th><th>M/P</th><th>M/P R</th><th>KILLS</th><th>DEADS</th><th>HEALS</th><th>CH25</th><th>AVG</th>
-                                ${activeTroopKeys.map(k => `<th>${k.replace('+', '')}</th>`).join('')}
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'power')">POWER${getArrow(matchup, 'power')}</th>
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'merits')">MERITS${getArrow(matchup, 'merits')}</th>
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'mp')">M/P${getArrow(matchup, 'mp')}</th>
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'mpRank')">M/P R${getArrow(matchup, 'mpRank')}</th>
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'kills')">KILLS${getArrow(matchup, 'kills')}</th>
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'deads')">DEADS${getArrow(matchup, 'deads')}</th>
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'heals')">HEALS${getArrow(matchup, 'heals')}</th>
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'ch25')">CH25${getArrow(matchup, 'ch25')}</th>
+                                <th onclick="sortMatchupIds(${matchupIndex}, 'ap')">AVG${getArrow(matchup, 'ap')}</th>
+                                ${activeTroopKeys.map(k => `
+                                    <th onclick="sortMatchupIds(${matchupIndex}, '${k}')">${k.replace('+', '').replace(' Merits', ' M')}${getArrow(matchup, k)}</th>
+                                `).join('')}
                             </tr>
                         </thead>
                         <tbody id="tbody-${matchupIndex}">${rowsHtml}</tbody>
@@ -1620,7 +1719,10 @@
 
     function updateSortBar() { 
         const c = document.querySelector('#troopRow .metric-row'); 
-        if (c) c.innerHTML = activeTroopKeys.map(k => `<button class="metric-btn ${currentSort.field === k ? 'active' : ''}" onclick="setSort('${k}', this)">${k.replace('+', '')}</button>`).join(''); 
+        if (c) c.innerHTML = activeTroopKeys.map(k => {
+            const label = sortLabels[k] || k.replace('+', '');
+            return `<button class="metric-btn ${currentSort.field === k ? 'active' : ''}" onclick="setSort('${k}', this)">${label}</button>`;
+        }).join(''); 
     }
 
     function updateId(mIdx, rIdx, v) { currentMatchups[mIdx].ids[rIdx] = v; renderAll(); }
